@@ -57,9 +57,22 @@ Binário no Firebase Storage (`src/storage/attachmentStorage.js`); aqui só o me
 ## `usuarios`
 
 ```
-{ nome, email, perfil, unidade, ativo, criadoEm }
+{ nome, email, perfil, unidade, ativo, criadoEm, vinculo: { tipo, valor } }
 ```
 Documento com o mesmo `id` do UID do Firebase Authentication.
+
+`vinculo` controla o **recorte de dados** (não confundir com `perfil`, que controla quais
+*páginas* o usuário acessa — ver `src/config/roles.js`). Determina o que aparece no
+Dashboard e nas listagens de PAD (2026-07-14):
+
+- `{ tipo: 'UNIDADE', valor: '<nome da unidade prisional>' }` — vê só os PADs daquela
+  unidade (contas `{codigo}dir@` e `{codigo}cpen@` de cada unidade).
+- `{ tipo: 'REGIONAL', valor: '<código da SR, ex.: "SR04">' }` — vê os PADs de todas as
+  unidades vinculadas àquela Superintendência Regional (contas `srXX@pp.sc.gov.br`).
+- Sem `vinculo` (ou perfil `ADMINISTRADOR`) — sem filtro, vê todos os PADs do Estado.
+
+Ver [src/services/pads/padService.js](../src/services/pads/padService.js) para o filtro
+aplicado nas consultas.
 
 ## `advogados`
 
