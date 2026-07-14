@@ -58,6 +58,13 @@ com custo. `src/ai` não participa desta fase (ver [src/ai/README.md](src/ai/REA
 
 ## Fase 5 — Anexos
 
+**Bloqueada por custo (2026-07-14):** o Firebase Storage passou a exigir o plano Blaze
+(pago) até para o uso dentro da cota gratuita, e o usuário não pode assinar nada que gere
+custo. Esta fase fica pausada até haver orçamento aprovado para o Blaze **ou** uma
+alternativa de armazenamento de arquivos sem custo for definida. Até lá, Autenticação,
+Firestore e Hosting seguem funcionando normalmente no plano Spark (gratuito) — só o upload
+de anexos fica indisponível.
+
 - Upload real para Firebase Storage com convenção de caminho por PAD/evento.
 - Metadados em `anexos` (tipo, autor, data, tamanho, vínculo com evento).
 - Visualização de fotos/vídeos/laudos e download controlado por permissão.

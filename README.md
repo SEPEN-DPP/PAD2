@@ -21,3 +21,15 @@ para o plano de fases.
 5. Acesse `http://localhost:5000`.
 
 Nenhum passo de build é necessário — o projeto usa ES Modules nativos do navegador.
+
+## Deploy
+
+O projeto está publicado em **https://pad-v2-89b30.web.app** (projeto Firebase `pad-v2-89b30`,
+conta institucional SEPEN).
+
+**Storage está bloqueado por custo** (o Firebase exige o plano Blaze até para a cota
+gratuita — ver ROADMAP.md, Fase 5). Por isso, use sempre:
+```
+firebase deploy --only firestore,hosting
+```
+Rodar `firebase deploy` sem `--only` tenta incluir o Storage e falha.
