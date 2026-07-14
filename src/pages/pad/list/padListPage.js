@@ -9,6 +9,8 @@ import { criarBotao } from '../../../components/button/button.js';
 import { criarDataTable } from '../../../components/dataTable/dataTable.js';
 import { criarStatusBadge } from '../../../components/statusBadge/statusBadge.js';
 import { listarPads } from '../../../services/pads/padService.js';
+import { calcularUnidadesVisiveis } from '../../../services/pads/escopoPad.js';
+import { usuarioAtual, obterPerfilDoUsuario } from '../../../services/auth/authService.js';
 import { formatarData } from '../../../utils/dateUtils.js';
 
 const COLUNAS = [
@@ -46,7 +48,9 @@ export async function render(container) {
     }),
   );
 
-  const pads = await listarPads({ limite: 50 });
+  const perfilUsuario = await obterPerfilDoUsuario(usuarioAtual()?.uid);
+  const unidadesVisiveis = calcularUnidadesVisiveis(perfilUsuario);
+  const pads = await listarPads({ limite: 50, unidades: unidadesVisiveis });
 
   container.append(
     criarCard({

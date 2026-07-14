@@ -12,9 +12,25 @@ import { criarTimeline } from '../../components/timeline/timeline.js';
 import { criarStatusBadge } from '../../components/statusBadge/statusBadge.js';
 import { criarEmptyState } from '../../components/emptyState/emptyState.js';
 import { contarTodosPads, contarPadsPorStatus, listarPads } from '../../services/pads/padService.js';
+import { calcularUnidadesVisiveis } from '../../services/pads/escopoPad.js';
 import { listarUltimosEventos } from '../../services/eventos/eventoService.js';
+import { usuarioAtual, obterPerfilDoUsuario } from '../../services/auth/authService.js';
 import { STATUS_PAD, STATUS_PAD_LABELS } from '../../config/constants.js';
+import { ROLES } from '../../config/roles.js';
+import { SUPERINTENDENCIAS_REGIONAIS } from '../../config/unidadesPrisionais.js';
 import { formatarData } from '../../utils/dateUtils.js';
+
+function descricaoDoRecorte(perfilUsuario) {
+  const vinculo = perfilUsuario?.vinculo;
+  if (!vinculo || perfilUsuario?.perfil === ROLES.ADMINISTRADOR) {
+    return 'Visão geral dos Processos Administrativos Disciplinares de todas as unidades.';
+  }
+  if (vinculo.tipo === 'REGIONAL') {
+    const nomeRegional = SUPERINTENDENCIAS_REGIONAIS[vinculo.valor]?.nome ?? vinculo.valor;
+    return `PADs das unidades vinculadas à ${nomeRegional}.`;
+  }
+  return `PADs da unidade: ${vinculo.valor}.`;
+}
 
 const COLUNAS_PADS = [
   { chave: 'numero', rotulo: 'Nº', render: (linha) => linha.dadosGerais?.numero ?? linha.id },
@@ -34,10 +50,13 @@ const COLUNAS_PADS = [
 export async function render(container) {
   carregarCssUmaVez('src/pages/dashboard/dashboardPage.css');
 
+  const perfilUsuario = await obterPerfilDoUsuario(usuarioAtual()?.uid);
+  const unidadesVisiveis = calcularUnidadesVisiveis(perfilUsuario);
+
   container.append(
     criarPageHeader({
       titulo: 'Dashboard',
-      descricao: 'Visão geral dos Processos Administrativos Disciplinares.',
+      descricao: descricaoDoRecorte(perfilUsuario),
     }),
   );
 
@@ -53,7 +72,10 @@ export async function render(container) {
   const grid = criarElemento('div', { class: 'dashboard__stats' });
   container.append(grid);
 
-  const [totalPads, porStatus] = await Promise.all([contarTodosPads(), contarPadsPorStatus()]);
+  const [totalPads, porStatus] = await Promise.all([
+    contarTodosPads(unidadesVisiveis),
+    contarPadsPorStatus(unidadesVisiveis),
+  ]);
 
   grid.append(
     criarStatCard({ titulo: 'Total de PADs', valor: totalPads, icon: 'folder-search' }),
@@ -91,7 +113,7 @@ export async function render(container) {
   const colunas = criarElemento('div', { class: 'dashboard__colunas' });
   container.append(colunas);
 
-  const ultimosPads = await listarPads({ limite: 5 });
+  const ultimosPads = await listarPads({ limite: 5, unidades: unidadesVisiveis });
   const containerTabela = criarElemento('div');
   const renderizarTabela = (linhas) => {
     containerTabela.replaceChildren(

@@ -9,6 +9,23 @@
       ]
     },
     {
+      "collectionGroup": "pads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dadosGerais.unidade", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dadosGerais.unidade", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "eventos",
       "queryScope": "COLLECTION",
       "fields": [

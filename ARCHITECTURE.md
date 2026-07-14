@@ -149,6 +149,18 @@ documentada em [docs/permissions-matrix.md](docs/permissions-matrix.md). O Porta
 Advogado é tratado como um contexto de autenticação separado do painel institucional
 (fase futura), mas a estrutura de rotas já reserva o espaço (`src/pages/portal-advogado`).
 
+**`perfil` (página) vs `vinculo` (dado) — 2026-07-14.** `perfil` decide *quais páginas* o
+usuário acessa. Um segundo campo, `vinculo` (`{ tipo: 'UNIDADE'|'REGIONAL', valor }`),
+decide *quais registros* aparecem dentro dessas páginas — contas de Direção/CPEN de uma
+unidade (`{codigo}dir@`, `{codigo}cpen@pp.sc.gov.br`) só veem os PADs da própria unidade;
+contas de Superintendência Regional (`srXX@pp.sc.gov.br`) veem os PADs de todas as unidades
+da sua regional; Administrador não tem `vinculo` e vê tudo. O recorte é calculado em
+`src/services/pads/escopoPad.js` e aplicado nas consultas de `padService.js`. **Importante:**
+esse recorte hoje só existe no nível da consulta (o que a UI pede ao Firestore) — as
+`firestore.rules` ainda liberam leitura de `pads` para qualquer usuário autenticado, sem
+checar `vinculo`. Endurecer isso nas regras (impedir uma consulta manual fora da UI de ver
+dados de outra unidade) é trabalho de segurança pendente para a Fase 2/9.
+
 ## 7. Padrões de código
 
 - **Módulos pequenos, responsabilidade única.** Nenhum arquivo deve concentrar mais de uma
