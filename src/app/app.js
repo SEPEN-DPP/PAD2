@@ -11,6 +11,7 @@ import { montarAuthLayout } from '../layout/authLayout.js';
 import { criarRouter } from './router.js';
 import { DEFAULT_ROUTE } from '../config/routes.js';
 import { podeAcessarRota } from '../config/roles.js';
+import { mostrarToast } from '../utils/toast.js';
 
 const CHAVE_TEMA = 'pad2:tema';
 const HASH_CADASTRO = '#/cadastro';
@@ -101,26 +102,34 @@ export function iniciarApp(raizId = 'app') {
   });
 
   observarSessao(async (usuarioFirebase) => {
-    if (!usuarioFirebase) {
-      await montarTelaPreAuth(raiz);
-      return;
+    try {
+      if (!usuarioFirebase) {
+        await montarTelaPreAuth(raiz);
+        return;
+      }
+
+      const perfilDoc = await obterPerfilDoUsuario(usuarioFirebase.uid);
+
+      if (!perfilDoc || perfilDoc.status === 'PENDENTE') {
+        await montarTelaAguardandoOuCompletarCadastro(raiz, perfilDoc);
+        return;
+      }
+
+      const usuario = {
+        uid: usuarioFirebase.uid,
+        nome: perfilDoc?.nome ?? usuarioFirebase.email ?? 'Usuário',
+        perfil: perfilDoc?.perfil ?? null,
+        vinculo: perfilDoc?.vinculo ?? null,
+      };
+
+      await registrarLog({ usuarioId: usuario.uid, acao: 'LOGIN' });
+      await montarPainel(raiz, usuario);
+    } catch (erro) {
+      // Sem isto, um erro em qualquer etapa acima (ex.: consulta ao Firestore
+      // sem índice) trava a troca de tela silenciosamente — a pessoa fica
+      // olhando pra tela anterior sem nenhuma pista do que aconteceu.
+      console.error('Falha ao montar a aplicação:', erro);
+      mostrarToast('Não foi possível carregar o sistema. Recarregue a página.', 'erro');
     }
-
-    const perfilDoc = await obterPerfilDoUsuario(usuarioFirebase.uid);
-
-    if (!perfilDoc || perfilDoc.status === 'PENDENTE') {
-      await montarTelaAguardandoOuCompletarCadastro(raiz, perfilDoc);
-      return;
-    }
-
-    const usuario = {
-      uid: usuarioFirebase.uid,
-      nome: perfilDoc?.nome ?? usuarioFirebase.email ?? 'Usuário',
-      perfil: perfilDoc?.perfil ?? null,
-      vinculo: perfilDoc?.vinculo ?? null,
-    };
-
-    await registrarLog({ usuarioId: usuario.uid, acao: 'LOGIN' });
-    await montarPainel(raiz, usuario);
   });
 }
