@@ -23,11 +23,49 @@ service cloud.firestore {
       return autenticado() && request.auth.uid == userId;
     }
 
+    function meuUsuario() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function tenhoPerfil() {
+      return autenticado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
+    function souAdministrador() {
+      return tenhoPerfil() && meuUsuario().perfil == 'ADMINISTRADOR';
+    }
+
+    // Direção/CPEN da unidade informada — únicos, além do Administrador, que
+    // podem aprovar/recusar solicitações de acesso daquela unidade (ver
+    // docs/firestore-schema.md e src/pages/usuarios/usuariosPage.js).
+    function souResponsavelDaUnidade(unidade) {
+      return tenhoPerfil()
+        && meuUsuario().perfil == 'DIRETOR'
+        && meuUsuario().vinculo.tipo == 'UNIDADE'
+        && meuUsuario().vinculo.valor == unidade;
+    }
+
     // Coleção de contas institucionais (Administrador, Diretor, Subdiretor,
-    // Servidor, Conselho Disciplinar, Defensor Público).
+    // Servidor, Conselho Disciplinar, Defensor Público). Autocadastro
+    // (Fase 1, 2026-07-14): qualquer pessoa autenticada pode criar o PRÓPRIO
+    // documento com status PENDENTE (nunca definindo `perfil` nessa escrita —
+    // só a aprovação define o perfil); Direção/CPEN da unidade solicitada (ou
+    // Administrador) leem, aprovam (update) ou recusam (delete).
     match /usuarios/{userId} {
-      allow read: if ehDonoDoDocumento(userId);
-      allow write: if false; // gestão de usuários será liberada na Fase 1
+      allow read: if ehDonoDoDocumento(userId)
+        || souAdministrador()
+        || (resource.data.status == 'PENDENTE' && souResponsavelDaUnidade(resource.data.unidadeSolicitada));
+
+      allow create: if ehDonoDoDocumento(userId)
+        && request.resource.data.status == 'PENDENTE'
+        && !('perfil' in request.resource.data);
+
+      allow update: if souAdministrador()
+        || (resource.data.status == 'PENDENTE' && souResponsavelDaUnidade(resource.data.unidadeSolicitada));
+
+      allow delete: if souAdministrador()
+        || (resource.data.status == 'PENDENTE' && souResponsavelDaUnidade(resource.data.unidadeSolicitada))
+        || (resource.data.status == 'ATIVO' && souResponsavelDaUnidade(resource.data.unidade));
     }
 
     // Contas do Portal do Advogado — contexto de autenticação separado (Fase 6).
