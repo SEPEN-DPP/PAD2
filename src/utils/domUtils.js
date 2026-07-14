@@ -1,7 +1,27 @@
 /** Utilitários pequenos para manipulação de DOM sem framework. */
 
 /**
- * Cria um elemento com atributos e filhos de forma declarativa.
+ * Converte uma string de markup (ex.: o SVG retornado por
+ * src/components/icon/icon.js) em nós de DOM reais. Usa <template> porque o
+ * parser HTML sabe criar elementos SVG corretamente a partir de innerHTML.
+ */
+function markupParaNos(markup) {
+  const template = document.createElement('template');
+  template.innerHTML = markup;
+  return [...template.content.childNodes];
+}
+
+/**
+ * Cria um elemento com atributos e filhos de forma declarativa. Strings que
+ * começam com "<" (ex.: ícones SVG de src/components/icon/icon.js) são
+ * tratadas como markup confiável e viram nós reais; demais strings viram
+ * texto simples.
+ *
+ * Atenção: isso assume que nenhuma string começando com "<" chega aqui vinda
+ * de dado não confiável (nesta fase, nenhuma tela grava texto de usuário no
+ * Firestore ainda). Quando a Fase 2+ permitir edição de campos exibidos via
+ * este helper, revisar se algum deles precisa ser sempre tratado como texto
+ * (ex.: passando já como Node/TextNode em vez de string).
  * @param {string} tag
  * @param {object} [attrs]
  * @param {Array<Node|string>} [filhos]
@@ -18,7 +38,13 @@ export function criarElemento(tag, attrs = {}, filhos = []) {
     }
   }
   for (const filho of filhos) {
-    el.append(filho instanceof Node ? filho : document.createTextNode(String(filho)));
+    if (filho instanceof Node) {
+      el.append(filho);
+    } else if (typeof filho === 'string' && filho.trimStart().startsWith('<')) {
+      el.append(...markupParaNos(filho));
+    } else {
+      el.append(document.createTextNode(String(filho)));
+    }
   }
   return el;
 }
