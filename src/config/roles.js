@@ -24,13 +24,13 @@ export const ROLE_LABELS = Object.freeze({
   DEFENSOR_PUBLICO: 'Defensor Público',
 });
 
-const PAINEL_INSTITUCIONAL = [
+export const PAINEL_INSTITUCIONAL = Object.freeze([
   ROLES.ADMINISTRADOR,
   ROLES.DIRETOR,
   ROLES.SUBDIRETOR,
   ROLES.SERVIDOR,
   ROLES.CONSELHO_DISCIPLINAR,
-];
+]);
 
 /**
  * Perfis autorizados a acessar cada rota do painel institucional. Rotas

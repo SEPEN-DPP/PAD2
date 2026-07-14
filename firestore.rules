@@ -35,37 +35,55 @@ service cloud.firestore {
       return tenhoPerfil() && meuUsuario().perfil == 'ADMINISTRADOR';
     }
 
-    // Direção/CPEN da unidade informada — únicos, além do Administrador, que
-    // podem aprovar/recusar solicitações de acesso daquela unidade (ver
+    // Direção/CPEN de uma unidade, OU Superintendência Regional (todas as
+    // unidades da sua regional) — únicos, além do Administrador, que podem
+    // gerenciar solicitações/Servidores daquele alvo (ver
     // docs/firestore-schema.md e src/pages/usuarios/usuariosPage.js).
-    function souResponsavelDaUnidade(unidade) {
-      return tenhoPerfil()
-        && meuUsuario().perfil == 'DIRETOR'
-        && meuUsuario().vinculo.tipo == 'UNIDADE'
-        && meuUsuario().vinculo.valor == unidade;
+    // `dadosAlvo` é o documento sendo lido/alterado — usa `unidadeSolicitada`
+    // enquanto PENDENTE e `unidade`/`superintendencia` depois de ATIVO (os
+    // dois últimos setados desde o autocadastro, ver src/services/auth).
+    function souGestorDoAlvo(dadosAlvo) {
+      return tenhoPerfil() && meuUsuario().perfil == 'DIRETOR' && (
+        (meuUsuario().vinculo.tipo == 'UNIDADE' && (
+          meuUsuario().vinculo.valor == dadosAlvo.unidadeSolicitada || meuUsuario().vinculo.valor == dadosAlvo.unidade
+        ))
+        || (meuUsuario().vinculo.tipo == 'REGIONAL' && meuUsuario().vinculo.valor == dadosAlvo.superintendencia)
+      );
+    }
+
+    // Um gestor (não-Administrador) só pode conceder estes perfis a um
+    // Servidor — nunca Diretor/Administrador, para não criar um superior ou
+    // um par dentro da própria unidade/regional por essa tela.
+    function perfilPermitidoParaGestor(perfilNovo) {
+      return perfilNovo in ['SERVIDOR', 'CONSELHO_DISCIPLINAR', 'SUBDIRETOR'];
     }
 
     // Coleção de contas institucionais (Administrador, Diretor, Subdiretor,
     // Servidor, Conselho Disciplinar, Defensor Público). Autocadastro
     // (Fase 1, 2026-07-14): qualquer pessoa autenticada pode criar o PRÓPRIO
     // documento com status PENDENTE (nunca definindo `perfil` nessa escrita —
-    // só a aprovação define o perfil); Direção/CPEN da unidade solicitada (ou
-    // Administrador) leem, aprovam (update) ou recusam (delete).
+    // só a aprovação define o perfil). Depois de ATIVO, um gestor só
+    // lê/edita/exclui alvos com `perfil == 'SERVIDOR'` — nunca outro
+    // Diretor/CPEN/Regional/Administrador.
     match /usuarios/{userId} {
       allow read: if ehDonoDoDocumento(userId)
         || souAdministrador()
-        || (resource.data.status == 'PENDENTE' && souResponsavelDaUnidade(resource.data.unidadeSolicitada));
+        || (resource.data.status == 'PENDENTE' && souGestorDoAlvo(resource.data))
+        || (resource.data.status == 'ATIVO' && resource.data.perfil == 'SERVIDOR' && souGestorDoAlvo(resource.data));
 
       allow create: if ehDonoDoDocumento(userId)
         && request.resource.data.status == 'PENDENTE'
         && !('perfil' in request.resource.data);
 
       allow update: if souAdministrador()
-        || (resource.data.status == 'PENDENTE' && souResponsavelDaUnidade(resource.data.unidadeSolicitada));
+        || (resource.data.status == 'PENDENTE' && souGestorDoAlvo(resource.data)
+            && perfilPermitidoParaGestor(request.resource.data.perfil))
+        || (resource.data.status == 'ATIVO' && resource.data.perfil == 'SERVIDOR' && souGestorDoAlvo(resource.data)
+            && perfilPermitidoParaGestor(request.resource.data.perfil));
 
       allow delete: if souAdministrador()
-        || (resource.data.status == 'PENDENTE' && souResponsavelDaUnidade(resource.data.unidadeSolicitada))
-        || (resource.data.status == 'ATIVO' && souResponsavelDaUnidade(resource.data.unidade));
+        || (resource.data.status == 'PENDENTE' && souGestorDoAlvo(resource.data))
+        || (resource.data.status == 'ATIVO' && resource.data.perfil == 'SERVIDOR' && souGestorDoAlvo(resource.data));
     }
 
     // Contas do Portal do Advogado — contexto de autenticação separado (Fase 6).

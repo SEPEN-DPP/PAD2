@@ -20,9 +20,9 @@ function alternarTema() {
 }
 
 /**
- * @param {{ titulo: string, usuario: { nome: string, perfilLabel: string } | null, onSair: () => void, contadorPendencias?: number, onClicarSino?: () => void }} params
+ * @param {{ titulo: string, usuario: { nome: string, perfilLabel: string } | null, onSair: () => void, contadorPendencias?: number, onClicarSino?: () => void, onClicarUsuario?: () => void }} params
  */
-export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, onClicarSino }) {
+export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, onClicarSino, onClicarUsuario }) {
   carregarCssUmaVez('src/components/topbar/topbar.css');
 
   const botaoTema = criarElemento(
@@ -37,11 +37,22 @@ export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, o
 
   const usuarioBloco = usuario
     ? criarElemento('div', { class: 'topbar__usuario' }, [
-        criarElemento('span', { class: 'topbar__avatar' }, [iniciais(usuario.nome)]),
-        criarElemento('div', { class: 'topbar__usuario-info' }, [
-          criarElemento('span', { class: 'topbar__usuario-nome' }, [usuario.nome]),
-          criarElemento('span', { class: 'topbar__usuario-perfil' }, [usuario.perfilLabel]),
-        ]),
+        criarElemento(
+          'button',
+          {
+            class: 'topbar__usuario-btn',
+            type: 'button',
+            title: 'Configurações da conta (alterar senha)',
+            onClick: onClicarUsuario,
+          },
+          [
+            criarElemento('span', { class: 'topbar__avatar' }, [iniciais(usuario.nome)]),
+            criarElemento('div', { class: 'topbar__usuario-info' }, [
+              criarElemento('span', { class: 'topbar__usuario-nome' }, [usuario.nome]),
+              criarElemento('span', { class: 'topbar__usuario-perfil' }, [usuario.perfilLabel]),
+            ]),
+          ],
+        ),
         criarElemento(
           'button',
           { class: 'topbar__icone-btn', type: 'button', title: 'Sair', onClick: onSair },

@@ -17,6 +17,7 @@ import { auth } from '../../firebase/auth.js';
 import { criarRepositorio } from '../firestoreRepository.js';
 import { COLLECTIONS } from '../../config/constants.js';
 import { apenasDigitos } from '../../utils/validationUtils.js';
+import { obterUnidadePorNome } from '../../config/unidadesPrisionais.js';
 
 const usuariosRepo = criarRepositorio(COLLECTIONS.USUARIOS);
 
@@ -79,6 +80,11 @@ export async function registrarSolicitacaoAcesso({ nome, email, senha, cpf, data
       cpf: apenasDigitos(cpf),
       dataNascimento,
       unidadeSolicitada: unidade,
+      // Guardado junto (não só derivável do nome da unidade) para que as
+      // firestore.rules consigam checar aprovadores de Superintendência
+      // Regional sem precisar de uma segunda consulta — ver
+      // docs/firestore-schema.md.
+      superintendencia: obterUnidadePorNome(unidade)?.superintendencia ?? null,
       status: 'PENDENTE',
       ativo: false,
     },
@@ -104,6 +110,7 @@ export async function completarSolicitacaoAcesso({ nome, cpf, dataNascimento, un
       cpf: apenasDigitos(cpf),
       dataNascimento,
       unidadeSolicitada: unidade,
+      superintendencia: obterUnidadePorNome(unidade)?.superintendencia ?? null,
       status: 'PENDENTE',
       ativo: false,
     },

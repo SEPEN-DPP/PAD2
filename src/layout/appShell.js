@@ -22,7 +22,7 @@ export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair }
 
   const escopoDeGestao = calcularEscopoDeGestao(usuario);
   const contadorPendencias = escopoDeGestao.podeGerenciar
-    ? (await listarSolicitacoesPendentes(escopoDeGestao.unidade)).length
+    ? (await listarSolicitacoesPendentes(escopoDeGestao)).length
     : 0;
 
   const sidebar = criarSidebar({ rotas: rotasVisiveis, rotaAtiva: rotaInicial, onNavegar });
@@ -32,6 +32,7 @@ export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair }
     onSair,
     contadorPendencias,
     onClicarSino: () => onNavegar('/usuarios'),
+    onClicarUsuario: () => onNavegar('/configuracoes'),
   });
 
   const outlet = criarElemento('div', { class: 'app-shell__outlet' });
