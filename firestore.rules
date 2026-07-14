@@ -27,7 +27,11 @@ service cloud.firestore {
     // Servidor, Conselho Disciplinar, Defensor Público).
     match /usuarios/{userId} {
       allow read: if ehDonoDoDocumento(userId);
-      allow write: if false; // gestão de usuários será liberada na Fase 1
+      // TODO(temporário, remover após bootstrap do primeiro admin em 2026-07-14):
+      // permite ao usuário criar (não atualizar) o PRÓPRIO documento, para o
+      // primeiro acesso funcionar antes de existir uma tela de gestão (Fase 1).
+      allow create: if ehDonoDoDocumento(userId);
+      allow update, delete: if false;
     }
 
     // Contas do Portal do Advogado — contexto de autenticação separado (Fase 6).
