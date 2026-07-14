@@ -7,9 +7,10 @@ estrangeira). Ver [ARCHITECTURE.md](../ARCHITECTURE.md) §4 para o racional.
 
 ```
 {
-  dadosGerais: { numero, unidade, dataAbertura, status },
+  dadosGerais: { numero, unidade, dataAbertura },
+  superintendencia, // SR da unidade (ex.: "SR04") — denormalizado, mesma razão que em `usuarios`
   incidentados: [{ nomeCompleto, ipen }],
-  infracao: { data, tipificacao, artigoLep: { codigo, rotulo }, detentosEnvolvidos: [], agentesEnvolvidos: [], observacoes },
+  infracao: { data, tipificacao, artigoLep: { codigo, rotulo } | null, detentosEnvolvidos: [], agentesEnvolvidos: [], observacoes },
   defesa: { advogadoId, memoriais: [], prazos },
   conselho: { manifestacao, integrantes: [], data },
   decisao: { tipo, fundamentacao, data, responsavel },
@@ -18,6 +19,8 @@ estrangeira). Ver [ARCHITECTURE.md](../ARCHITECTURE.md) §4 para o racional.
 }
 ```
 
+`status` é sempre top-level (não dentro de `dadosGerais`, apesar do nome sugerir "dados
+gerais" — é assim que todo o código em `src/services/pads` e `src/pages/pad` já lê/filtra).
 `incidentados[].ipen` vem do campo `Prontuário:` do Registro de Infração do i-PEN — no
 próprio documento, o texto da descrição chama esse número de "MATRÍCULA IPEN" (confirmado
 com o usuário; **não confundir com o campo `RG i-PEN:` do formulário, que é outro
@@ -26,6 +29,18 @@ curto de enquadramento, não o campo `DESCRIÇÃO:` — o relato narrativo do in
 parte do escopo de extração atual). Ver
 [src/parser/README.md](../src/parser/README.md) para o mapeamento completo de rótulos.
 
+### Criação (Fase 2, 2026-07-14)
+
+`src/pages/pad/new/padNewPage.js` grava o PAD só depois da revisão humana dos dados
+extraídos (ver Fase 3) e digitação manual do **número** (não há numeração automática — quem
+cadastra o PAD escolhe o número). Nasce sempre `status: 'EM_ANDAMENTO'`. A unidade é fixa
+(não editável) para quem tem `vinculo.tipo === 'UNIDADE'` — sempre a própria unidade — e
+selecionável (filtrada à regional, ou ao Estado inteiro para Administrador) nos demais
+casos. Ver `souCriadorDoPad` em `firestore.rules`: só cria PAD dentro do próprio escopo
+(mesma lógica de `escopoPad.js`, aplicada aqui à escrita), e a regra rejeita qualquer
+`status` diferente de `EM_ANDAMENTO` na criação. Transições entre as demais etapas do fluxo
+(Portaria, Cientificação, Oitiva...) ainda não têm regra de escrita — ver ROADMAP.md.
+
 ## `eventos`
 
 ```
@@ -33,13 +48,18 @@ parte do escopo de extração atual). Ver
   padId,
   tipo: 'REGISTRO_INFRACAO' | 'PORTARIA_ABERTURA' | 'TERMO_CIENTIFICACAO' | 'OITIVA_INCIDENTADO'
       | 'MANIFESTACAO_CONSELHO' | 'MANIFESTACAO_DEFESA' | 'DECISAO_FINAL' | 'OFICIO_JUIZO' | 'ARQUIVAMENTO',
-  responsavel,
+  responsavel, // nome de quem registrou (texto simples, não referência a `usuarios`)
   data,
   status,
   observacoes,
   criadoEm, atualizadoEm
 }
 ```
+
+Ao criar um PAD, o primeiro evento (`tipo: 'REGISTRO_INFRACAO'`, `status: 'CONCLUIDO'`) é
+lançado automaticamente com os mesmos dados revisados na tela "Novo PAD" — a linha do
+tempo nunca começa vazia. A regra de criação (`firestore.rules`) reaplica `souCriadorDoPad`
+sobre o PAD referenciado por `padId` (via `get()`), não sobre o evento em si.
 
 ## `documentos`
 

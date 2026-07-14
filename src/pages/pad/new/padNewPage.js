@@ -1,11 +1,11 @@
 /**
- * Abertura de um novo PAD. Fluxo desta fase: upload do PDF do Registro de
- * Infração → extração de campos por regras (sem IA, ver
- * src/parser/README.md) → formulário de revisão humana antes de qualquer
- * gravação. A gravação em si (numeração do PAD, status inicial, criação do
- * evento "Registro de Infração") é regra de negócio da Fase 2 (ver
- * ROADMAP.md) e não está implementada aqui — o botão "Criar PAD" apenas
- * sinaliza isso.
+ * Abertura de um novo PAD. Fluxo: upload do PDF do Registro de Infração →
+ * extração de campos por regras (sem IA, ver src/parser/README.md) →
+ * formulário de revisão humana → "Criar PAD" grava o PAD (status inicial
+ * sempre EM_ANDAMENTO, numeração digitada pelo usuário — não há numeração
+ * automática) e já lança o primeiro evento da linha do tempo ("Registro de
+ * Infração", já concluído, com os dados revisados aqui) — ver
+ * src/services/pads/padService.js e src/services/eventos/eventoService.js.
  */
 import { criarElemento, carregarCssUmaVez, limparContainer } from '../../../utils/domUtils.js';
 import { criarPageHeader } from '../../../components/pageHeader/pageHeader.js';
@@ -16,6 +16,12 @@ import { mostrarToast } from '../../../utils/toast.js';
 import { extrairTexto } from '../../../parser/pdfParserService.js';
 import { extrairCamposRegistroInfracao } from '../../../parser/registroInfracaoParser.js';
 import { ARTIGOS_LEP } from '../../../config/baseLegal.js';
+import { UNIDADES_PRISIONAIS } from '../../../config/unidadesPrisionais.js';
+import { usuarioAtual, obterPerfilDoUsuario } from '../../../services/auth/authService.js';
+import { criarPad } from '../../../services/pads/padService.js';
+import { criarEvento } from '../../../services/eventos/eventoService.js';
+import { dataBrParaDate } from '../../../utils/dateUtils.js';
+import { ehDataBrValida } from '../../../utils/validationUtils.js';
 
 function criarCampo({ rotulo, valor, multilinha = false }) {
   const input = criarElemento(multilinha ? 'textarea' : 'input', {
@@ -50,26 +56,101 @@ function criarCampoArtigoLep(artigoLep) {
   };
 }
 
-function criarFormularioRevisao(campos) {
+/**
+ * Campo de unidade do PAD: fixo (não editável) para quem tem vínculo de
+ * UNIDADE — o PAD sempre pertence à própria unidade de quem o cria; select
+ * filtrado às unidades da regional para vínculo REGIONAL; select com todas
+ * as unidades do Estado para Administrador (sem vínculo). Mesma lógica de
+ * escopo de src/services/pads/escopoPad.js, aplicada aqui à escrita.
+ */
+function criarCampoUnidade(perfilUsuario) {
+  if (perfilUsuario?.vinculo?.tipo === 'UNIDADE') {
+    const input = criarElemento('input', { class: 'campo__input', type: 'text', disabled: 'disabled' });
+    input.value = perfilUsuario.vinculo.valor;
+    return {
+      elemento: criarElemento('label', { class: 'campo' }, [criarElemento('span', { class: 'campo__rotulo' }, ['Unidade']), input]),
+      input,
+    };
+  }
+
+  const unidadesDisponiveis = perfilUsuario?.vinculo?.tipo === 'REGIONAL'
+    ? UNIDADES_PRISIONAIS.filter((u) => u.superintendencia === perfilUsuario.vinculo.valor)
+    : UNIDADES_PRISIONAIS;
+
+  const select = criarElemento(
+    'select',
+    { class: 'campo__input' },
+    [criarElemento('option', { value: '' }, ['Selecione...']), ...unidadesDisponiveis.map((u) => criarElemento('option', { value: u.nome }, [u.nome]))],
+  );
+  return {
+    elemento: criarElemento('label', { class: 'campo' }, [criarElemento('span', { class: 'campo__rotulo' }, ['Unidade']), select]),
+    input: select,
+  };
+}
+
+function criarFormularioRevisao(campos, perfilUsuario) {
+  const campoNumero = criarCampo({ rotulo: 'Número do PAD' });
+  const campoUnidade = criarCampoUnidade(perfilUsuario);
+  const campoNome = criarCampo({ rotulo: 'Nome completo', valor: campos.nomeCompleto });
+  const campoIpen = criarCampo({ rotulo: 'IPEN (Prontuário)', valor: campos.ipen });
+  const campoData = criarCampo({ rotulo: 'Data da infração', valor: campos.dataInfracao });
+  const campoInfracao = criarCampo({ rotulo: 'Infração', valor: campos.infracao, multilinha: true });
+  const campoArtigoLep = criarCampoArtigoLep(campos.artigoLep);
+  const campoDetentos = criarCampo({ rotulo: 'Detentos envolvidos (separados por vírgula)', valor: campos.detentosEnvolvidos.join(', ') });
+  const campoAgentes = criarCampo({ rotulo: 'Agentes envolvidos (separados por vírgula)', valor: campos.agentesEnvolvidos.join(', ') });
+  const campoObs = criarCampo({ rotulo: 'Observações', valor: campos.observacoes, multilinha: true });
+
   const linhas = [
-    criarCampo({ rotulo: 'Nome completo', valor: campos.nomeCompleto }),
-    criarCampo({ rotulo: 'IPEN (Prontuário)', valor: campos.ipen }),
-    criarCampo({ rotulo: 'Data da infração', valor: campos.dataInfracao }),
-    criarCampo({ rotulo: 'Infração', valor: campos.infracao, multilinha: true }),
-    criarCampoArtigoLep(campos.artigoLep),
-    criarCampo({ rotulo: 'Detentos envolvidos (separados por vírgula)', valor: campos.detentosEnvolvidos.join(', ') }),
-    criarCampo({ rotulo: 'Agentes envolvidos (separados por vírgula)', valor: campos.agentesEnvolvidos.join(', ') }),
-    criarCampo({ rotulo: 'Observações', valor: campos.observacoes, multilinha: true }),
+    campoNumero, campoUnidade, campoNome, campoIpen, campoData,
+    campoInfracao, campoArtigoLep, campoDetentos, campoAgentes, campoObs,
   ];
 
   const botaoCriarPad = criarBotao({
     texto: 'Criar PAD',
     icon: 'file-plus',
-    onClick: () => {
-      mostrarToast(
-        'A gravação do PAD (numeração, status inicial e evento de abertura) será implementada na Fase 2.',
-        'info',
-      );
+    onClick: async () => {
+      const numero = campoNumero.input.value.trim();
+      const unidade = campoUnidade.input.value;
+      const dataInfracao = campoData.input.value.trim();
+
+      if (!numero) return mostrarToast('Informe o número do PAD.', 'aviso');
+      if (!unidade) return mostrarToast('Selecione a unidade do PAD.', 'aviso');
+      if (!ehDataBrValida(dataInfracao)) return mostrarToast('Informe a data da infração no formato dd/mm/aaaa.', 'aviso');
+
+      botaoCriarPad.disabled = true;
+      try {
+        const artigoSelecionado = ARTIGOS_LEP.find((a) => a.cod === campoArtigoLep.input.value);
+        const padId = await criarPad({
+          numero,
+          unidade,
+          incidentados: [{ nomeCompleto: campoNome.input.value.trim(), ipen: campoIpen.input.value.trim() }],
+          infracao: {
+            data: dataInfracao,
+            tipificacao: campoInfracao.input.value.trim(),
+            artigoLep: artigoSelecionado ? { codigo: artigoSelecionado.cod, rotulo: artigoSelecionado.label } : null,
+            detentosEnvolvidos: campoDetentos.input.value.split(',').map((s) => s.trim()).filter(Boolean),
+            agentesEnvolvidos: campoAgentes.input.value.split(',').map((s) => s.trim()).filter(Boolean),
+            observacoes: campoObs.input.value.trim(),
+          },
+        });
+
+        const nomeResponsavel = perfilUsuario?.nome ?? usuarioAtual()?.email ?? '—';
+        await criarEvento({
+          padId,
+          tipo: 'REGISTRO_INFRACAO',
+          responsavel: nomeResponsavel,
+          data: dataBrParaDate(dataInfracao),
+          status: 'CONCLUIDO',
+          observacoes: campoObs.input.value.trim(),
+        });
+
+        mostrarToast('PAD criado com sucesso.', 'sucesso');
+        location.hash = `/pad/${padId}`;
+      } catch (erro) {
+        console.error('Falha ao criar PAD:', erro);
+        mostrarToast('Não foi possível criar o PAD.', 'erro');
+        botaoCriarPad.disabled = false;
+      }
     },
   });
 
@@ -92,6 +173,8 @@ export async function render(container) {
     }),
   );
 
+  const perfilUsuario = await obterPerfilDoUsuario(usuarioAtual()?.uid);
+
   let arquivoSelecionado = null;
   const areaRevisao = criarElemento('div');
 
@@ -105,7 +188,7 @@ export async function render(container) {
         const textoExtraido = await extrairTexto(arquivoSelecionado);
         const campos = await extrairCamposRegistroInfracao(textoExtraido);
         limparContainer(areaRevisao);
-        areaRevisao.append(criarCard({ titulo: 'Dados extraídos', filhos: [criarFormularioRevisao(campos)] }));
+        areaRevisao.append(criarCard({ titulo: 'Dados extraídos', filhos: [criarFormularioRevisao(campos, perfilUsuario)] }));
       } catch (erro) {
         console.error('Falha ao analisar o Registro de Infração:', erro);
         mostrarToast('Não foi possível ler os dados deste PDF. Tente novamente.', 'erro');

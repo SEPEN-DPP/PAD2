@@ -11,6 +11,7 @@
  */
 import { criarRepositorio } from '../firestoreRepository.js';
 import { COLLECTIONS, STATUS_PAD } from '../../config/constants.js';
+import { obterUnidadePorNome } from '../../config/unidadesPrisionais.js';
 
 const repo = criarRepositorio(COLLECTIONS.PADS);
 
@@ -46,4 +47,32 @@ export async function contarPadsPorStatus(unidades) {
 
 export async function contarTodosPads(unidades) {
   return repo.contar({ filtros: filtroDeUnidades(unidades) });
+}
+
+/**
+ * Cria um novo PAD a partir dos dados revisados na tela "Novo PAD" (ver
+ * src/pages/pad/new/padNewPage.js). Nasce sempre como EM_ANDAMENTO — o
+ * número é digitado pelo próprio usuário (não há numeração automática).
+ * `superintendencia` é denormalizado a partir de `unidade` (mesma fonte
+ * única de verdade usada em src/services/auth/authService.js) para que as
+ * firestore.rules consigam autorizar contas de Superintendência Regional
+ * sem embutir o mapa de 55 unidades no texto das regras.
+ * @param {{ numero: string, unidade: string, incidentados: Array, infracao: object }} dados
+ * @returns {Promise<string>} id do PAD criado
+ */
+export async function criarPad({ numero, unidade, incidentados, infracao }) {
+  if (!numero?.trim()) throw new Error('O número do PAD é obrigatório.');
+  if (!unidade?.trim()) throw new Error('A unidade do PAD é obrigatória.');
+
+  return repo.criar({
+    dadosGerais: {
+      numero: numero.trim(),
+      unidade,
+      dataAbertura: new Date(),
+    },
+    superintendencia: obterUnidadePorNome(unidade)?.superintendencia ?? null,
+    incidentados,
+    infracao,
+    status: STATUS_PAD.EM_ANDAMENTO,
+  });
 }

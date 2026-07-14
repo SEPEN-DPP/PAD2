@@ -38,10 +38,18 @@ tela "Novo PAD" com upload de PDF apenas como interface.
 
 ## Fase 2 — Núcleo do PAD (CRUD + fluxo processual)
 
+- "Criar PAD" (após revisão dos dados extraídos na Fase 3): número digitado pelo próprio
+  usuário (sem numeração automática), unidade fixa para vínculo UNIDADE ou selecionável
+  (filtrada pela regional/Estado) para vínculo REGIONAL/Administrador, status inicial
+  sempre `EM_ANDAMENTO`, e criação automática do primeiro evento da linha do tempo
+  ("Registro de Infração", já `CONCLUIDO`) — ver `src/pages/pad/new/padNewPage.js`,
+  `src/services/pads/padService.js`, `src/services/eventos/eventoService.js` e as regras
+  `souCriadorDoPad` em `firestore.rules`. ✅ (2026-07-14)
 - Modelagem completa do objeto PAD no Firestore (`pads`, `eventos`).
 - Máquina de estados do fluxo processual (Registro → Portaria → Cientificação → Oitiva →
   Conselho → Defesa → Decisão → Ofício → Arquivamento), com validação de transição e
-  campos obrigatórios por etapa.
+  campos obrigatórios por etapa — só a etapa inicial (criação) está implementada; as
+  transições entre as demais etapas ainda não existem.
 - Tela de PAD (listagem, criação manual de evento, detalhe com abas por seção do objeto).
 - Timeline de eventos e histórico de auditoria por PAD.
 

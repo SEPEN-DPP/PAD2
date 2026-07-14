@@ -17,11 +17,23 @@ const FORMATADOR_DATA_HORA = new Intl.DateTimeFormat('pt-BR', {
  * fuso local em vez de UTC.
  */
 function paraData(valor) {
+  if (typeof valor?.toDate === 'function') {
+    // Timestamp do Firestore: seu valueOf() retorna uma string de comparação
+    // (segundos.nanossegundos), não epoch — passar direto para `new Date()`
+    // resulta em "Invalid Date". `.toDate()` é a conversão correta.
+    return valor.toDate();
+  }
   if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
     const [ano, mes, dia] = valor.split('-').map(Number);
     return new Date(ano, mes - 1, dia);
   }
   return new Date(valor);
+}
+
+/** Converte "dd/mm/aaaa" para um Date local (meio-dia meia-noite local, sem risco de fuso). */
+export function dataBrParaDate(dataBr) {
+  const [dia, mes, ano] = dataBr.split('/').map(Number);
+  return new Date(ano, mes - 1, dia);
 }
 
 /** @param {string|number|Date} valor */

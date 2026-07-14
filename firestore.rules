@@ -58,6 +58,22 @@ service cloud.firestore {
       return perfilNovo in ['SERVIDOR', 'CONSELHO_DISCIPLINAR', 'SUBDIRETOR'];
     }
 
+    // Quem pode criar um PAD (tela "Novo PAD", ver
+    // src/pages/pad/new/padNewPage.js e src/services/pads/padService.js):
+    // Administrador cria para qualquer unidade; vínculo UNIDADE só para a
+    // própria unidade; vínculo REGIONAL só para unidades da própria SR
+    // (campo `superintendencia`, no topo do documento, denormalizado a
+    // partir da unidade — mesma estratégia do campo homônimo em `usuarios`,
+    // ver docs/firestore-schema.md). `dadosPad` é o documento inteiro (tem
+    // `dadosGerais.unidade` e `superintendencia`).
+    function souCriadorDoPad(dadosPad) {
+      return tenhoPerfil() && meuUsuario().perfil in ['ADMINISTRADOR', 'DIRETOR', 'SUBDIRETOR', 'SERVIDOR'] && (
+        meuUsuario().perfil == 'ADMINISTRADOR'
+        || (meuUsuario().vinculo.tipo == 'UNIDADE' && meuUsuario().vinculo.valor == dadosPad.dadosGerais.unidade)
+        || (meuUsuario().vinculo.tipo == 'REGIONAL' && meuUsuario().vinculo.valor == dadosPad.superintendencia)
+      );
+    }
+
     // Coleção de contas institucionais (Administrador, Diretor, Subdiretor,
     // Servidor, Conselho Disciplinar, Defensor Público). Autocadastro
     // (Fase 1, 2026-07-14): qualquer pessoa autenticada pode criar o PRÓPRIO
@@ -91,14 +107,24 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Criação de PAD (Fase 2, 2026-07-14): só "Criar PAD" (numeração, unidade
+    // e status inicial) — transição entre etapas do fluxo processual
+    // (update) ainda não está implementada.
     match /pads/{padId} {
       allow read: if autenticado();
-      allow write: if false; // regras de fluxo processual chegam na Fase 2
+      allow create: if souCriadorDoPad(request.resource.data)
+        && request.resource.data.status == 'EM_ANDAMENTO';
+      allow update, delete: if false;
     }
 
+    // Evento "Registro de Infração" lançado junto com a criação do PAD (ver
+    // src/pages/pad/new/padNewPage.js) — autorização espelha a do próprio
+    // PAD referenciado por `padId`, não a do evento em si (que não tem
+    // vínculo/unidade próprios).
     match /eventos/{eventoId} {
       allow read: if autenticado();
-      allow write: if false;
+      allow create: if souCriadorDoPad(get(/databases/$(database)/documents/pads/$(request.resource.data.padId)).data);
+      allow update, delete: if false;
     }
 
     match /documentos/{documentoId} {

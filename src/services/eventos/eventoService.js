@@ -22,3 +22,11 @@ export async function listarUltimosEventos(limite = 10) {
 export async function obterEvento(id) {
   return repo.obterPorId(id);
 }
+
+/**
+ * Registra um evento (etapa do fluxo) para um PAD já existente.
+ * @param {{ padId: string, tipo: string, responsavel: string, data: Date, status: string, observacoes?: string }} dados
+ */
+export async function criarEvento({ padId, tipo, responsavel, data, status, observacoes }) {
+  return repo.criar({ padId, tipo, responsavel, data, status, observacoes: observacoes ?? '' });
+}

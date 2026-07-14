@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatarData, tempoRelativo } from '../../src/utils/dateUtils.js';
+import { formatarData, tempoRelativo, dataBrParaDate } from '../../src/utils/dateUtils.js';
 
 test('formatarData retorna travessão para valor vazio', () => {
   assert.equal(formatarData(null), '—');
@@ -20,4 +20,16 @@ test('formatarData não perde um dia em datas "yyyy-mm-dd" puras (bug de fuso ho
 
 test('tempoRelativo indica "agora mesmo" para instantes recentes', () => {
   assert.equal(tempoRelativo(new Date().toISOString()), 'agora mesmo');
+});
+
+test('formatarData converte um Timestamp do Firestore (objeto com toDate())', () => {
+  const timestampFalso = { toDate: () => new Date(2026, 4, 25) };
+  assert.equal(formatarData(timestampFalso), '25/05/2026');
+});
+
+test('dataBrParaDate converte "dd/mm/aaaa" para um Date local correto', () => {
+  const data = dataBrParaDate('25/05/2026');
+  assert.equal(data.getFullYear(), 2026);
+  assert.equal(data.getMonth(), 4);
+  assert.equal(data.getDate(), 25);
 });
