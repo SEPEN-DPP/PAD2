@@ -9,7 +9,7 @@ estrangeira). Ver [ARCHITECTURE.md](../ARCHITECTURE.md) §4 para o racional.
 {
   dadosGerais: { numero, unidade, dataAbertura, status },
   incidentados: [{ nomeCompleto, ipen }],
-  infracao: { data, descricao, artigos: [], detentosEnvolvidos: [], agentesEnvolvidos: [], observacoes },
+  infracao: { data, tipificacao, artigos: [], detentosEnvolvidos: [], agentesEnvolvidos: [], observacoes },
   defesa: { advogadoId, memoriais: [], prazos },
   conselho: { manifestacao, integrantes: [], data },
   decisao: { tipo, fundamentacao, data, responsavel },
@@ -17,6 +17,14 @@ estrangeira). Ver [ARCHITECTURE.md](../ARCHITECTURE.md) §4 para o racional.
   criadoEm, atualizadoEm
 }
 ```
+
+`incidentados[].ipen` vem do campo `Prontuário:` do Registro de Infração do i-PEN — no
+próprio documento, o texto da descrição chama esse número de "MATRÍCULA IPEN" (confirmado
+com o usuário; **não confundir com o campo `RG i-PEN:` do formulário, que é outro
+número**). `infracao.tipificacao` vem do campo `UNIDADE / INFRAÇÃO:` do formulário (o texto
+curto de enquadramento, não o campo `DESCRIÇÃO:` — o relato narrativo do incidente não faz
+parte do escopo de extração atual). Ver
+[src/parser/README.md](../src/parser/README.md) para o mapeamento completo de rótulos.
 
 ## `eventos`
 

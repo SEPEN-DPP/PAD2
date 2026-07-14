@@ -107,7 +107,7 @@ Todo o sistema opera sobre um único agregado lógico:
 PAD
 ├── dadosGerais      { numero, unidade, dataAbertura, status, ... }
 ├── incidentados[]   { nomeCompleto, ipen }
-├── infracao         { data, descricao, artigos[], detentosEnvolvidos[], agentesEnvolvidos[], observacoes }
+├── infracao         { data, tipificacao, artigos[], detentosEnvolvidos[], agentesEnvolvidos[], observacoes }
 ├── eventos[]        (referência para a coleção `eventos`, ordenados)
 ├── documentos[]      (referência para a coleção `documentos`, gerados a partir dos dados)
 ├── anexos[]          (referência para a coleção `anexos` — metadado; binário no Storage)
