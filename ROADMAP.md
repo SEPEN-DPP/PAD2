@@ -29,8 +29,11 @@ tela "Novo PAD" com upload de PDF apenas como interface.
 - Autocadastro público (`#/cadastro`) com aprovação por Direção/CPEN da unidade
   solicitada (ou Administrador), perfil Servidor concedido na aprovação — ver
   `src/pages/auth/registro`, `src/pages/usuarios/usuariosPage.js`. ✅ (2026-07-14)
-- Tela de Usuários: aprovação/recusa de solicitações e exclusão de contas já
-  implementadas ✅; edição de perfil/unidade de um usuário já ativo ainda não existe.
+- Tela de Usuários: aprovação/recusa de solicitações, edição (nome/perfil) e exclusão de
+  contas ativas ✅ — escopo de gestão estendido a contas de Superintendência Regional
+  (`vinculo.tipo: 'REGIONAL'`, campo `superintendencia` denormalizado em `usuarios`),
+  restrito a alvos `perfil: SERVIDOR`; ver `docs/firestore-schema.md` e
+  `docs/permissions-matrix.md`. ✅ (2026-07-14)
 - Registro de auditoria (`logs`) para login, logout e acessos negados.
 
 ## Fase 2 — Núcleo do PAD (CRUD + fluxo processual)

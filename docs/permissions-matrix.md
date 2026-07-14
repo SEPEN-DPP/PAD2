@@ -33,3 +33,19 @@ uma restrição própria quando existirem de verdade.
 desta matriz, tela pré-login). A solicitação nasce sem perfil (`status: 'PENDENTE'`); ao ser
 aprovada pela Direção/CPEN da unidade (ou Administrador), recebe o perfil **Servidor** e só
 então passa a valer esta matriz. Ver [firestore-schema.md](firestore-schema.md).
+
+**Gestão de usuários — quem pode aprovar/editar/excluir quem (2026-07-14):** a coluna
+`/usuarios` acima só controla quem *acessa a página*; dentro dela, o recorte de **quais
+contas** cada um vê e gerencia é dado por `vinculo`, não por `perfil`:
+
+| Gestor                                   | Vê/gerencia solicitações e contas de |
+|-------------------------------------------|----------------------------------------|
+| Administrador                              | todas as contas, qualquer perfil |
+| Diretor/CPEN, `vinculo.tipo = UNIDADE`     | apenas `perfil: SERVIDOR` da própria unidade |
+| Diretor/CPEN, `vinculo.tipo = REGIONAL` (SR) | apenas `perfil: SERVIDOR` de todas as unidades da regional |
+
+Um gestor não-Administrador só pode atribuir os perfis em `PERFIS_ATRIBUIVEIS_POR_GESTOR`
+(Servidor, Conselho Disciplinar, Subdiretor) e nunca enxerga outro Diretor/CPEN/Regional/
+Administrador por essa tela — ver `souGestorDoAlvo`/`perfilPermitidoParaGestor` em
+`firestore.rules` (fonte de verdade da autorização) e a seção "Editar/Excluir" em
+[firestore-schema.md](firestore-schema.md).

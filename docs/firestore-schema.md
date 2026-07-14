@@ -61,11 +61,18 @@ Binário no Firebase Storage (`src/storage/attachmentStorage.js`); aqui só o me
   nome, email, perfil, unidade, ativo, criadoEm,
   vinculo: { tipo, valor },
   status: 'PENDENTE' | 'ATIVO',
+  superintendencia, // código da SR da unidade (ex.: "SR04") — sempre presente, PENDENTE ou ATIVO
   // presentes só durante o status PENDENTE (autocadastro, ver abaixo):
   cpf, dataNascimento, unidadeSolicitada,
 }
 ```
 Documento com o mesmo `id` do UID do Firebase Authentication.
+
+`superintendencia` é gravado tanto no autocadastro (`unidadeSolicitada` → SR) quanto na
+aprovação (`unidade` → SR), derivado de `src/config/unidadesPrisionais.js` (única fonte de
+verdade unidade↔regional). Existe só para que as **regras do Firestore** — que não podem
+executar essa lookup de 55 unidades em JS — consigam checar o escopo REGIONAL comparando um
+campo simples, em vez de embutir o mapa inteiro no texto das regras.
 
 `vinculo` controla o **recorte de dados** (não confundir com `perfil`, que controla quais
 *páginas* o usuário acessa — ver `src/config/roles.js`). Determina o que aparece no
@@ -99,6 +106,27 @@ solicitações em **Usuários → Solicitações pendentes** e:
 
 Enquanto `status === 'PENDENTE'` (ou sem documento nenhum), o app mostra uma tela de
 espera/recadastro em vez do painel — ver `src/app/app.js`.
+
+### Gestão de usuários ativos: Editar/Excluir (Fase 1, 2026-07-14)
+
+Além de aprovar solicitações, a página **Usuários** lista as contas já `ATIVO` dentro do
+escopo de quem está logado (`calcularEscopoDeGestao`, em
+[usuarioService.js](../src/services/usuarios/usuarioService.js)) e oferece **Editar**
+(nome e perfil) e **Excluir** por linha:
+
+- **Administrador**: vê e gerencia todas as contas, qualquer perfil.
+- **Direção/CPEN de uma unidade** (`vinculo.tipo === 'UNIDADE'`): só os `perfil: 'SERVIDOR'`
+  daquela unidade.
+- **Superintendência Regional** (`vinculo.tipo === 'REGIONAL'`): os `perfil: 'SERVIDOR'` de
+  todas as unidades da sua SR (via `superintendencia`).
+
+Um gestor (não-Administrador) só pode atribuir os perfis em
+`PERFIS_ATRIBUIVEIS_POR_GESTOR` (`SERVIDOR`, `CONSELHO_DISCIPLINAR`, `SUBDIRETOR`) — nunca
+promove ninguém a `DIRETOR`/`ADMINISTRADOR` por essa tela, e nunca enxerga/edita/exclui
+outro Diretor, CPEN, Regional ou Administrador (ver `souGestorDoAlvo` e
+`perfilPermitidoParaGestor` em `firestore.rules`, únicas fontes de verdade da autorização —
+a UI só reflete o que as regras já impõem). "Excluir" remove o documento em `usuarios`; a
+conta de autenticação permanece (mesma limitação de Admin SDK/Blaze citada acima).
 
 ## `advogados`
 
