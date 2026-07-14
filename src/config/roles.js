@@ -1,0 +1,60 @@
+/**
+ * Perfis de usuário e matriz de permissões por rota. A matriz completa de
+ * ações (não só navegação) será refinada na Fase 1 — ver ROADMAP.md.
+ * Documentação legível em docs/permissions-matrix.md.
+ */
+
+export const ROLES = Object.freeze({
+  ADMINISTRADOR: 'ADMINISTRADOR',
+  DIRETOR: 'DIRETOR',
+  SUBDIRETOR: 'SUBDIRETOR',
+  SERVIDOR: 'SERVIDOR',
+  CONSELHO_DISCIPLINAR: 'CONSELHO_DISCIPLINAR',
+  ADVOGADO: 'ADVOGADO',
+  DEFENSOR_PUBLICO: 'DEFENSOR_PUBLICO',
+});
+
+export const ROLE_LABELS = Object.freeze({
+  ADMINISTRADOR: 'Administrador',
+  DIRETOR: 'Diretor',
+  SUBDIRETOR: 'Subdiretor',
+  SERVIDOR: 'Servidor',
+  CONSELHO_DISCIPLINAR: 'Conselho Disciplinar',
+  ADVOGADO: 'Advogado',
+  DEFENSOR_PUBLICO: 'Defensor Público',
+});
+
+const PAINEL_INSTITUCIONAL = [
+  ROLES.ADMINISTRADOR,
+  ROLES.DIRETOR,
+  ROLES.SUBDIRETOR,
+  ROLES.SERVIDOR,
+  ROLES.CONSELHO_DISCIPLINAR,
+];
+
+/**
+ * Perfis autorizados a acessar cada rota do painel institucional. Rotas
+ * ausentes deste mapa são tratadas como liberadas para qualquer perfil
+ * autenticado do painel. O Portal do Advogado tem seu próprio contexto de
+ * autenticação e não é regido por este mapa (ver src/pages/portal-advogado).
+ */
+export const ROUTE_PERMISSIONS = Object.freeze({
+  '/dashboard': PAINEL_INSTITUCIONAL,
+  '/pad': PAINEL_INSTITUCIONAL,
+  '/pad/novo': [ROLES.ADMINISTRADOR, ROLES.DIRETOR, ROLES.SUBDIRETOR, ROLES.SERVIDOR],
+  '/eventos': PAINEL_INSTITUCIONAL,
+  '/documentos': PAINEL_INSTITUCIONAL,
+  '/anexos': PAINEL_INSTITUCIONAL,
+  '/usuarios': [ROLES.ADMINISTRADOR, ROLES.DIRETOR],
+  '/configuracoes': [ROLES.ADMINISTRADOR],
+  '/relatorios': [ROLES.ADMINISTRADOR, ROLES.DIRETOR, ROLES.SUBDIRETOR],
+  '/ia': [ROLES.ADMINISTRADOR],
+  '/exportacao': PAINEL_INSTITUCIONAL,
+});
+
+/** Verifica se um perfil pode acessar uma rota. */
+export function podeAcessarRota(perfil, rota) {
+  const permitidos = ROUTE_PERMISSIONS[rota];
+  if (!permitidos) return Boolean(perfil);
+  return permitidos.includes(perfil);
+}

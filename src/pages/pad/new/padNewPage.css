@@ -1,0 +1,5 @@
+.pad-new__acoes {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-5);
+}

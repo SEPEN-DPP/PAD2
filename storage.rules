@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────
+// PAD V2 — Regras de segurança do Storage (esqueleto — Fase 0)
+//
+// Convenção de caminho (definida em src/storage/attachmentStorage.js):
+//   /pads/{padId}/eventos/{eventoId}/{anexoId}-{nomeArquivo}
+//
+// O binário do arquivo vive aqui; o metadado (autor, tipo, tamanho, vínculo
+// com o evento) vive na coleção `anexos` do Firestore. Nunca o inverso.
+// A liberação granular por perfil chega na Fase 5 (Anexos).
+// ─────────────────────────────────────────────────────────────────────────
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    match /pads/{padId}/eventos/{eventoId}/{arquivo} {
+      allow read: if autenticado();
+      allow write: if false; // upload real liberado na Fase 5
+    }
+
+    // Qualquer outro caminho permanece bloqueado.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────
+// PAD V2 — Regras de segurança do Firestore (esqueleto — Fase 0)
+//
+// Princípio: negar por padrão, liberar explicitamente por perfil autenticado.
+// A matriz completa de permissões por perfil/ação será implementada na Fase 1
+// (ver ROADMAP.md). Nesta fase as regras apenas garantem que:
+//   - nenhum acesso anônimo é permitido;
+//   - um usuário só lê/escreve o próprio documento em `usuarios`;
+//   - demais coleções institucionais exigem autenticação (leitura) e ficam
+//     fechadas para escrita até a Fase 1 definir a matriz de perfis.
+// ─────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function ehDonoDoDocumento(userId) {
+      return autenticado() && request.auth.uid == userId;
+    }
+
+    // Coleção de contas institucionais (Administrador, Diretor, Subdiretor,
+    // Servidor, Conselho Disciplinar, Defensor Público).
+    match /usuarios/{userId} {
+      allow read: if ehDonoDoDocumento(userId);
+      allow write: if false; // gestão de usuários será liberada na Fase 1
+    }
+
+    // Contas do Portal do Advogado — contexto de autenticação separado (Fase 6).
+    match /advogados/{advogadoId} {
+      allow read, write: if false;
+    }
+
+    match /pads/{padId} {
+      allow read: if autenticado();
+      allow write: if false; // regras de fluxo processual chegam na Fase 2
+    }
+
+    match /eventos/{eventoId} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    match /documentos/{documentoId} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    match /anexos/{anexoId} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    match /logs/{logId} {
+      allow read: if false; // logs são consultados via ferramentas administrativas
+      allow create: if autenticado();
+      allow update, delete: if false; // logs são imutáveis
+    }
+
+    match /configuracoes/{configId} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    match /modelos/{modeloId} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    // Qualquer coleção não mapeada explicitamente permanece bloqueada.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,21 @@
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.page-header__titulo {
+  margin-bottom: var(--space-1);
+}
+
+.page-header__descricao {
+  font-size: var(--font-size-sm);
+}
+
+.page-header__acoes {
+  display: flex;
+  gap: var(--space-3);
+}

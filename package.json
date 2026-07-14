@@ -1,0 +1,19 @@
+{
+  "name": "pad-v2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema Eletrônico de Processo Administrativo Disciplinar — Polícia Penal de Santa Catarina",
+  "type": "module",
+  "scripts": {
+    "dev": "firebase emulators:start",
+    "serve": "firebase serve",
+    "test": "node --test",
+    "deploy": "firebase deploy"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  }
+}

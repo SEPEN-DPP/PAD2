@@ -1,0 +1,26 @@
+.tabs__nav {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-5);
+  overflow-x: auto;
+}
+
+.tabs__botao {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tabs__botao:hover {
+  color: var(--color-text);
+}
+
+.tabs__botao--ativo {
+  color: var(--color-primary-600);
+  border-bottom-color: var(--color-primary-500);
+}

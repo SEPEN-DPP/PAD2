@@ -1,0 +1,25 @@
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-3);
+}
+
+.breadcrumbs__item {
+  color: var(--color-text-muted);
+}
+
+.breadcrumbs__item:not(.breadcrumbs__item--atual):hover {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+}
+
+.breadcrumbs__item--atual {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.breadcrumbs__separador {
+  color: var(--color-border);
+}

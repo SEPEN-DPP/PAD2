@@ -1,0 +1,16 @@
+node_modules/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.env
+.env.*
+.DS_Store
+Thumbs.db
+
+# Configuração local sensível — nunca commitar
+src/config/firebaseConfig.local.js
+.firebaserc
+
+functions/node_modules/
+functions/.env

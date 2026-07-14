@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "pad-sc-v2-dev",
+    "dev": "pad-sc-v2-dev",
+    "prod": "pad-sc-v2-prod"
+  }
+}

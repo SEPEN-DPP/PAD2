@@ -1,0 +1,104 @@
+# Roadmap — PAD V2
+
+Este roadmap divide o desenvolvimento em fases incrementais. Cada fase só começa após a
+fase anterior estar validada. As decisões de arquitetura que sustentam este roadmap estão
+em [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Fase 0 — Base estrutural (esta entrega)
+
+Escopo: arquitetura, organização de pastas, layout, navegação, componentes, páginas,
+integração inicial com Firebase (config + auth gating), tema visual (claro/escuro),
+estrutura do Firestore (coleções e schema documentado), estrutura de services, e placeholders
+documentados para os módulos futuros (`templates`, `parser`, `ai`).
+
+Sem regra de negócio. Sem parser de PDF. Sem IA. Sem geração de PDF. Sem envio de e-mail.
+Sem Portal do Advogado funcional.
+
+**Critério de conclusão:** navegação completa entre todos os módulos, login funcional
+contra Firebase Auth, dashboard lendo contagens reais (ainda que zeradas) do Firestore,
+tela "Novo PAD" com upload de PDF apenas como interface.
+
+## Fase 1 — Autenticação e controle de acesso
+
+- Login/logout completo, recuperação de senha.
+- Perfis (Administrador, Diretor, Subdiretor, Servidor, Conselho Disciplinar, Servidor)
+  aplicados via `src/config/roles.js` + `firestore.rules`.
+- Tela de Usuários: CRUD de contas institucionais e atribuição de perfil/unidade.
+- Registro de auditoria (`logs`) para login, logout e acessos negados.
+
+## Fase 2 — Núcleo do PAD (CRUD + fluxo processual)
+
+- Modelagem completa do objeto PAD no Firestore (`pads`, `eventos`).
+- Máquina de estados do fluxo processual (Registro → Portaria → Cientificação → Oitiva →
+  Conselho → Defesa → Decisão → Ofício → Arquivamento), com validação de transição e
+  campos obrigatórios por etapa.
+- Tela de PAD (listagem, criação manual de evento, detalhe com abas por seção do objeto).
+- Timeline de eventos e histórico de auditoria por PAD.
+
+## Fase 3 — Parser do Registro de Infração (PDF.js, extração baseada em regras)
+
+**Sem orçamento para IA paga** — toda a extração desta fase é determinística (regex sobre
+o texto extraído do PDF pelo PDF.js, em `src/parser`), sem depender de nenhuma API de IA
+com custo. `src/ai` não participa desta fase (ver [src/ai/README.md](src/ai/README.md)).
+
+- Implementação real de `src/parser/pdfParserService.js` (extração de texto via PDF.js).
+- Implementação real de `src/parser/registroInfracaoParser.js`, limitada aos campos:
+  **nome completo, IPEN, data da infração, infração, artigos, detentos envolvidos, agentes
+  (Policiais Penais) envolvidos, observações.**
+- Tela "Novo PAD" passa a enviar o PDF para análise e pré-preencher o objeto PAD para
+  validação humana antes da gravação.
+
+## Fase 4 — Documentos e geração de PDF
+
+- `src/templates` ganha os modelos reais (Portaria, Termo de Cientificação, Ofício etc.),
+  sempre renderizados a partir do objeto PAD (nunca editados como texto solto).
+- Geração de PDF via jsPDF a partir dos templates.
+- Versionamento de documentos gerados (coleção `documentos`) e vínculo com o evento que os
+  originou.
+
+## Fase 5 — Anexos
+
+- Upload real para Firebase Storage com convenção de caminho por PAD/evento.
+- Metadados em `anexos` (tipo, autor, data, tamanho, vínculo com evento).
+- Visualização de fotos/vídeos/laudos e download controlado por permissão.
+
+## Fase 6 — Portal do Advogado
+
+- Cadastro de advogado após a Cientificação, com envio de e-mail (Cloud Functions) contendo
+  link de primeiro acesso.
+- Definição de senha no primeiro acesso, autenticação isolada do painel institucional.
+- Acompanhamento de andamento, visualização de documentos autorizados, envio de memoriais e
+  documentos, consulta de histórico e decisões.
+- Log de acesso obrigatório para toda ação do advogado.
+
+## Fase 7 — Relatórios e Exportação
+
+- Relatórios gerenciais (por unidade, por período, por status, por classificação de
+  infração).
+- Exportação (PDF/planilha) dos relatórios e de PADs individuais.
+
+## Fase 8 — Validação processual e apoio à decisão
+
+Sem orçamento para IA paga: o que pode ser regra determinística fica em regra
+determinística (sem custo); só o que exige geração de texto livre depende de IA e fica
+condicionado à disponibilidade futura de orçamento/ferramenta gratuita viável.
+
+- Identificação de inconsistências no processo (prazos vencidos, documentos obrigatórios
+  ausentes, campos pendentes) — **regra determinística**, sem dependência de IA.
+- Validação assistida de completude documental antes do envio ao Conselho/Defesa — **regra
+  determinística**, sem dependência de IA.
+- Sugestão de fundamentação e revisão textual de peças — **depende de IA generativa**;
+  avaliar viabilidade (custo/hospedagem) quando houver orçamento; até lá, fica fora de
+  escopo.
+
+## Fase 9 — Hardening institucional
+
+- Revisão completa de `firestore.rules`/`storage.rules` para produção.
+- Auditoria de segurança, testes de carga, política de backup/retenção.
+- Documentação de operação para as Unidades Prisionais (manual do usuário por perfil).
+
+---
+
+**Nota de processo:** ao final de cada fase, atualizar este arquivo (marcando a fase como
+concluída) e registrar decisões relevantes em [ARCHITECTURE.md](ARCHITECTURE.md) antes de
+iniciar a fase seguinte.
