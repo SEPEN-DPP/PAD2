@@ -41,9 +41,13 @@ migrar para uma coleção editável do Firestore quando existir tela de gestão 
   de conta de e-mail/senha — origem `js/pad-firestore.js` (coleções `pad_links`,
   `advogado_auth`). Reavaliar a abordagem descrita em ARCHITECTURE.md §6 para a Fase 6 à luz
   disso.
-- **Detecção automática de artigo por palavra-chave** na descrição da infração — origem
-  `js/pdf-parser.js`. Heurística frágil (regex sobre texto livre); se portada, manter sempre
-  como sugestão sujeita a confirmação humana, nunca aplicação automática.
+- ~~Detecção automática de artigo por palavra-chave~~ — **feito, mas melhor que o V1**
+  (2026-07-14). O V1 (`js/pdf-parser.js`) adivinhava o artigo por palavras-chave soltas no
+  texto (frágil). A V2 usa correspondência de texto: o texto cadastrado no i-PEN para cada
+  infração já segue de perto a redação da LEP, então `identificarArtigoLep` (em
+  `src/parser/registroInfracaoParser.js`) verifica se o texto de um artigo do catálogo
+  (`src/config/baseLegal.js`) está contido no texto extraído — mais preciso, e sempre
+  sujeito a confirmação humana (select pré-selecionado, nunca aplicado sem revisão).
 
 ## Divergência encontrada (não resolvida)
 

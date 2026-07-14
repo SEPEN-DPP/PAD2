@@ -1,27 +1,45 @@
 /** Utilitários puros de formatação de data. Sem dependência externa. */
 
-const FORMATADOR_DATA = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' });
+const FORMATADOR_DATA = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const FORMATADOR_DATA_HORA = new Intl.DateTimeFormat('pt-BR', {
-  dateStyle: 'short',
-  timeStyle: 'short',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
 });
+
+/**
+ * Converte para Date evitando o problema de fuso horário: uma string
+ * "yyyy-mm-dd" pura (sem horário) é interpretada pelo construtor nativo
+ * `Date` como meia-noite UTC, o que em fusos negativos (ex.: Brasil, UTC-3)
+ * mostra o dia ANTERIOR ao real. Aqui, uma data assim é sempre montada no
+ * fuso local em vez de UTC.
+ */
+function paraData(valor) {
+  if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    const [ano, mes, dia] = valor.split('-').map(Number);
+    return new Date(ano, mes - 1, dia);
+  }
+  return new Date(valor);
+}
 
 /** @param {string|number|Date} valor */
 export function formatarData(valor) {
   if (!valor) return '—';
-  return FORMATADOR_DATA.format(new Date(valor));
+  return FORMATADOR_DATA.format(paraData(valor));
 }
 
 /** @param {string|number|Date} valor */
 export function formatarDataHora(valor) {
   if (!valor) return '—';
-  return FORMATADOR_DATA_HORA.format(new Date(valor));
+  return FORMATADOR_DATA_HORA.format(paraData(valor));
 }
 
 /** Retorna algo como "há 3 dias" a partir de uma data. */
 export function tempoRelativo(valor) {
   if (!valor) return '—';
-  const diffMs = Date.now() - new Date(valor).getTime();
+  const diffMs = Date.now() - paraData(valor).getTime();
   const diffMin = Math.round(diffMs / 60000);
   if (diffMin < 1) return 'agora mesmo';
   if (diffMin < 60) return `há ${diffMin} min`;

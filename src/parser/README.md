@@ -12,12 +12,12 @@ ambas **sem custo** (sem dependência de IA paga — ver [src/ai/README.md](../a
    - IPEN
    - Data da infração
    - Infração (descrição/tipo)
-   - Artigos
+   - Artigo da LEP correspondente à falta
    - Detentos envolvidos
    - Agentes (Policiais Penais) envolvidos
    - Observações
 
-Implementação real prevista para a Fase 3 (ver [ROADMAP.md](../../ROADMAP.md)).
+Implementado na Fase 3 (ver [ROADMAP.md](../../ROADMAP.md)).
 
 ## Mapeamento de campos (confirmado contra modelo real, 2026-07-14)
 
@@ -29,9 +29,9 @@ documento, na ordem em que aparecem:
 |------------------------|-------------------------------|--------------------|
 | `nomeCompleto`         | `Nome:`                       | `CRISTIAN NELSON CONCEIÇÃO SOUZA` |
 | `ipen`                 | `Prontuário:` (só a parte numérica) | `750126` |
-| `dataInfracao`         | `DATA:` (dentro do bloco "DADOS INFRAÇÃO") | `25/05/2026` → normalizado para ISO `2026-05-25` |
+| `dataInfracao`         | `DATA:` (dentro do bloco "DADOS INFRAÇÃO") | `25/05/2026` — **mantido em dd/mm/aaaa, nunca convertido para ISO** |
 | `infracao`             | `UNIDADE / INFRAÇÃO:`         | `152 TIVER EM SUA POSSE, UTILIZAR OU FORNECER APARELHO TELEFÔNICO...` |
-| `artigos`              | `Artigo(s):`                  | `33, 33` → `["33", "33"]` |
+| `artigoLep`            | *(derivado de `infracao`, não de um rótulo)* | `{ codigo: 'art50_vii', rotulo: 'Art. 50, VII — LEP' }` |
 | `detentosEnvolvidos`   | `DETENTOS ENVOLVIDOS:`        | (pode vir vazio) → `[]` |
 | `agentesEnvolvidos`    | `AGENTES ENVOLVIDOS:`         | `MARCELO FAUTH PIANA, RAFAÉL COELHO, DANIEL LIMA` → array de 3 nomes |
 | `observacoes`          | `OBSERVAÇÃO:`                 | `NÃO INFORMADA` → normalizado para `null` (convenção do i-PEN para campo vazio) |
@@ -41,6 +41,24 @@ formulário tem duas numerações diferentes: `Prontuário:` (ex. `750126`) e `R
 `12181418918 SC`, que é o registro de identificação civil). O texto da `DESCRIÇÃO:` chama o
 número do Prontuário de "MATRÍCULA IPEN" — é esse (`Prontuário:`) que vira o campo `ipen`
 do PAD. `RG i-PEN:` não é extraído.
+
+**Data sempre em dd/mm/aaaa (2026-07-14).** `dataInfracao` nunca é convertido para
+`yyyy-mm-dd`: uma string ISO só de data, passada por `new Date(string)`, é interpretada
+como meia-noite UTC e mostra o dia **anterior** em fusos negativos (Brasil, UTC-3) — ver o
+mesmo cuidado em [src/utils/dateUtils.js](../utils/dateUtils.js). O formato do próprio
+documento (dd/mm/aaaa) é o formato final, sem conversão.
+
+**`artigoLep` não vem de um rótulo do formulário — é identificado a partir de `infracao`
+(2026-07-14).** O campo `Artigo(s):` do cabeçalho do formulário é sobre o(s) **processo(s)
+criminal(is)** do incidentado (ex.: artigo da Lei de Drogas), **não** sobre a falta
+disciplinar — não tem relação com o PAD e não é extraído. As faltas graves estão previstas
+nos incisos do art. 50 da LEP e no art. 52 caput (RDD) — ver
+[src/config/baseLegal.js](../config/baseLegal.js). Como o texto cadastrado no i-PEN para
+cada tipo de infração já segue de perto a redação da própria LEP, `identificarArtigoLep`
+apenas verifica se o texto de um artigo do catálogo está contido no texto de `infracao`
+(após normalizar acentuação/caixa) — não é um palpite por palavra-chave. Quando não há
+correspondência clara, retorna `null` e a tela de revisão exige seleção manual entre os
+artigos do catálogo (nunca aplica uma classificação sem confirmação humana).
 
 Quando os campos extraídos são incorporados ao objeto PAD (ver
 [docs/firestore-schema.md](../../docs/firestore-schema.md)), `infracao` vira
@@ -75,8 +93,9 @@ export async function extrairTexto(arquivoPdf) { /* ... */ }
  * @param {{ paginas: string[], textoCompleto: string }} textoExtraido
  * @returns {Promise<{
  *   nomeCompleto: string, ipen: string, dataInfracao: string, infracao: string,
- *   artigos: string[], detentosEnvolvidos: string[], agentesEnvolvidos: string[],
- *   observacoes: string
+ *   artigoLep: { codigo: string, rotulo: string } | null,
+ *   detentosEnvolvidos: string[], agentesEnvolvidos: string[],
+ *   observacoes: string | null,
  * }>}
  */
 export async function extrairCamposRegistroInfracao(textoExtraido) { /* ... */ }
@@ -84,6 +103,8 @@ export async function extrairCamposRegistroInfracao(textoExtraido) { /* ... */ }
 
 ## Estado atual
 
-Apenas as interfaces estão definidas (`pdfParserService.js`, `registroInfracaoParser.js`),
-lançando erro de "não implementado". A tela "Novo PAD" (`src/pages/pad/new`) já existe, mas
-não chama este módulo ainda.
+Implementado e testado (`tests/parser/registroInfracaoParser.test.js`) contra um modelo
+real do formulário. A tela "Novo PAD" (`src/pages/pad/new`) já chama este módulo: o botão
+"Analisar Registro" extrai os campos e mostra um formulário de revisão editável (incluindo
+o select do artigo da LEP, pré-selecionado quando há correspondência) antes de qualquer
+gravação — a gravação em si é Fase 2.

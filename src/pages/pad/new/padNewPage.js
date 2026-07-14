@@ -15,6 +15,7 @@ import { criarBotao } from '../../../components/button/button.js';
 import { mostrarToast } from '../../../utils/toast.js';
 import { extrairTexto } from '../../../parser/pdfParserService.js';
 import { extrairCamposRegistroInfracao } from '../../../parser/registroInfracaoParser.js';
+import { ARTIGOS_LEP } from '../../../config/baseLegal.js';
 
 function criarCampo({ rotulo, valor, multilinha = false }) {
   const input = criarElemento(multilinha ? 'textarea' : 'input', {
@@ -25,13 +26,37 @@ function criarCampo({ rotulo, valor, multilinha = false }) {
   return { elemento: criarElemento('label', { class: 'campo' }, [criarElemento('span', { class: 'campo__rotulo' }, [rotulo]), input]), input };
 }
 
+/**
+ * Select do artigo da LEP (faltas graves), pré-selecionado quando o parser
+ * identifica correspondência entre o texto da infração e o catálogo (ver
+ * src/config/baseLegal.js) — sempre editável, nunca aplicado sem revisão.
+ */
+function criarCampoArtigoLep(artigoLep) {
+  const opcoes = [
+    criarElemento('option', { value: '' }, ['Selecione...']),
+    ...ARTIGOS_LEP.map((artigo) => {
+      const atributos = { value: artigo.cod };
+      if (artigoLep?.codigo === artigo.cod) atributos.selected = 'selected';
+      return criarElemento('option', atributos, [artigo.label]);
+    }),
+  ];
+  const select = criarElemento('select', { class: 'campo__input' }, opcoes);
+  const rotulo = artigoLep
+    ? 'Artigo da LEP (identificado automaticamente — confira)'
+    : 'Artigo da LEP (não identificado — selecione manualmente)';
+  return {
+    elemento: criarElemento('label', { class: 'campo' }, [criarElemento('span', { class: 'campo__rotulo' }, [rotulo]), select]),
+    input: select,
+  };
+}
+
 function criarFormularioRevisao(campos) {
   const linhas = [
     criarCampo({ rotulo: 'Nome completo', valor: campos.nomeCompleto }),
     criarCampo({ rotulo: 'IPEN (Prontuário)', valor: campos.ipen }),
     criarCampo({ rotulo: 'Data da infração', valor: campos.dataInfracao }),
     criarCampo({ rotulo: 'Infração', valor: campos.infracao, multilinha: true }),
-    criarCampo({ rotulo: 'Artigos (separados por vírgula)', valor: campos.artigos.join(', ') }),
+    criarCampoArtigoLep(campos.artigoLep),
     criarCampo({ rotulo: 'Detentos envolvidos (separados por vírgula)', valor: campos.detentosEnvolvidos.join(', ') }),
     criarCampo({ rotulo: 'Agentes envolvidos (separados por vírgula)', valor: campos.agentesEnvolvidos.join(', ') }),
     criarCampo({ rotulo: 'Observações', valor: campos.observacoes, multilinha: true }),

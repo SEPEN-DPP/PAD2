@@ -41,12 +41,14 @@ tela "Novo PAD" com upload de PDF apenas como interface.
 o texto extraído do PDF pelo PDF.js, em `src/parser`), sem depender de nenhuma API de IA
 com custo. `src/ai` não participa desta fase (ver [src/ai/README.md](src/ai/README.md)).
 
-- Implementação real de `src/parser/pdfParserService.js` (extração de texto via PDF.js).
+- Implementação real de `src/parser/pdfParserService.js` (extração de texto via PDF.js). ✅
 - Implementação real de `src/parser/registroInfracaoParser.js`, limitada aos campos:
-  **nome completo, IPEN, data da infração, infração, artigos, detentos envolvidos, agentes
-  (Policiais Penais) envolvidos, observações.**
+  **nome completo, IPEN, data da infração (dd/mm/aaaa), infração, artigo da LEP
+  correspondente à falta (art. 50 incisos ou art. 52 caput — identificado a partir do texto
+  da infração, ver `src/config/baseLegal.js`), detentos envolvidos, agentes (Policiais
+  Penais) envolvidos, observações.** ✅
 - Tela "Novo PAD" passa a enviar o PDF para análise e pré-preencher o objeto PAD para
-  validação humana antes da gravação.
+  validação humana antes da gravação. ✅ (revisão humana; gravação em si é Fase 2)
 
 ## Fase 4 — Documentos e geração de PDF
 

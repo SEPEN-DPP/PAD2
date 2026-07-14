@@ -9,7 +9,7 @@ estrangeira). Ver [ARCHITECTURE.md](../ARCHITECTURE.md) §4 para o racional.
 {
   dadosGerais: { numero, unidade, dataAbertura, status },
   incidentados: [{ nomeCompleto, ipen }],
-  infracao: { data, tipificacao, artigos: [], detentosEnvolvidos: [], agentesEnvolvidos: [], observacoes },
+  infracao: { data, tipificacao, artigoLep: { codigo, rotulo }, detentosEnvolvidos: [], agentesEnvolvidos: [], observacoes },
   defesa: { advogadoId, memoriais: [], prazos },
   conselho: { manifestacao, integrantes: [], data },
   decisao: { tipo, fundamentacao, data, responsavel },

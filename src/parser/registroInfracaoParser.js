@@ -15,6 +15,7 @@
  *
  * Mapeamento completo e o que fica de fora do escopo: ver README.md.
  */
+import { ARTIGOS_LEP } from '../config/baseLegal.js';
 
 const ROTULOS = [
   { chave: 'prontuario', padrao: /Prontu[aá]rio\s*:/i },
@@ -27,7 +28,11 @@ const ROTULOS = [
   { chave: 'mae', padrao: /M[aã]e\s*:/i },
   { chave: 'processos', padrao: /Processo\(s\)\s*:/i },
   { chave: 'nascimento', padrao: /Nascimento\s*:/i },
-  { chave: 'artigos', padrao: /Artigo\(s\)\s*:/i },
+  // Artigo(s) aqui é do(s) processo(s) criminal(is) do incidentado (ex.: Lei
+  // de Drogas), NÃO o artigo da falta disciplinar — não faz parte dos 8
+  // campos extraídos. Mantido na lista só para delimitar corretamente os
+  // campos vizinhos (Nascimento/Ingresso).
+  { chave: 'artigosProcessoPenal', padrao: /Artigo\(s\)\s*:/i },
   { chave: 'ingresso', padrao: /Ingresso\s*:/i },
   { chave: 'regime', padrao: /\bRegime\s*:/i },
   { chave: 'comportamento', padrao: /Comportamento\s*:/i },
@@ -74,20 +79,35 @@ function paraListaDeNomes(valor) {
     .filter(Boolean);
 }
 
-function normalizarCampoVazio(valor) {
-  const semAcento = valor
+function normalizarTexto(valor) {
+  return valor
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
+    .replace(/\s+/g, ' ')
     .trim();
-  return /^nao informad[ao]$/.test(semAcento) ? null : valor;
 }
 
-function converterDataBrParaIso(dataBr) {
-  const encontrado = dataBr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-  if (!encontrado) return dataBr;
-  const [, dia, mes, ano] = encontrado;
-  return `${ano}-${mes}-${dia}`;
+function normalizarCampoVazio(valor) {
+  return /^nao informad[ao]$/.test(normalizarTexto(valor)) ? null : valor;
+}
+
+/**
+ * Identifica a qual inciso do art. 50 da LEP (faltas graves) — ou ao art. 52
+ * caput (RDD) — corresponde o texto da infração. O texto cadastrado no i-PEN
+ * para cada tipo de infração já segue de perto a redação da LEP, então basta
+ * verificar se o texto de um artigo do catálogo está contido no texto
+ * extraído (após normalizar acentuação/caixa) — não é uma tentativa de
+ * "adivinhar" por palavra-chave. Retorna `null` quando não há
+ * correspondência clara, para que a etapa de revisão humana escolha
+ * manualmente entre os artigos do catálogo (ver src/config/baseLegal.js).
+ */
+function identificarArtigoLep(textoInfracao) {
+  const normalizado = normalizarTexto(textoInfracao);
+  const correspondencias = ARTIGOS_LEP.filter((artigo) => normalizado.includes(normalizarTexto(artigo.texto)));
+  if (!correspondencias.length) return null;
+  const maisEspecifico = correspondencias.reduce((a, b) => (b.texto.length > a.texto.length ? b : a));
+  return { codigo: maisEspecifico.cod, rotulo: maisEspecifico.label };
 }
 
 /**
@@ -97,7 +117,7 @@ function converterDataBrParaIso(dataBr) {
  *   ipen: string,
  *   dataInfracao: string,
  *   infracao: string,
- *   artigos: string[],
+ *   artigoLep: { codigo: string, rotulo: string } | null,
  *   detentosEnvolvidos: string[],
  *   agentesEnvolvidos: string[],
  *   observacoes: string | null,
@@ -108,13 +128,18 @@ export async function extrairCamposRegistroInfracao(textoExtraido) {
   const ocorrencias = localizarRotulos(texto);
 
   const prontuarioBruto = capturarValor(ocorrencias, texto, 'prontuario');
+  const infracaoTexto = capturarValor(ocorrencias, texto, 'infracao');
 
   return {
     nomeCompleto: capturarValor(ocorrencias, texto, 'nome'),
     ipen: prontuarioBruto.match(/\d+/)?.[0] ?? prontuarioBruto,
-    dataInfracao: converterDataBrParaIso(capturarValor(ocorrencias, texto, 'dataInfracao')),
-    infracao: capturarValor(ocorrencias, texto, 'infracao'),
-    artigos: paraListaDeNomes(capturarValor(ocorrencias, texto, 'artigos')),
+    // Mantido em dd/mm/aaaa (formato do próprio documento) — nunca converter
+    // para "yyyy-mm-dd" e formatar com `new Date(string)`, pois isso é
+    // interpretado como meia-noite UTC e mostra o dia anterior em fusos
+    // negativos (ver src/utils/dateUtils.js).
+    dataInfracao: capturarValor(ocorrencias, texto, 'dataInfracao'),
+    infracao: infracaoTexto,
+    artigoLep: identificarArtigoLep(infracaoTexto),
     detentosEnvolvidos: paraListaDeNomes(capturarValor(ocorrencias, texto, 'detentosEnvolvidos')),
     agentesEnvolvidos: paraListaDeNomes(capturarValor(ocorrencias, texto, 'agentesEnvolvidos')),
     observacoes: normalizarCampoVazio(capturarValor(ocorrencias, texto, 'observacoes')),

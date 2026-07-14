@@ -55,9 +55,9 @@ test('extrai os 8 campos do Registro de Infração a partir do modelo real', asy
 
   assert.equal(resultado.nomeCompleto, 'CRISTIAN NELSON CONCEIÇÃO SOUZA');
   assert.equal(resultado.ipen, '750126'); // Prontuário — não confundir com RG i-PEN
-  assert.equal(resultado.dataInfracao, '2026-05-25');
+  assert.equal(resultado.dataInfracao, '25/05/2026'); // mantido em dd/mm/aaaa, nunca convertido para ISO
   assert.match(resultado.infracao, /^152 TIVER EM SUA POSSE/);
-  assert.deepEqual(resultado.artigos, ['33', '33']);
+  assert.deepEqual(resultado.artigoLep, { codigo: 'art50_vii', rotulo: 'Art. 50, VII — LEP' });
   assert.deepEqual(resultado.detentosEnvolvidos, []);
   assert.deepEqual(resultado.agentesEnvolvidos, ['MARCELO FAUTH PIANA', 'RAFAÉL COELHO', 'DANIEL LIMA']);
   assert.equal(resultado.observacoes, null);
@@ -74,4 +74,23 @@ test('divide listas de nomes separadas por vírgula e ignora campos vazios', asy
   const resultado = await extrairCamposRegistroInfracao({ paginas: [texto], textoCompleto: texto });
   assert.deepEqual(resultado.agentesEnvolvidos, ['FULANO DA SILVA', 'CICLANO PEREIRA']);
   assert.deepEqual(resultado.detentosEnvolvidos, []);
+});
+
+test('identifica o art. 52 (RDD) quando o texto da infração corresponde', async () => {
+  const texto =
+    'UNIDADE / INFRAÇÃO:\n120 PRATICAR FATO PREVISTO COMO CRIME DOLOSO CONSTITUINDO INFRAÇÃO DISCIPLINAR GRAVE E QUANDO OCASIONAR SUBVERSÃO DA ORDEM OU DISCIPLINA INTERNAS\nGRAU:';
+  const resultado = await extrairCamposRegistroInfracao({ paginas: [texto], textoCompleto: texto });
+  assert.deepEqual(resultado.artigoLep, { codigo: 'art52', rotulo: 'Art. 52 — LEP (RDD)' });
+});
+
+test('retorna artigoLep nulo quando o texto da infração não corresponde a nenhum artigo conhecido', async () => {
+  const texto = 'UNIDADE / INFRAÇÃO:\nALGO QUE NÃO ESTÁ NO CATÁLOGO\nGRAU:';
+  const resultado = await extrairCamposRegistroInfracao({ paginas: [texto], textoCompleto: texto });
+  assert.equal(resultado.artigoLep, null);
+});
+
+test('nunca converte a data da infração para ISO (evita bug de fuso horário)', async () => {
+  const texto = 'DATA:\n01/01/2026\nUNIDADE / INFRAÇÃO:';
+  const resultado = await extrairCamposRegistroInfracao({ paginas: [texto], textoCompleto: texto });
+  assert.equal(resultado.dataInfracao, '01/01/2026');
 });
