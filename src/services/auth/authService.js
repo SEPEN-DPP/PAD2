@@ -7,6 +7,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { auth } from '../../firebase/auth.js';
 import { criarRepositorio } from '../firestoreRepository.js';
@@ -39,4 +42,19 @@ export function usuarioAtual() {
  */
 export async function obterPerfilDoUsuario(uid) {
   return usuariosRepo.obterPorId(uid);
+}
+
+/**
+ * Troca a senha do usuário autenticado. O Firebase exige uma reautenticação
+ * recente para essa operação, por isso a senha atual é pedida de novo aqui
+ * (não dá pra trocar a senha só com a sessão já aberta).
+ * @throws {Error} se a senha atual estiver incorreta (auth/invalid-credential)
+ *   ou a nova senha não atender aos requisitos mínimos do Firebase.
+ */
+export async function alterarSenha(senhaAtual, novaSenha) {
+  const usuario = auth.currentUser;
+  if (!usuario) throw new Error('Nenhum usuário autenticado.');
+  const credencial = EmailAuthProvider.credential(usuario.email, senhaAtual);
+  await reauthenticateWithCredential(usuario, credencial);
+  await updatePassword(usuario, novaSenha);
 }

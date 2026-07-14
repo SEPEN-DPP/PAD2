@@ -1,1 +1,11 @@
-/* Reservado para ajustes visuais específicos de configurações. */
+.config-senha__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 360px;
+}
+
+.config-senha__acoes {
+  display: flex;
+  justify-content: flex-end;
+}
