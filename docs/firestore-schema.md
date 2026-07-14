@@ -57,7 +57,13 @@ Binário no Firebase Storage (`src/storage/attachmentStorage.js`); aqui só o me
 ## `usuarios`
 
 ```
-{ nome, email, perfil, unidade, ativo, criadoEm, vinculo: { tipo, valor } }
+{
+  nome, email, perfil, unidade, ativo, criadoEm,
+  vinculo: { tipo, valor },
+  status: 'PENDENTE' | 'ATIVO',
+  // presentes só durante o status PENDENTE (autocadastro, ver abaixo):
+  cpf, dataNascimento, unidadeSolicitada,
+}
 ```
 Documento com o mesmo `id` do UID do Firebase Authentication.
 
@@ -73,6 +79,26 @@ Dashboard e nas listagens de PAD (2026-07-14):
 
 Ver [src/services/pads/padService.js](../src/services/pads/padService.js) para o filtro
 aplicado nas consultas.
+
+### Autocadastro e aprovação (Fase 1, 2026-07-14)
+
+Qualquer pessoa pode se cadastrar em `#/cadastro` (fora do painel autenticado — ver
+[src/pages/auth/registro](../src/pages/auth/registro)). O documento nasce com
+`status: 'PENDENTE'`, **sem `perfil`** (as regras do Firestore rejeitam a escrita se
+`perfil` vier definido nessa etapa), e com `cpf` (checksum validado, ver
+`src/utils/validationUtils.js`), `dataNascimento` (sempre `dd/mm/aaaa`) e
+`unidadeSolicitada`. A Direção/CPEN da unidade solicitada (ou Administrador) veem essas
+solicitações em **Usuários → Solicitações pendentes** e:
+
+- **Aprovam** → grava `perfil: 'SERVIDOR'`, `status: 'ATIVO'`,
+  `vinculo: { tipo: 'UNIDADE', valor: unidadeSolicitada }`.
+- **Recusam/excluem** → remove o documento. A conta de autenticação em si **não** é
+  excluída (exigiria Admin SDK/Cloud Functions, que não temos sem o plano Blaze) — a
+  pessoa pode enviar uma nova solicitação depois via "Completar cadastro"
+  (`criarFormularioCompletarCadastro`), sem precisar criar outra conta.
+
+Enquanto `status === 'PENDENTE'` (ou sem documento nenhum), o app mostra uma tela de
+espera/recadastro em vez do painel — ver `src/app/app.js`.
 
 ## `advogados`
 

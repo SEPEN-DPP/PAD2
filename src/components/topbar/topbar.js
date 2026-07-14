@@ -20,9 +20,9 @@ function alternarTema() {
 }
 
 /**
- * @param {{ titulo: string, usuario: { nome: string, perfilLabel: string } | null, onSair: () => void }} params
+ * @param {{ titulo: string, usuario: { nome: string, perfilLabel: string } | null, onSair: () => void, contadorPendencias?: number, onClicarSino?: () => void }} params
  */
-export function criarTopbar({ titulo, usuario, onSair }) {
+export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, onClicarSino }) {
   carregarCssUmaVez('src/components/topbar/topbar.css');
 
   const botaoTema = criarElemento(
@@ -52,15 +52,20 @@ export function criarTopbar({ titulo, usuario, onSair }) {
 
   const tituloEl = criarElemento('h1', { class: 'topbar__titulo' }, [titulo]);
 
+  const botaoSino = criarElemento(
+    'button',
+    { class: 'topbar__icone-btn topbar__sino', type: 'button', title: 'Solicitações pendentes', onClick: onClicarSino },
+    [
+      icone('bell'),
+      contadorPendencias > 0
+        ? criarElemento('span', { class: 'topbar__sino-badge' }, [String(contadorPendencias)])
+        : null,
+    ].filter(Boolean),
+  );
+
   const raiz = criarElemento('header', { class: 'topbar' }, [
     tituloEl,
-    criarElemento('div', { class: 'topbar__acoes' }, [
-      botaoTema,
-      criarElemento('button', { class: 'topbar__icone-btn', type: 'button', title: 'Notificações' }, [
-        icone('bell'),
-      ]),
-      usuarioBloco,
-    ]),
+    criarElemento('div', { class: 'topbar__acoes' }, [botaoTema, botaoSino, usuarioBloco]),
   ]);
 
   raiz.atualizarTitulo = (novoTitulo) => {

@@ -15,7 +15,7 @@ export function ehPdf(arquivo) {
   return arquivo?.type === 'application/pdf';
 }
 
-function apenasDigitos(valor) {
+export function apenasDigitos(valor) {
   return String(valor ?? '').replace(/\D/g, '');
 }
 
@@ -51,4 +51,17 @@ export function formatarCpf(valor) {
   const digitos = apenasDigitos(valor);
   if (digitos.length !== 11) return valor ?? '';
   return digitos.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+/** Valida uma data no formato dd/mm/aaaa (real no calendário e não no futuro). */
+export function ehDataBrValida(valor) {
+  const encontrado = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(valor ?? '');
+  if (!encontrado) return false;
+  const [, diaStr, mesStr, anoStr] = encontrado;
+  const dia = Number(diaStr);
+  const mes = Number(mesStr);
+  const ano = Number(anoStr);
+  const data = new Date(ano, mes - 1, dia);
+  const dataEhReal = data.getFullYear() === ano && data.getMonth() === mes - 1 && data.getDate() === dia;
+  return dataEhReal && data.getTime() <= Date.now();
 }

@@ -20,10 +20,17 @@ tela "Novo PAD" com upload de PDF apenas como interface.
 
 ## Fase 1 — Autenticação e controle de acesso
 
-- Login/logout completo, recuperação de senha.
+- Login/logout completo, recuperação de senha. ✅
+- Alterar senha (Configurações), universal para todo o painel. ✅
 - Perfis (Administrador, Diretor, Subdiretor, Servidor, Conselho Disciplinar, Servidor)
   aplicados via `src/config/roles.js` + `firestore.rules`.
-- Tela de Usuários: CRUD de contas institucionais e atribuição de perfil/unidade.
+- `vinculo` (unidade/regional) para recorte de dados no Dashboard/PAD — ver
+  `src/services/pads/escopoPad.js`. ✅ (2026-07-14)
+- Autocadastro público (`#/cadastro`) com aprovação por Direção/CPEN da unidade
+  solicitada (ou Administrador), perfil Servidor concedido na aprovação — ver
+  `src/pages/auth/registro`, `src/pages/usuarios/usuariosPage.js`. ✅ (2026-07-14)
+- Tela de Usuários: aprovação/recusa de solicitações e exclusão de contas já
+  implementadas ✅; edição de perfil/unidade de um usuário já ativo ainda não existe.
 - Registro de auditoria (`logs`) para login, logout e acessos negados.
 
 ## Fase 2 — Núcleo do PAD (CRUD + fluxo processual)

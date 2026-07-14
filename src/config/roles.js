@@ -46,7 +46,11 @@ export const ROUTE_PERMISSIONS = Object.freeze({
   '/documentos': PAINEL_INSTITUCIONAL,
   '/anexos': PAINEL_INSTITUCIONAL,
   '/usuarios': [ROLES.ADMINISTRADOR, ROLES.DIRETOR],
-  '/configuracoes': [ROLES.ADMINISTRADOR],
+  // Aberta a todo o painel institucional porque "Alterar Senha" é universal
+  // (ver src/pages/configuracoes/configuracoesPage.js); os parâmetros
+  // institucionais em si (ainda não implementados) vão precisar de uma
+  // restrição própria por ação quando existirem de verdade (Fase 2+).
+  '/configuracoes': PAINEL_INSTITUCIONAL,
   '/relatorios': [ROLES.ADMINISTRADOR, ROLES.DIRETOR, ROLES.SUBDIRETOR],
   '/ia': [ROLES.ADMINISTRADOR],
   '/exportacao': PAINEL_INSTITUCIONAL,

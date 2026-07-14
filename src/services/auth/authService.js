@@ -5,6 +5,8 @@
  */
 import {
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
   EmailAuthProvider,
@@ -14,6 +16,7 @@ import {
 import { auth } from '../../firebase/auth.js';
 import { criarRepositorio } from '../firestoreRepository.js';
 import { COLLECTIONS } from '../../config/constants.js';
+import { apenasDigitos } from '../../utils/validationUtils.js';
 
 const usuariosRepo = criarRepositorio(COLLECTIONS.USUARIOS);
 
@@ -57,4 +60,64 @@ export async function alterarSenha(senhaAtual, novaSenha) {
   const credencial = EmailAuthProvider.credential(usuario.email, senhaAtual);
   await reauthenticateWithCredential(usuario, credencial);
   await updatePassword(usuario, novaSenha);
+}
+
+/**
+ * Autocadastro (Fase 1, 2026-07-14): cria a conta de autenticação e o
+ * próprio documento em `usuarios` com status "PENDENTE" — nunca com
+ * `perfil` definido (isso só acontece na aprovação, ver
+ * src/pages/usuarios/usuariosPage.js). As regras do Firestore rejeitam a
+ * escrita se o `perfil` vier definido aqui.
+ * @param {{ nome: string, email: string, senha: string, cpf: string, dataNascimento: string, unidade: string }} dados
+ */
+export async function registrarSolicitacaoAcesso({ nome, email, senha, cpf, dataNascimento, unidade }) {
+  const credencial = await createUserWithEmailAndPassword(auth, email, senha);
+  await usuariosRepo.criar(
+    {
+      nome,
+      email,
+      cpf: apenasDigitos(cpf),
+      dataNascimento,
+      unidadeSolicitada: unidade,
+      status: 'PENDENTE',
+      ativo: false,
+    },
+    credencial.user.uid,
+  );
+  return credencial.user;
+}
+
+/**
+ * Recria o pedido de acesso (status "PENDENTE") para um usuário já
+ * autenticado cujo documento em `usuarios` foi excluído (ex.: solicitação
+ * recusada antes) — sem precisar criar uma nova conta de autenticação, já
+ * que a antiga continua existindo.
+ * @param {{ nome: string, cpf: string, dataNascimento: string, unidade: string }} dados
+ */
+export async function completarSolicitacaoAcesso({ nome, cpf, dataNascimento, unidade }) {
+  const usuario = auth.currentUser;
+  if (!usuario) throw new Error('Nenhum usuário autenticado.');
+  await usuariosRepo.criar(
+    {
+      nome,
+      email: usuario.email,
+      cpf: apenasDigitos(cpf),
+      dataNascimento,
+      unidadeSolicitada: unidade,
+      status: 'PENDENTE',
+      ativo: false,
+    },
+    usuario.uid,
+  );
+}
+
+/**
+ * Envia o e-mail de redefinição de senha do Firebase. Usado quando uma
+ * solicitação de acesso já existente (conta de autenticação já criada) foi
+ * recusada/excluída e a pessoa quer solicitar de novo sem lembrar a senha —
+ * ver ROADMAP.md/docs sobre o motivo de não conseguirmos excluir a conta de
+ * autenticação em si a partir do app (exigiria Admin SDK/Cloud Functions).
+ */
+export async function solicitarRedefinicaoSenha(email) {
+  await sendPasswordResetEmail(auth, email);
 }
