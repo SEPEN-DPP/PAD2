@@ -1,7 +1,12 @@
 {
   "projects": {
-    "default": "pad-sc-v2-dev",
-    "dev": "pad-sc-v2-dev",
-    "prod": "pad-sc-v2-prod"
+    "default": "pad-v2-89b30"
+  },
+  "targets": {
+    "pad-v2-89b30": {
+      "hosting": {
+        "principal": ["pad-sepen"]
+      }
+    }
   }
 }

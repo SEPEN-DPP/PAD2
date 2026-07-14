@@ -24,8 +24,18 @@ Nenhum passo de build é necessário — o projeto usa ES Modules nativos do nav
 
 ## Deploy
 
-O projeto está publicado em **https://pad-v2-89b30.web.app** (projeto Firebase `pad-v2-89b30`,
-conta institucional SEPEN).
+O projeto está publicado em **https://pad-sepen.web.app** (site de Hosting `pad-sepen`
+dentro do projeto Firebase `pad-v2-89b30`, conta institucional SEPEN — o nome do projeto em
+si não pode ser alterado, mas o Hosting suporta múltiplos "sites" com nome próprio; é para
+esse que o deploy aponta via `target: "principal"` no `firebase.json` e `.firebaserc`).
+
+`.firebaserc` é local (gitignored) — em uma máquina nova, depois do passo 2 acima, rode
+também:
+```
+firebase target:apply hosting principal pad-sepen
+```
+para recriar o vínculo do target `principal` com o site `pad-sepen` antes do primeiro
+deploy.
 
 **Storage está bloqueado por custo** (o Firebase exige o plano Blaze até para a cota
 gratuita — ver ROADMAP.md, Fase 5). Por isso, use sempre:
