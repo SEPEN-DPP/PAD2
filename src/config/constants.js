@@ -59,5 +59,6 @@ export const COLLECTIONS = Object.freeze({
   ANEXOS: 'anexos',
   LOGS: 'logs',
   CONFIGURACOES: 'configuracoes',
+  CONFIGURACOES_UNIDADE: 'configuracoesUnidade',
   MODELOS: 'modelos',
 });

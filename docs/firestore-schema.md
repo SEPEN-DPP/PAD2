@@ -10,10 +10,25 @@ estrangeira). Ver [ARCHITECTURE.md](../ARCHITECTURE.md) §4 para o racional.
   dadosGerais: { numero, unidade, dataAbertura },
   superintendencia, // SR da unidade (ex.: "SR04") — denormalizado, mesma razão que em `usuarios`
   incidentados: [{ nomeCompleto, ipen }],
-  infracao: { data, tipificacao, artigoLep: { codigo, rotulo } | null, detentosEnvolvidos: [], agentesEnvolvidos: [], observacoes },
-  defesa: { advogadoId, memoriais: [], prazos },
-  conselho: { manifestacao, integrantes: [], data },
-  decisao: { tipo, fundamentacao, data, responsavel },
+  infracao: { data, tipificacao, artigoLep: { codigo, rotulo } | null, detentosEnvolvidos: [], agentesEnvolvidos: [], observacoes, descricaoFatos },
+  portaria: { dataAssinatura, autoridadeSignataria: { nome, cargo } },
+  docInicial: { itens: [{ titulo }] }, // sem anexo — ver "Documentação Inicial" abaixo
+  termoCientificacao: { observacoes },
+  testemunhas: [{ id, nome, qualificacao, qualidade: 'testemunha'|'informante', depoimento }],
+  declaracoesApenado: { silencio: boolean, versaoIncidentado },
+  conselho: {
+    integrantes: { presidente, membro1, membro2 }, // cada { nome, matricula } — designados na Portaria
+    conclusao: 'procedencia'|'improcedencia'|'desclassificacao', fundamento,
+    desclassGrau: 'leve'|'media', desclassIncisos: [],
+  },
+  defesa: { tipo: 'advogado'|'defensoria'|null, advogadoNome, advogadoOab, texto }, // tipo/advogado* vêm do Termo de Cientificação
+  decisao: {
+    resultado: 'absolvicao'|'desclassificacao'|'falta_grave', fundamentacao,
+    desclassGrau: 'leve'|'media', desclassIncisos: [],
+    sancoes: { regressaoRegime, interrupcaoProgressao, perdaRemicao: { ativo, valor, modalidade: 'dias'|'fracao' }, revogacaoSaidaTemp, revogacaoTrabalhoExt },
+  },
+  oficioJuizo: { numero, data },
+  oficioVep: { numero, data },
   status: 'EM_ANDAMENTO' | 'AGUARDANDO_DEFESA' | 'AGUARDANDO_DECISAO' | 'CONCLUIDO' | 'ARQUIVADO',
   criadoEm, atualizadoEm
 }
@@ -72,6 +87,70 @@ confirmação). A exclusão remove só o documento em `pads`; os `eventos` assoc
 "Registro de Infração" lançado na criação) não são apagados em cascata — ficam órfãos,
 referenciando um `padId` que não resolve mais. Aceitável nesta fase; revisitar se a
 listagem geral de Eventos passar a incomodar com registros órfãos.
+
+### Gerador de documentos do PAD (Fase 2, 2026-07-15)
+
+10 documentos institucionais por PAD — Portaria de Instauração, Documentação Inicial,
+Termo de Cientificação, Oitiva de Testemunhas, Declarações do Apenado, Manifestação do
+Conselho Disciplinar, Manifestação da Defesa, Decisão da Direção, Ofício ao Juiz e Ofício
+de Encaminhamento à VEP —, cada um **derivado** dos campos acima por um template em
+`src/templates/*Template.js` (nunca editado como texto solto). Conteúdo/redação portados
+do PAD V1 (`github.com/SEPEN-DPP/PAD`), nunca o código — ver
+[src/templates/README.md](../src/templates/README.md) para o contrato de template e a
+organização de `src/templates/shared/` (cabeçalho/rodapé, exportação PDF via jsPDF,
+exportação .doc, anexo embutido). UI de cada documento em
+[src/pages/pad/detail/documentos/](../src/pages/pad/detail/documentos).
+
+**Convenção de escrita**: cada aba sempre grava o objeto aninhado **inteiro** da sua seção
+(nunca um sub-campo em notação de ponto) — importante porque `portaria` e `conselho`
+dividem responsabilidade: a aba "Portaria" grava `portaria.*` **e** `conselho.integrantes`
+juntos (é ali que o Conselho é designado), sempre preservando `conselho.conclusao`/
+`fundamento` se já tiverem sido preenchidos pela aba "Conselho" depois.
+
+**Documentação Inicial não tem upload real** — `docInicial.itens[].titulo` é o único campo
+persistido. Um anexo (PDF/imagem) opcional é convertido em imagem via
+`src/templates/shared/anexoEmbutido.js` (PDF.js + `<canvas>`) e fica **só na memória do
+navegador durante a sessão**, usado para embutir a imagem no PDF/.doc exportado — nunca é
+gravado no Firestore nem enviado a um servidor (não há Firebase Storage disponível nesta
+fase — Spark/Blaze, ver ROADMAP.md). Ao recarregar a página, o anexo se perde (o título
+permanece).
+
+**`termoCientificacao` só grava observações** — o tipo de defesa (advogado/defensoria) é
+gravado direto em `defesa.tipo`/`advogadoNome`/`advogadoOab` pela mesma aba, já que é ali
+que o incidentado formalmente indica sua defesa; as abas "Declarações do Apenado",
+"Manifestação da Defesa" e "Decisão" só leem esse mesmo campo (ver
+`src/templates/shared/condicionais.js:textoDefensor`).
+
+Ligação com a linha do tempo: ao salvar pela primeira vez uma seção que corresponde a uma
+etapa de `ETAPAS_PAD`, a aba lança automaticamente o evento correspondente (mesmo padrão do
+"Registro de Infração" na criação do PAD) — `docInicial` e `oficioVep` não têm etapa
+correspondente e não geram evento.
+
+**Regra de escrita** (`firestore.rules`): `allow update` em `pads` agora aceita qualquer
+gravação dentro do escopo de `souCriadorDoPad` (mesmo escopo de quem pode criar o PAD),
+desde que a unidade/regional do PAD não mude (`identidadeInalterada`) e `status` continue
+um valor válido do enum. Não há ainda validação formal de transição entre etapas (fica para
+uma fase futura, ver ROADMAP.md) — qualquer aba pode ser preenchida fora de ordem.
+
+## `configuracoesUnidade`
+
+```
+configuracoesUnidade/{nomeDaUnidade}
+{
+  unidade, superintendencia, // denormalizado, mesma razão de sempre
+  diretor: { nome, cargo },
+  conselho: { presidente: {nome,matricula}, membro1: {...}, membro2: {...} },
+  atualizadoEm, atualizadoPor,
+}
+```
+
+Conselho Disciplinar e Diretor(a) da Unidade, preenchidos **uma vez por unidade** (não a
+cada PAD) em Configurações (`src/pages/configuracoes/configuracoesPage.js`, visível só para
+DIRETOR/SUBDIRETOR com `vinculo.tipo === 'UNIDADE'`) e reaproveitados como valor inicial
+(cópia, não referência viva) na aba "Portaria" de todo PAD novo daquela unidade — ver
+`src/services/configuracoesUnidade/configuracaoUnidadeService.js`. Regra de escrita
+(`souGestorDeConfigUnidade` em `firestore.rules`): DIRETOR ou SUBDIRETOR da própria
+unidade/regional, ou Administrador.
 
 ## `documentos`
 

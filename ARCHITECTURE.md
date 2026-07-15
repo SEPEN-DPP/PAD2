@@ -28,8 +28,8 @@ cientificação, ofício etc.) serão futuramente gerados a partir desses dados 
 | Banco de dados  | Firebase Firestore |
 | Arquivos        | Firebase Storage |
 | Hospedagem      | Firebase Hosting |
-| Leitura de PDF  | PDF.js (fase futura) |
-| Geração de PDF  | jsPDF (fase futura) |
+| Leitura de PDF  | PDF.js — extração do Registro de Infração e anexos embutidos (Fase 3/2) |
+| Geração de PDF  | jsPDF — gerador de documentos do PAD (Fase 2, ver `src/templates/`) |
 | Backend leve    | Cloud Functions (`functions/`, fase futura — e-mails, gatilhos, IA) |
 | Versionamento   | GitHub |
 
@@ -62,8 +62,8 @@ PAD2-main/
 │   ├── storage/                 ← regras de negócio de armazenamento de anexos
 │   │                              (Storage = binário, Firestore = metadado)
 │   ├── services/                ← camada de acesso a dados por domínio (pads, eventos, ...)
-│   ├── templates/                ← (fase futura) motor de renderização PAD → documento
-│   ├── parser/                   ← (fase futura) extração de dados de PDF (PDF.js)
+│   ├── templates/                ← motor de renderização PAD → documento (10 docs, jsPDF)
+│   ├── parser/                   ← extração de dados de PDF (PDF.js) do Registro de Infração
 │   ├── ai/                       ← (fase futura) módulo de IA, isolado da UI
 │   ├── utils/                    ← funções utilitárias genéricas e puras
 │   ├── styles/                   ← design tokens, tema claro/escuro, reset, utilitários CSS
@@ -107,16 +107,26 @@ Todo o sistema opera sobre um único agregado lógico:
 PAD
 ├── dadosGerais      { numero, unidade, dataAbertura, status, ... }
 ├── incidentados[]   { nomeCompleto, ipen }
-├── infracao         { data, tipificacao, artigoLep: { codigo, rotulo }, detentosEnvolvidos[], agentesEnvolvidos[], observacoes }
+├── infracao         { data, tipificacao, artigoLep: { codigo, rotulo }, detentosEnvolvidos[], agentesEnvolvidos[], observacoes, descricaoFatos }
 ├── eventos[]        (referência para a coleção `eventos`, ordenados)
 ├── documentos[]      (referência para a coleção `documentos`, gerados a partir dos dados)
 ├── anexos[]          (referência para a coleção `anexos` — metadado; binário no Storage)
-├── defesa            { advogadoId, memoriais[], prazos }
-├── conselho           { manifestacao, integrantes[], data }
-├── decisao             { tipo, fundamentacao, data, responsavel }
-├── historico[]         (trilha de auditoria de todas as mudanças de estado)
-└── status               (enum do fluxo processual — ver seção 5)
+├── portaria           { dataAssinatura, autoridadeSignataria }
+├── docInicial          { itens[] — relação de documentos juntados, anexo efêmero (nunca persistido) }
+├── termoCientificacao   { observacoes }
+├── testemunhas[]         { nome, qualificacao, qualidade, depoimento }
+├── declaracoesApenado     { silencio, versaoIncidentado }
+├── defesa                  { tipo, advogadoNome, advogadoOab, texto }
+├── conselho                 { integrantes: {presidente,membro1,membro2}, conclusao, fundamento, desclass* }
+├── decisao                    { resultado, fundamentacao, desclass*, sancoes }
+├── oficioJuizo / oficioVep      { numero, data }
+├── historico[]                   (trilha de auditoria de todas as mudanças de estado)
+└── status                          (enum do fluxo processual — ver seção 5)
 ```
+
+Cada bloco acima (a partir de `portaria`) alimenta um dos 10 documentos gerados pelo motor
+em `src/templates/` — ver [docs/firestore-schema.md](docs/firestore-schema.md), seção
+"Gerador de documentos do PAD", para o detalhe completo.
 
 Este objeto **nunca é montado a partir de documentos**. Documentos são sempre a saída
 (renderização), nunca a entrada. O esquema completo das coleções do Firestore está
@@ -135,10 +145,12 @@ documentado em [docs/firestore-schema.md](docs/firestore-schema.md).
 9. Arquivamento
 
 Cada etapa é modelada como um **Evento** (coleção `eventos`, com `padId`, `tipo`,
-`responsavel`, `data`, `status`, `documentos[]`, `anexos[]`, `historico[]`,
-`observacoes`). O motor de fluxo (validação de transições, obrigatoriedade de campos por
-etapa) é regra de negócio e será implementado na fase correspondente do
-[ROADMAP.md](ROADMAP.md) — nesta primeira entrega existe apenas a modelagem e a tela.
+`responsavel`, `data`, `status`, `observacoes`) e como um documento gerado a partir dos
+dados do PAD (ver seção 4 e `src/templates/`) — ambos já funcionam: preencher os dados de
+uma etapa em `/pad/:id` grava o bloco correspondente do PAD **e** lança o evento na linha
+do tempo. O que ainda falta é o **motor de fluxo em si**: validação de transição entre
+etapas e obrigatoriedade de campos por etapa (hoje qualquer aba pode ser preenchida fora de
+ordem) — fica para uma fase futura do [ROADMAP.md](ROADMAP.md).
 
 ## 6. Perfis e permissões
 

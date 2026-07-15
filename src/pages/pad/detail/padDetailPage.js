@@ -14,8 +14,18 @@ import { obterPad } from '../../../services/pads/padService.js';
 import { listarEventosPorPad } from '../../../services/eventos/eventoService.js';
 import { listarDocumentosPorPad } from '../../../services/documentos/documentoService.js';
 import { listarAnexosPorPad } from '../../../services/anexos/anexoService.js';
+import { obterConfiguracaoUnidade } from '../../../services/configuracoesUnidade/configuracaoUnidadeService.js';
 import { formatarData } from '../../../utils/dateUtils.js';
 import { ETAPA_LABELS } from '../../../config/constants.js';
+import { renderPortariaTab } from './documentos/portariaTab.js';
+import { renderDocInicialTab } from './documentos/docInicialTab.js';
+import { renderTermoCientificacaoTab } from './documentos/termoCientificacaoTab.js';
+import { renderTestemunhasTab } from './documentos/testemunhasTab.js';
+import { renderDeclaracoesApenadoTab } from './documentos/declaracoesApenadoTab.js';
+import { renderConselhoTab } from './documentos/conselhoTab.js';
+import { renderDefesaTab } from './documentos/defesaTab.js';
+import { renderDecisaoTab } from './documentos/decisaoTab.js';
+import { renderOficiosTab } from './documentos/oficiosTab.js';
 
 function secaoDadosGerais(pad) {
   const dados = pad.dadosGerais ?? {};
@@ -134,21 +144,30 @@ export async function render(container, params) {
     ),
   );
 
-  const [markupEventos, markupDocumentos, markupAnexos] = await Promise.all([
+  const [markupEventos, markupDocumentos, markupAnexos, configUnidade] = await Promise.all([
     abaEventos(pad.id),
     abaDocumentos(pad.id),
     abaAnexos(pad.id),
+    obterConfiguracaoUnidade(pad.dadosGerais?.unidade),
   ]);
+
+  const onAtualizar = () => {};
 
   const tabs = criarTabs([
     { id: 'dados-gerais', titulo: 'Dados Gerais', render: () => secaoDadosGerais(pad) },
     { id: 'incidentados', titulo: 'Incidentados', render: () => secaoIncidentados(pad) },
+    { id: 'portaria', titulo: 'Portaria', render: () => renderPortariaTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'doc-inicial', titulo: 'Doc. Inicial', render: () => renderDocInicialTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'termo-cientificacao', titulo: 'Cientificação', render: () => renderTermoCientificacaoTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'testemunhas', titulo: 'Testemunhas', render: () => renderTestemunhasTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'declaracoes-apenado', titulo: 'Declarações', render: () => renderDeclaracoesApenadoTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'conselho', titulo: 'Conselho', render: () => renderConselhoTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'defesa', titulo: 'Defesa', render: () => renderDefesaTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'decisao', titulo: 'Decisão', render: () => renderDecisaoTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'oficios', titulo: 'Ofícios', render: () => renderOficiosTab(pad, configUnidade, { onAtualizar }) },
     { id: 'eventos', titulo: 'Eventos', render: () => markupEventos },
     { id: 'documentos', titulo: 'Documentos', render: () => markupDocumentos },
     { id: 'anexos', titulo: 'Anexos', render: () => markupAnexos },
-    { id: 'defesa', titulo: 'Defesa', render: () => abaPendente('Manifestação da Defesa', 'Fase 2') },
-    { id: 'conselho', titulo: 'Conselho', render: () => abaPendente('Manifestação do Conselho', 'Fase 2') },
-    { id: 'decisao', titulo: 'Decisão', render: () => abaPendente('Decisão Final', 'Fase 2') },
     { id: 'historico', titulo: 'Histórico', render: () => abaPendente('Histórico de auditoria', 'Fase 1') },
   ]);
 

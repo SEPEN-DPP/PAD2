@@ -85,6 +85,24 @@ service cloud.firestore {
       );
     }
 
+    // Um PAD atualizado (Fase 2, 2026-07-14) não pode ser "movido" para outra
+    // unidade/regional por essa via — só o escopo com que ele nasceu.
+    function identidadeInalterada(antes, depois) {
+      return depois.dadosGerais.unidade == antes.dadosGerais.unidade
+        && depois.superintendencia == antes.superintendencia;
+    }
+
+    // Gestão da configuração por unidade (Conselho Disciplinar/Diretor,
+    // coleção `configuracoesUnidade`) — Direção OU Subdiretor da própria
+    // unidade/regional (tarefa administrativa rotineira, por isso inclui
+    // Subdiretor, diferente de `souGestorDoPad` que é só Diretor).
+    function souGestorDeConfigUnidade(dadosConfig) {
+      return tenhoPerfil() && meuUsuario().perfil in ['DIRETOR', 'SUBDIRETOR'] && (
+        (meuUsuario().vinculo.tipo == 'UNIDADE' && meuUsuario().vinculo.valor == dadosConfig.unidade)
+        || (meuUsuario().vinculo.tipo == 'REGIONAL' && meuUsuario().vinculo.valor == dadosConfig.superintendencia)
+      );
+    }
+
     // Coleção de contas institucionais (Administrador, Diretor, Subdiretor,
     // Servidor, Conselho Disciplinar, Defensor Público). Autocadastro
     // (Fase 1, 2026-07-14): qualquer pessoa autenticada pode criar o PRÓPRIO
@@ -118,15 +136,25 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Criação de PAD (Fase 2, 2026-07-14): só "Criar PAD" (numeração, unidade
-    // e status inicial) — transição entre etapas do fluxo processual
-    // (update) ainda não está implementada.
+    // PAD (Fase 2, 2026-07-14). Criação: numeração+unidade+status inicial.
+    // Atualização: preenchimento progressivo dos documentos do PAD (Portaria,
+    // Termo de Cientificação, Testemunhas, Conselho, Defesa, Decisão,
+    // Ofícios — ver docs/firestore-schema.md) por quem está no escopo de
+    // criação do PAD; cada aba grava sempre o objeto aninhado inteiro dela
+    // (nunca um sub-campo em notação de ponto — ver
+    // src/pages/pad/detail/documentos). Validação formal de transição de
+    // etapa (máquina de estados completa) fica para depois — aqui só
+    // garantimos que a identidade (unidade/regional) do PAD não muda e que
+    // `status` continua um valor válido do enum.
     match /pads/{padId} {
       allow read: if autenticado();
       allow create: if souCriadorDoPad(request.resource.data)
         && request.resource.data.status == 'EM_ANDAMENTO';
+      allow update: if souCriadorDoPad(resource.data)
+        && souCriadorDoPad(request.resource.data)
+        && identidadeInalterada(resource.data, request.resource.data)
+        && request.resource.data.status in ['EM_ANDAMENTO', 'AGUARDANDO_DEFESA', 'AGUARDANDO_DECISAO', 'CONCLUIDO', 'ARQUIVADO'];
       allow delete: if souAdministrador() || souGestorDoPad(resource.data);
-      allow update: if false;
     }
 
     // Evento "Registro de Infração" lançado junto com a criação do PAD (ver
@@ -158,6 +186,16 @@ service cloud.firestore {
     match /configuracoes/{configId} {
       allow read: if autenticado();
       allow write: if false;
+    }
+
+    // Conselho Disciplinar/Diretor(a) por unidade (Fase 2, 2026-07-14) — id do
+    // documento é o nome da unidade. Reaproveitado como valor inicial (cópia,
+    // não referência viva) ao preencher a Portaria/Conselho/Decisão de um
+    // PAD — ver docs/firestore-schema.md.
+    match /configuracoesUnidade/{unidadeId} {
+      allow read: if autenticado();
+      allow create, update: if souAdministrador() || souGestorDeConfigUnidade(request.resource.data);
+      allow delete: if souAdministrador();
     }
 
     match /modelos/{modeloId} {

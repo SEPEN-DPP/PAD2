@@ -85,3 +85,14 @@ export async function criarPad({ numero, unidade, incidentados, infracao }) {
     status: STATUS_PAD.EM_ANDAMENTO,
   });
 }
+
+/**
+ * Preenchimento progressivo dos documentos do PAD (Portaria, Termo de
+ * Cientificação, Testemunhas, Conselho, Defesa, Decisão, Ofícios — Fase 2,
+ * 2026-07-14). `patch` deve conter sempre o objeto aninhado INTEIRO daquela
+ * seção (ex.: `{ conselho: {...} }`), nunca um sub-campo isolado — ver
+ * docs/firestore-schema.md e a regra `souCriadorDoPad` em firestore.rules.
+ */
+export async function atualizarPad(id, patch) {
+  await repo.atualizar(id, patch);
+}

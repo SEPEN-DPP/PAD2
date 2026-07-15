@@ -48,6 +48,18 @@ export function formatarDataHora(valor) {
   return FORMATADOR_DATA_HORA.format(paraData(valor));
 }
 
+const MESES_POR_EXTENSO = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+];
+
+/** Formato "14 de julho de 2026" — usado nos documentos oficiais do PAD. */
+export function dataPorExtenso(valor) {
+  if (!valor) return '—';
+  const data = paraData(valor);
+  return `${data.getDate()} de ${MESES_POR_EXTENSO[data.getMonth()]} de ${data.getFullYear()}`;
+}
+
 /** Retorna algo como "há 3 dias" a partir de uma data. */
 export function tempoRelativo(valor) {
   if (!valor) return '—';

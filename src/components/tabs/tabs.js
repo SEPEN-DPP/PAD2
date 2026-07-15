@@ -15,14 +15,21 @@ export function criarTabs(abas, abaInicial = abas[0]?.id) {
   const nav = criarElemento('div', { class: 'tabs__nav' });
   const painel = criarElemento('div', { class: 'tabs__painel' });
   const botoes = new Map();
+  // Cada aba é renderizada uma única vez (na primeira visita) e reaproveitada
+  // depois — evita perder edições em andamento num formulário ao trocar de
+  // aba e voltar (ver src/pages/pad/detail/documentos).
+  const nosRenderizados = new Map();
 
   function selecionar(id) {
     for (const [idBotao, botao] of botoes) {
       botao.classList.toggle('tabs__botao--ativo', idBotao === id);
     }
     limparContainer(painel);
-    const aba = abas.find((a) => a.id === id);
-    painel.append(aba.render());
+    if (!nosRenderizados.has(id)) {
+      const aba = abas.find((a) => a.id === id);
+      nosRenderizados.set(id, aba.render());
+    }
+    painel.append(nosRenderizados.get(id));
   }
 
   for (const aba of abas) {

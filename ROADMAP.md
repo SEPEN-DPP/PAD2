@@ -49,11 +49,27 @@ tela "Novo PAD" com upload de PDF apenas como interface.
   unidade/regional) ou Administrador excluem — botão "Excluir" com confirmação em
   `src/pages/pad/list/padListPage.js`, regra `souGestorDoPad` em `firestore.rules`. Não
   cascateia para os `eventos` do PAD excluído (ver docs/firestore-schema.md). ✅ (2026-07-14)
-- Modelagem completa do objeto PAD no Firestore (`pads`, `eventos`).
+- **Gerador de documentos do PAD** — os 10 documentos institucionais (Portaria de
+  Instauração, Documentação Inicial, Termo de Cientificação, Oitiva de Testemunhas,
+  Declarações do Apenado, Manifestação do Conselho Disciplinar, Manifestação da Defesa,
+  Decisão da Direção, Ofício ao Juiz, Ofício de Encaminhamento à VEP) com formulário +
+  pré-visualização ao vivo + exportação em PDF real (jsPDF) e .doc, um por aba em
+  `/pad/:id` — conteúdo/redação (incluindo as variações condicionais: testemunha vs.
+  informante, silêncio vs. declarou, procedência/improcedência/desclassificação do
+  Conselho, absolvição/desclassificação/falta grave da Decisão) portados do PAD V1, nunca o
+  código. Conselho Disciplinar/Diretor(a) da Unidade configuráveis uma vez por unidade em
+  Configurações e reaproveitados (cópia, não referência viva) em todo PAD novo. Anexos da
+  Documentação Inicial são efêmeros (nunca persistidos — não há Storage nesta fase). Ver
+  `src/templates/`, `src/pages/pad/detail/documentos/`,
+  `src/services/configuracoesUnidade/`, e a regra `allow update` em `pads` (agora aceita
+  gravação dentro do escopo de `souCriadorDoPad`) em `firestore.rules`. ✅ (2026-07-15)
+- Modelagem completa do objeto PAD no Firestore (`pads`, `eventos`). ✅ (2026-07-15)
 - Máquina de estados do fluxo processual (Registro → Portaria → Cientificação → Oitiva →
-  Conselho → Defesa → Decisão → Ofício → Arquivamento), com validação de transição e
-  campos obrigatórios por etapa — só a etapa inicial (criação) está implementada; as
-  transições entre as demais etapas ainda não existem.
+  Conselho → Defesa → Decisão → Ofício → Arquivamento) — os dados de cada etapa já podem
+  ser preenchidos (ver item acima) e cada preenchimento lança o evento correspondente na
+  linha do tempo, mas **ainda não há validação de transição/ordem nem campos obrigatórios
+  por etapa** (qualquer aba pode ser preenchida fora de ordem) — isso fica para uma fase
+  futura.
 - Tela de PAD (listagem, criação manual de evento, detalhe com abas por seção do objeto).
 - Timeline de eventos e histórico de auditoria por PAD.
 

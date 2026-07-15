@@ -25,9 +25,11 @@ Esta matriz controla apenas **navegação** (o que aparece no menu e é acessív
 Regras de permissão por **ação** (quem pode decidir, quem pode assinar, quem pode enviar
 memorial) são definidas fase a fase junto com a regra de negócio correspondente.
 
-`/configuracoes` está aberta a todo o painel institucional porque hoje só contém "Alterar
-Senha" (universal) — os parâmetros institucionais (ainda não implementados) vão precisar de
-uma restrição própria quando existirem de verdade.
+`/configuracoes` está aberta a todo o painel institucional porque "Alterar Senha" é
+universal. O card "Parâmetros institucionais" (Conselho Disciplinar/Diretor da Unidade,
+2026-07-15) só aparece de verdade para DIRETOR/SUBDIRETOR com `vinculo.tipo === 'UNIDADE'`
+— os demais perfis veem um estado vazio. Ver `souGestorDeConfigUnidade` em
+`firestore.rules`.
 
 **Autocadastro (2026-07-14):** qualquer pessoa pode solicitar acesso em `#/cadastro` (fora
 desta matriz, tela pré-login). A solicitação nasce sem perfil (`status: 'PENDENTE'`); ao ser
@@ -55,3 +57,9 @@ Administrador por essa tela — ver `souGestorDoAlvo`/`perfilPermitidoParaGestor
 própria unidade/regional, ou Administrador, podem excluí-lo depois (`souCriadorDoPad` e
 `souGestorDoPad` em `firestore.rules`). Ver a seção "Exclusão de PAD" em
 [firestore-schema.md](firestore-schema.md).
+
+**Preencher os documentos do PAD (2026-07-15):** as 10 abas de documento em
+`/pad/:id` (Portaria, Doc. Inicial, Cientificação, Testemunhas, Declarações, Conselho,
+Defesa, Decisão, Ofícios) usam o **mesmo escopo de `souCriadorDoPad`** de quem pode criar o
+PAD — não há restrição adicional por perfil dentro de um PAD já em andamento nesta fase.
+Ver a seção "Gerador de documentos do PAD" em [firestore-schema.md](firestore-schema.md).
