@@ -157,14 +157,18 @@ service cloud.firestore {
       allow delete: if souAdministrador() || souGestorDoPad(resource.data);
     }
 
-    // Evento "Registro de Infração" lançado junto com a criação do PAD (ver
-    // src/pages/pad/new/padNewPage.js) — autorização espelha a do próprio
-    // PAD referenciado por `padId`, não a do evento em si (que não tem
-    // vínculo/unidade próprios).
+    // Evento lançado junto com o preenchimento de uma etapa do PAD (ver
+    // src/pages/pad/new/padNewPage.js e src/pages/pad/detail/documentos) —
+    // autorização espelha a do próprio PAD referenciado por `padId`, não a
+    // do evento em si (que não tem vínculo/unidade próprios). Exclusão só
+    // em cascata com o PAD (ver `excluirPad` em padService.js — os eventos
+    // são removidos ANTES do PAD, enquanto `get()` ainda o encontra) e só
+    // por quem poderia excluir o próprio PAD.
     match /eventos/{eventoId} {
       allow read: if autenticado();
       allow create: if souCriadorDoPad(get(/databases/$(database)/documents/pads/$(request.resource.data.padId)).data);
-      allow update, delete: if false;
+      allow delete: if souAdministrador() || souGestorDoPad(get(/databases/$(database)/documents/pads/$(resource.data.padId)).data);
+      allow update: if false;
     }
 
     match /documentos/{documentoId} {

@@ -12,6 +12,7 @@
 import { criarRepositorio } from '../firestoreRepository.js';
 import { COLLECTIONS, STATUS_PAD } from '../../config/constants.js';
 import { obterUnidadePorNome } from '../../config/unidadesPrisionais.js';
+import { excluirEventosPorPad } from '../eventos/eventoService.js';
 
 const repo = criarRepositorio(COLLECTIONS.PADS);
 
@@ -61,11 +62,17 @@ export async function contarTodosPads(unidades) {
  * @returns {Promise<string>} id do PAD criado
  */
 /**
- * Exclui um PAD da listagem. Autorização (Direção/CPEN da unidade ou
- * regional, ou Administrador) é decidida por `souGestorDoPad` em
- * firestore.rules — esta função só encapsula a chamada, sem regra própria.
+ * Exclui um PAD e todos os seus eventos (a linha do tempo não deve deixar
+ * registros órfãos — ver docs/firestore-schema.md). Os eventos são
+ * removidos ANTES do PAD porque a regra de exclusão de evento
+ * (`firestore.rules`) precisa conseguir consultar o PAD ainda existente
+ * para autorizar. Autorização (Direção/CPEN da unidade ou regional, ou
+ * Administrador) é decidida por `souGestorDoPad`/`souGestorDoPadDoEvento`
+ * em firestore.rules — esta função só encapsula as chamadas, sem regra
+ * própria.
  */
 export async function excluirPad(id) {
+  await excluirEventosPorPad(id);
   await repo.remover(id);
 }
 

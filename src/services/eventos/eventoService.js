@@ -30,3 +30,13 @@ export async function obterEvento(id) {
 export async function criarEvento({ padId, tipo, responsavel, data, status, observacoes }) {
   return repo.criar({ padId, tipo, responsavel, data, status, observacoes: observacoes ?? '' });
 }
+
+/**
+ * Remove todos os eventos de um PAD — chamado por `excluirPad` (ver
+ * padService.js) ANTES de excluir o próprio PAD (a regra de exclusão de
+ * evento precisa conseguir consultar o PAD ainda existente para autorizar).
+ */
+export async function excluirEventosPorPad(padId) {
+  const eventos = await listarEventosPorPad(padId);
+  await Promise.all(eventos.map((evento) => repo.remover(evento.id)));
+}
