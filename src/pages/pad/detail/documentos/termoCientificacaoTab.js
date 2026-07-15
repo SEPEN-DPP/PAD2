@@ -5,7 +5,7 @@
  * usada depois por Declarações do Apenado, Manifestação da Defesa e Decisão
  * (ver src/templates/shared/condicionais.js:textoDefensor).
  */
-import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
 import { renderizar as renderizarTermo } from '../../../../templates/termoCientificacaoTemplate.js';
 
 const OPCOES_DEFESA = [
@@ -50,30 +50,33 @@ export function renderTermoCientificacaoTab(pad, _configUnidade, { onAtualizar }
 
   const preview = criarAreaPreview(pad, () => renderizarTermo(padComFormulario()));
 
-  const botaoSalvar = criarBotaoSalvar(async () => {
-    await salvarSecaoDoPad(
-      pad,
-      { defesa: { ...pad.defesa, ...lerFormulario() }, termoCientificacao: { observacoes: campoObservacoes.input.value.trim() } },
-      { etapa: 'TERMO_CIENTIFICACAO', jaTinhaEtapa: Boolean(pad.termoCientificacao) },
-    );
-    preview.atualizar();
-    onAtualizar?.();
-  });
-
   [campoTipo, campoAdvogadoNome, campoAdvogadoOab, campoObservacoes].forEach((campo) => {
     campo.input.addEventListener('input', preview.atualizar);
     campo.input.addEventListener('change', preview.atualizar);
   });
 
-  const formulario = criarCard({
+  const secao = criarCardEditavel({
     titulo: 'Termo de Cientificação',
-    filhos: [
+    corpo: [
       criarElemento('div', { class: 'documentos__campos' }, [campoTipo.elemento]),
       camposAdvogado,
       campoObservacoes.elemento,
-      criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]),
     ],
   });
 
-  return criarElemento('div', { class: 'documentos__aba' }, [formulario, preview.elemento]);
+  const botaoSalvar = criarBotaoSalvar(
+    async () => {
+      await salvarSecaoDoPad(
+        pad,
+        { defesa: { ...pad.defesa, ...lerFormulario() }, termoCientificacao: { observacoes: campoObservacoes.input.value.trim() } },
+        { etapa: 'TERMO_CIENTIFICACAO', jaTinhaEtapa: Boolean(pad.termoCientificacao) },
+      );
+      preview.atualizar();
+      onAtualizar?.();
+    },
+    { aposSalvar: secao.esconder },
+  );
+  secao.areaCorpo.append(criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]));
+
+  return criarElemento('div', { class: 'documentos__aba' }, [secao.elemento, preview.elemento]);
 }

@@ -4,7 +4,7 @@
  * só preenche a manifestação depois, lendo essa mesma composição). Todos os
  * três pré-preenchidos a partir de `configuracoesUnidade` na primeira vez.
  */
-import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarBlocoPessoa, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad, paraValorInputDate } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarBlocoPessoa, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad, paraValorInputDate } from './_shared.js';
 import { renderizar as renderizarPortaria } from '../../../../templates/portariaAberturaTemplate.js';
 
 export function renderPortariaTab(pad, configUnidade, { onAtualizar } = {}) {
@@ -50,21 +50,6 @@ export function renderPortariaTab(pad, configUnidade, { onAtualizar } = {}) {
 
   const preview = criarAreaPreview(pad, () => renderizarPortaria(padComFormulario()));
 
-  const botaoSalvar = criarBotaoSalvar(async () => {
-    const dados = lerFormulario();
-    await salvarSecaoDoPad(
-      pad,
-      {
-        portaria: { dataAssinatura: dados.dataAssinatura, autoridadeSignataria: dados.autoridadeSignataria },
-        infracao: { ...pad.infracao, descricaoFatos: dados.descricaoFatos },
-        conselho: { ...pad.conselho, integrantes: dados.conselho },
-      },
-      { etapa: 'PORTARIA_ABERTURA', jaTinhaEtapa: Boolean(pad.portaria?.dataAssinatura) },
-    );
-    preview.atualizar();
-    onAtualizar?.();
-  });
-
   [campoData, campoDescricaoFatos].forEach((campo) => campo.input.addEventListener('input', preview.atualizar));
   [blocoDiretor, blocoPresidente, blocoMembro1, blocoMembro2].forEach((bloco) => {
     bloco.campoNome.input.addEventListener('input', preview.atualizar);
@@ -72,15 +57,33 @@ export function renderPortariaTab(pad, configUnidade, { onAtualizar } = {}) {
   });
   campoCargoDiretor.input.addEventListener('input', preview.atualizar);
 
-  const formulario = criarCard({
+  const secao = criarCardEditavel({
     titulo: 'Portaria de Instauração',
-    filhos: [
+    corpo: [
       criarElemento('div', { class: 'documentos__campos' }, [campoData.elemento, campoDescricaoFatos.elemento]),
       blocoDiretor.elemento,
       criarElemento('div', { class: 'documentos__conselho' }, [blocoPresidente.elemento, blocoMembro1.elemento, blocoMembro2.elemento]),
-      criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]),
     ],
   });
 
-  return criarElemento('div', { class: 'documentos__aba' }, [formulario, preview.elemento]);
+  const botaoSalvar = criarBotaoSalvar(
+    async () => {
+      const dados = lerFormulario();
+      await salvarSecaoDoPad(
+        pad,
+        {
+          portaria: { dataAssinatura: dados.dataAssinatura, autoridadeSignataria: dados.autoridadeSignataria },
+          infracao: { ...pad.infracao, descricaoFatos: dados.descricaoFatos },
+          conselho: { ...pad.conselho, integrantes: dados.conselho },
+        },
+        { etapa: 'PORTARIA_ABERTURA', jaTinhaEtapa: Boolean(pad.portaria?.dataAssinatura) },
+      );
+      preview.atualizar();
+      onAtualizar?.();
+    },
+    { aposSalvar: secao.esconder },
+  );
+  secao.areaCorpo.append(criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]));
+
+  return criarElemento('div', { class: 'documentos__aba' }, [secao.elemento, preview.elemento]);
 }

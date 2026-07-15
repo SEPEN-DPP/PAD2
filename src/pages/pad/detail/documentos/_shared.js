@@ -117,6 +117,37 @@ export function criarAreaPreview(pad, obterDocumento) {
 }
 
 /**
+ * Envolve um card no modo "visualização por padrão, edição sob demanda":
+ * o conteúdo (`corpo`) começa oculto; um botão "Editar" no cabeçalho do
+ * card revela/esconde os campos. Evita deixar formulários abertos e
+ * editáveis o tempo todo numa aba que já tem dados salvos.
+ * @param {{ titulo: string, corpo: Node[] }} params
+ * @returns {{ elemento: Node, esconder: () => void }}
+ */
+export function criarCardEditavel({ titulo, corpo }) {
+  const areaCorpo = criarElemento('div', { class: 'documentos__corpo-editavel' }, corpo);
+  areaCorpo.style.display = 'none';
+
+  const botaoEditar = criarBotao({
+    texto: 'Editar',
+    icon: 'settings',
+    variante: 'secondary',
+    onClick: () => {
+      const vaiAbrir = areaCorpo.style.display === 'none';
+      areaCorpo.style.display = vaiAbrir ? '' : 'none';
+      botaoEditar.querySelector('span:last-child').textContent = vaiAbrir ? 'Cancelar' : 'Editar';
+    },
+  });
+
+  function esconder() {
+    areaCorpo.style.display = 'none';
+    botaoEditar.querySelector('span:last-child').textContent = 'Editar';
+  }
+
+  return { elemento: criarCard({ titulo, acoes: [botaoEditar], filhos: [areaCorpo] }), areaCorpo, esconder };
+}
+
+/**
  * Salva `patch` no PAD e, na primeira vez que essa etapa é preenchida,
  * lança o evento correspondente na linha do tempo (ver ETAPAS_PAD).
  * @param {object} pad
@@ -140,7 +171,7 @@ export async function salvarSecaoDoPad(pad, patch, { etapa, jaTinhaEtapa } = {})
   }
 }
 
-export function criarBotaoSalvar(onSalvar) {
+export function criarBotaoSalvar(onSalvar, { aposSalvar } = {}) {
   const botao = criarBotao({
     texto: 'Salvar',
     icon: 'check',
@@ -149,6 +180,7 @@ export function criarBotaoSalvar(onSalvar) {
       try {
         await onSalvar();
         mostrarToast('Salvo com sucesso.', 'sucesso');
+        aposSalvar?.();
       } catch (erro) {
         console.error('Falha ao salvar seção do PAD:', erro);
         mostrarToast('Não foi possível salvar.', 'erro');

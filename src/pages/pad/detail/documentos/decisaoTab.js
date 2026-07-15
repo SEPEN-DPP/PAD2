@@ -3,7 +3,7 @@
  * sub-formulário aparece: desclassificação (grau + incisos, como no
  * Conselho) ou falta grave (sanções a aplicar).
  */
-import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
 import { renderizar as renderizarDecisao } from '../../../../templates/decisaoTemplate.js';
 import { obterIncisosDesclassificacao, SANCOES_FALTA_GRAVE } from '../../../../config/baseLegal.js';
 
@@ -110,22 +110,25 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
   const preview = criarAreaPreview(pad, () => renderizarDecisao({ ...pad, decisao: lerFormulario() }));
   campoFundamentacao.input.addEventListener('input', preview.atualizar);
 
-  const botaoSalvar = criarBotaoSalvar(async () => {
-    await salvarSecaoDoPad(pad, { decisao: lerFormulario() }, { etapa: 'DECISAO_FINAL', jaTinhaEtapa: Boolean(pad.decisao?.resultado) });
-    preview.atualizar();
-    onAtualizar?.();
-  });
-
-  const formulario = criarCard({
+  const secao = criarCardEditavel({
     titulo: 'Decisão da Direção',
-    filhos: [
+    corpo: [
       criarElemento('div', { class: 'documentos__campos' }, [campoResultado.elemento]),
       areaDesclassificacao,
       areaFaltaGrave,
       campoFundamentacao.elemento,
-      criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]),
     ],
   });
 
-  return criarElemento('div', { class: 'documentos__aba' }, [formulario, preview.elemento]);
+  const botaoSalvar = criarBotaoSalvar(
+    async () => {
+      await salvarSecaoDoPad(pad, { decisao: lerFormulario() }, { etapa: 'DECISAO_FINAL', jaTinhaEtapa: Boolean(pad.decisao?.resultado) });
+      preview.atualizar();
+      onAtualizar?.();
+    },
+    { aposSalvar: secao.esconder },
+  );
+  secao.areaCorpo.append(criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]));
+
+  return criarElemento('div', { class: 'documentos__aba' }, [secao.elemento, preview.elemento]);
 }

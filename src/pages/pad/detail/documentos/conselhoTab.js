@@ -4,7 +4,7 @@
  * Conselho (Presidente/Membros) é designada na aba "Portaria" e só exibida
  * aqui como contexto, não editável.
  */
-import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
 import { renderizar as renderizarManifestacao } from '../../../../templates/manifestacaoConselhoTemplate.js';
 import { integrantesConselho } from '../../../../templates/shared/condicionais.js';
 import { obterIncisosDesclassificacao } from '../../../../config/baseLegal.js';
@@ -87,24 +87,27 @@ export function renderConselhoTab(pad, configUnidade, { onAtualizar } = {}) {
   const preview = criarAreaPreview(pad, () => renderizarManifestacao({ ...pad, conselho: lerFormulario() }, configUnidade));
   campoFundamento.input.addEventListener('input', preview.atualizar);
 
-  const botaoSalvar = criarBotaoSalvar(async () => {
-    await salvarSecaoDoPad(pad, { conselho: lerFormulario() }, { etapa: 'MANIFESTACAO_CONSELHO', jaTinhaEtapa: Boolean(pad.conselho?.conclusao) });
-    preview.atualizar();
-    onAtualizar?.();
-  });
-
-  const formulario = criarCard({
+  const secao = criarCardEditavel({
     titulo: 'Manifestação do Conselho Disciplinar',
-    filhos: [
+    corpo: [
       criarElemento('p', { class: 'text-muted' }, [
         `Conselho designado na Portaria — Presidente: ${integrantes.presidente}; Membro 1: ${integrantes.membro1}; Membro 2: ${integrantes.membro2}.`,
       ]),
       criarElemento('div', { class: 'documentos__campos' }, [campoConclusao.elemento]),
       areaDesclassificacao,
       campoFundamento.elemento,
-      criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]),
     ],
   });
 
-  return criarElemento('div', { class: 'documentos__aba' }, [formulario, preview.elemento]);
+  const botaoSalvar = criarBotaoSalvar(
+    async () => {
+      await salvarSecaoDoPad(pad, { conselho: lerFormulario() }, { etapa: 'MANIFESTACAO_CONSELHO', jaTinhaEtapa: Boolean(pad.conselho?.conclusao) });
+      preview.atualizar();
+      onAtualizar?.();
+    },
+    { aposSalvar: secao.esconder },
+  );
+  secao.areaCorpo.append(criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]));
+
+  return criarElemento('div', { class: 'documentos__aba' }, [secao.elemento, preview.elemento]);
 }

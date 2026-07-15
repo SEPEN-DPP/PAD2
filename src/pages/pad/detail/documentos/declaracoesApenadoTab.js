@@ -2,7 +2,7 @@
  * Aba "Declarações do Apenado" — `pad.declaracoesApenado.silencio` decide se
  * o campo de versão do incidentado é mostrado/gravado.
  */
-import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarBotao, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarBotao, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
 import { renderizar as renderizarDeclaracao } from '../../../../templates/declaracaoApenadoTemplate.js';
 
 export function renderDeclaracoesApenadoTab(pad, configUnidade, { onAtualizar } = {}) {
@@ -31,24 +31,27 @@ export function renderDeclaracoesApenadoTab(pad, configUnidade, { onAtualizar } 
   const preview = criarAreaPreview(pad, () => renderizarDeclaracao(padComFormulario(), configUnidade));
   campoVersao.input.addEventListener('input', preview.atualizar);
 
-  const botaoSalvar = criarBotaoSalvar(async () => {
-    await salvarSecaoDoPad(
-      pad,
-      { declaracoesApenado: { silencio, versaoIncidentado: campoVersao.input.value.trim() } },
-      { etapa: 'OITIVA_INCIDENTADO', jaTinhaEtapa: Boolean(pad.declaracoesApenado) },
-    );
-    preview.atualizar();
-    onAtualizar?.();
-  });
-
-  const formulario = criarCard({
+  const secao = criarCardEditavel({
     titulo: 'Declarações do Incidentado / Defesa',
-    filhos: [
+    corpo: [
       criarElemento('div', { class: 'documentos__acoes' }, [botaoDeclarou, botaoSilencio]),
       campoVersao.elemento,
-      criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]),
     ],
   });
 
-  return criarElemento('div', { class: 'documentos__aba' }, [formulario, preview.elemento]);
+  const botaoSalvar = criarBotaoSalvar(
+    async () => {
+      await salvarSecaoDoPad(
+        pad,
+        { declaracoesApenado: { silencio, versaoIncidentado: campoVersao.input.value.trim() } },
+        { etapa: 'OITIVA_INCIDENTADO', jaTinhaEtapa: Boolean(pad.declaracoesApenado) },
+      );
+      preview.atualizar();
+      onAtualizar?.();
+    },
+    { aposSalvar: secao.esconder },
+  );
+  secao.areaCorpo.append(criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]));
+
+  return criarElemento('div', { class: 'documentos__aba' }, [secao.elemento, preview.elemento]);
 }

@@ -3,7 +3,7 @@
  * (estruturalmente simétricos: só número + data). O Ofício à VEP existia no
  * código da V1 mas nunca era acessível na tela — aqui é um documento real.
  */
-import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad, paraValorInputDate } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad, paraValorInputDate } from './_shared.js';
 import { renderizar as renderizarOficioJuizo } from '../../../../templates/oficioJuizoTemplate.js';
 import { renderizar as renderizarOficioVep } from '../../../../templates/oficioVepTemplate.js';
 
@@ -22,21 +22,22 @@ function montarSecaoOficio({ pad, titulo, chave, etapa, renderizarTemplate, onAt
   const preview = criarAreaPreview(pad, () => renderizarTemplate({ ...pad, [chave]: lerFormulario() }));
   [campoNumero, campoData].forEach((campo) => campo.input.addEventListener('input', preview.atualizar));
 
-  const botaoSalvar = criarBotaoSalvar(async () => {
-    await salvarSecaoDoPad(pad, { [chave]: lerFormulario() }, { etapa, jaTinhaEtapa: Boolean(pad[chave]?.numero) });
-    preview.atualizar();
-    onAtualizar?.();
-  });
-
-  const formulario = criarCard({
+  const secao = criarCardEditavel({
     titulo,
-    filhos: [
-      criarElemento('div', { class: 'documentos__campos' }, [campoNumero.elemento, campoData.elemento]),
-      criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]),
-    ],
+    corpo: [criarElemento('div', { class: 'documentos__campos' }, [campoNumero.elemento, campoData.elemento])],
   });
 
-  return criarElemento('div', { class: 'documentos__aba' }, [formulario, preview.elemento]);
+  const botaoSalvar = criarBotaoSalvar(
+    async () => {
+      await salvarSecaoDoPad(pad, { [chave]: lerFormulario() }, { etapa, jaTinhaEtapa: Boolean(pad[chave]?.numero) });
+      preview.atualizar();
+      onAtualizar?.();
+    },
+    { aposSalvar: secao.esconder },
+  );
+  secao.areaCorpo.append(criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]));
+
+  return criarElemento('div', { class: 'documentos__aba' }, [secao.elemento, preview.elemento]);
 }
 
 export function renderOficiosTab(pad, _configUnidade, { onAtualizar } = {}) {
