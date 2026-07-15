@@ -4,7 +4,7 @@
  * Conselho (Presidente/Membros) é designada na aba "Portaria" e só exibida
  * aqui como contexto, não editável.
  */
-import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstituto, aplicarAnexoSubstituto, salvarSecaoDoPad } from './_shared.js';
 import { renderizar as renderizarManifestacao } from '../../../../templates/manifestacaoConselhoTemplate.js';
 import { integrantesConselho } from '../../../../templates/shared/condicionais.js';
 import { obterIncisosDesclassificacao } from '../../../../config/baseLegal.js';
@@ -28,7 +28,7 @@ export function renderConselhoTab(pad, configUnidade, { onAtualizar } = {}) {
   const integrantes = integrantesConselho(pad, configUnidade);
 
   const campoConclusao = criarCampoSelect({ rotulo: 'Conclusão do Conselho', valor: atual.conclusao ?? '', opcoes: OPCOES_CONCLUSAO });
-  const campoFundamento = criarCampo({ rotulo: 'Fundamentação complementar (opcional)', multilinha: true, valor: atual.fundamento });
+  const campoFundamento = criarCampoComDitado({ rotulo: 'Fundamentação complementar (opcional)', valor: atual.fundamento });
   const campoGrau = criarCampoSelect({ rotulo: 'Grau da desclassificação', valor: atual.desclassGrau ?? 'leve', opcoes: OPCOES_GRAU });
 
   const areaIncisos = criarElemento('div', { class: 'documentos__incisos' });
@@ -84,7 +84,12 @@ export function renderConselhoTab(pad, configUnidade, { onAtualizar } = {}) {
     };
   }
 
-  const preview = criarAreaPreview(pad, () => renderizarManifestacao({ ...pad, conselho: lerFormulario() }, configUnidade));
+  const anexoSubstituto = criarAnexoSubstituto({ onMudar: () => preview.atualizar() });
+
+  const preview = criarAreaPreview(pad, () => aplicarAnexoSubstituto(
+    renderizarManifestacao({ ...pad, conselho: lerFormulario() }, configUnidade),
+    anexoSubstituto.obterAnexo(),
+  ));
   campoFundamento.input.addEventListener('input', preview.atualizar);
 
   const secao = criarCardEditavel({
@@ -96,6 +101,7 @@ export function renderConselhoTab(pad, configUnidade, { onAtualizar } = {}) {
       criarElemento('div', { class: 'documentos__campos' }, [campoConclusao.elemento]),
       areaDesclassificacao,
       campoFundamento.elemento,
+      anexoSubstituto.elemento,
     ],
   });
 

@@ -22,7 +22,8 @@ function paragrafosProcedencia(pad, conselho) {
     `Analisando os documentos que instruem o presente Procedimento Administrativo Disciplinar, em especial o registro de ocorrência e os depoimentos colhidos, o Conselho Disciplinar constata que a conduta atribuída ao(à) incidentado(a) ${nomeIpenIncidentado(pad)} encontra-se devidamente comprovada quanto à materialidade e à autoria.`,
     `A conduta descrita amolda-se ao ${artigoTextoCompleto(pad)}, configurando falta disciplinar de natureza GRAVE, nos termos da Lei de Execução Penal.`,
   ];
-  const versao = pad.declaracoesApenado?.silencio === false ? pad.declaracoesApenado?.versaoIncidentado : null;
+  const declaracao = pad.declaracoesApenado?.[0];
+  const versao = declaracao?.silencio === false ? declaracao?.versaoIncidentado : null;
   if (versao) {
     paragrafos.push(`Em sua oitiva, o(a) incidentado(a) apresentou a seguinte versão: "${versao}". Tal alegação, contudo, não foi suficiente para afastar a responsabilidade disciplinar apurada.`);
   }
@@ -35,7 +36,8 @@ function paragrafosImprocedencia(pad, conselho) {
   const paragrafos = [
     `Analisando os elementos constantes nos autos, o Conselho Disciplinar verificou que as provas produzidas não foram suficientes para comprovar, de forma segura, a autoria e/ou a materialidade da infração imputada ao(à) incidentado(a) ${nomeIpenIncidentado(pad)}.`,
   ];
-  const versao = pad.declaracoesApenado?.silencio === false ? pad.declaracoesApenado?.versaoIncidentado : null;
+  const declaracao = pad.declaracoesApenado?.[0];
+  const versao = declaracao?.silencio === false ? declaracao?.versaoIncidentado : null;
   if (versao) paragrafos.push(`Em sua oitiva, o(a) incidentado(a) apresentou a seguinte versão: "${versao}".`);
   if (conselho.fundamento) paragrafos.push(conselho.fundamento);
   paragrafos.push('Pelo exposto, o Conselho Disciplinar, por unanimidade, manifesta-se pela IMPROCEDÊNCIA do presente PAD, recomendando o arquivamento dos autos.');
@@ -46,7 +48,8 @@ function paragrafosDesclassificacao(pad, conselho) {
   const paragrafos = [
     `Analisando os elementos constantes nos autos, o Conselho Disciplinar verificou que, embora a conduta do(a) incidentado(a) ${nomeIpenIncidentado(pad)} configure irregularidade disciplinar, os elementos probatórios não demonstram o preenchimento de todos os requisitos necessários à caracterização de falta grave.`,
   ];
-  const versao = pad.declaracoesApenado?.silencio === false ? pad.declaracoesApenado?.versaoIncidentado : null;
+  const declaracao = pad.declaracoesApenado?.[0];
+  const versao = declaracao?.silencio === false ? declaracao?.versaoIncidentado : null;
   if (versao) paragrafos.push(`Em sua oitiva, o(a) incidentado(a) apresentou a seguinte versão: "${versao}".`);
   if (conselho.fundamento) paragrafos.push(conselho.fundamento);
 

@@ -26,6 +26,17 @@ test('nomeIpenIncidentado usa placeholder quando faltam dados', () => {
   assert.match(resultado, /‹PRONTUÁRIO›/);
 });
 
+test('nomeIpenIncidentado junta múltiplos incidentados com "e" antes do último', () => {
+  const resultado = nomeIpenIncidentado({
+    incidentados: [
+      { nomeCompleto: 'FULANO', ipen: '1' },
+      { nomeCompleto: 'BELTRANO', ipen: '2' },
+      { nomeCompleto: 'CICLANO', ipen: '3' },
+    ],
+  });
+  assert.equal(resultado, 'FULANO – IPEN Nº 1, BELTRANO – IPEN Nº 2 e CICLANO – IPEN Nº 3');
+});
+
 test('artigoTextoCompleto junta rótulo e texto legal do artigo da LEP', () => {
   assert.equal(
     artigoTextoCompleto(PAD_BASE),

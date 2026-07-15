@@ -37,10 +37,11 @@ migrar para uma coleção editável do Firestore quando existir tela de gestão 
   2 membros com matrícula), `decisao.sancoes` detalhado por tipo, distinção
   silêncio/versão do incidentado — origem `js/estado.js`. Usar como blueprint ao desenhar o
   schema real de `pads`/`eventos` na Fase 2.
-- **Portal do Advogado via link mágico** (token único, sem conta de Firebase Auth) em vez
-  de conta de e-mail/senha — origem `js/pad-firestore.js` (coleções `pad_links`,
-  `advogado_auth`). Reavaliar a abordagem descrita em ARCHITECTURE.md §6 para a Fase 6 à luz
-  disso.
+- **Portal da Defesa (renomeado de "Portal do Advogado", 2026-07-15) via link mágico**
+  (token único, sem conta de Firebase Auth) em vez de conta de e-mail/senha — origem
+  `js/pad-firestore.js` (coleções `pad_links`, `advogado_auth`). Reavaliar a abordagem
+  descrita em ARCHITECTURE.md §6 para a Fase 6 à luz disso — cobre tanto advogado
+  constituído quanto defensor público.
 - ~~Detecção automática de artigo por palavra-chave~~ — **feito, mas melhor que o V1**
   (2026-07-14). O V1 (`js/pdf-parser.js`) adivinhava o artigo por palavras-chave soltas no
   texto (frágil). A V2 usa correspondência de texto: o texto cadastrado no i-PEN para cada

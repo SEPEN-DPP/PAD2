@@ -35,8 +35,9 @@ export const PAINEL_INSTITUCIONAL = Object.freeze([
 /**
  * Perfis autorizados a acessar cada rota do painel institucional. Rotas
  * ausentes deste mapa são tratadas como liberadas para qualquer perfil
- * autenticado do painel. O Portal do Advogado tem seu próprio contexto de
- * autenticação e não é regido por este mapa (ver src/pages/portal-advogado).
+ * autenticado do painel. O Portal da Defesa (antigo "Portal do Advogado")
+ * tem seu próprio contexto de autenticação e não é regido por este mapa
+ * (ver src/pages/portal-advogado).
  */
 export const ROUTE_PERMISSIONS = Object.freeze({
   '/dashboard': PAINEL_INSTITUCIONAL,

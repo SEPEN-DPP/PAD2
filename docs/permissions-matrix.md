@@ -16,9 +16,10 @@ a versão legível para consulta rápida — se divergir do código, o código v
 | `/exportacao`     | ✔ | ✔ | ✔ | ✔ | ✔ |   |   |
 | `/ia`             | ✔ |   |   |   |   |   |   |
 | `/configuracoes`  | ✔ | ✔ | ✔ | ✔ | ✔ |   |   |
-| Portal do Advogado | — | — | — | — | — | próprio contexto (Fase 6) | próprio contexto (Fase 6) |
+| Portal da Defesa | — | — | — | — | — | próprio contexto (Fase 6) | próprio contexto (Fase 6) |
 
-O Portal do Advogado (`/portal-advogado`) usa um contexto de autenticação separado do
+O Portal da Defesa (`/portal-advogado`, renomeado de "Portal do Advogado" — atende tanto
+advogado constituído quanto defensor público) usa um contexto de autenticação separado do
 painel institucional e não é regido por esta matriz — ver ARCHITECTURE.md §6.
 
 Esta matriz controla apenas **navegação** (o que aparece no menu e é acessível por rota).

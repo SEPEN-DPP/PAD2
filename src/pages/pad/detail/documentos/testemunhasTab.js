@@ -4,7 +4,7 @@
  * Sem preview única (cada testemunha tem seu próprio documento) — cada linha
  * baixa o PDF/.doc daquela testemunha diretamente.
  */
-import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoSelect, criarBotao, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarBotao, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
 import { abrirModal } from '../../../../components/modal/modal.js';
 import { renderizar as renderizarOitiva } from '../../../../templates/oitivaTestemunhaTemplate.js';
 import { baixarComoPdf } from '../../../../templates/shared/pdfExporter.js';
@@ -20,7 +20,7 @@ function abrirModalTestemunha({ testemunha, onSalvar }) {
   const campoNome = criarCampo({ rotulo: 'Nome completo', valor: testemunha?.nome });
   const campoQualificacao = criarCampo({ rotulo: 'Qualificação (ex.: agente penitenciário, interno...)', valor: testemunha?.qualificacao });
   const campoQualidade = criarCampoSelect({ rotulo: 'Qualidade', valor: testemunha?.qualidade ?? 'testemunha', opcoes: OPCOES_QUALIDADE });
-  const campoDepoimento = criarCampo({ rotulo: 'Depoimento', multilinha: true, valor: testemunha?.depoimento });
+  const campoDepoimento = criarCampoComDitado({ rotulo: 'Depoimento', valor: testemunha?.depoimento });
 
   const botaoSalvar = criarBotao({ texto: 'Salvar', icon: 'check' });
   const fechar = abrirModal({

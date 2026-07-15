@@ -10,6 +10,7 @@ import { criarBotao } from '../../../../components/button/button.js';
 import { renderizarPreview } from '../../../../templates/shared/previewRenderer.js';
 import { baixarComoPdf } from '../../../../templates/shared/pdfExporter.js';
 import { baixarComoDoc, copiarDocumento } from '../../../../templates/shared/docExporter.js';
+import { converterParaImagensEmbutidas } from '../../../../templates/shared/anexoEmbutido.js';
 import { mostrarToast } from '../../../../utils/toast.js';
 import { atualizarPad } from '../../../../services/pads/padService.js';
 import { criarEvento } from '../../../../services/eventos/eventoService.js';
@@ -40,6 +41,13 @@ export function criarCampo({ rotulo, valor, multilinha = false, tipo = 'text' })
     elemento: criarElemento('label', { class: 'campo' }, [criarElemento('span', { class: 'campo__rotulo' }, [rotulo]), input]),
     input,
   };
+}
+
+/** Igual a `criarCampo`, mas com um botão de ditado por voz logo abaixo do campo. */
+export function criarCampoComDitado({ rotulo, valor, multilinha = true }) {
+  const campo = criarCampo({ rotulo, valor, multilinha });
+  campo.elemento.append(criarBotaoDitado(campo.input));
+  return campo;
 }
 
 export function criarCampoSelect({ rotulo, valor, opcoes }) {
@@ -169,6 +177,131 @@ export async function salvarSecaoDoPad(pad, patch, { etapa, jaTinhaEtapa } = {})
       observacoes: '',
     });
   }
+}
+
+/**
+ * Widget "Anexar PDF (substitui o texto gerado)" — efêmero: o binário do
+ * arquivo nunca é gravado no Firestore (mesma regra da Documentação
+ * Inicial, ver anexoEmbutido.js), só o(s) dataURL(s) resultante(s) ficam em
+ * memória durante esta sessão do navegador.
+ * @param {{ onMudar: () => void }} params
+ */
+export function criarAnexoSubstituto({ onMudar }) {
+  let anexo = null;
+  const input = criarElemento('input', { type: 'file', accept: 'application/pdf,image/*', class: 'sr-only' });
+  const legenda = criarElemento('span', { class: 'text-muted' }, ['Nenhum arquivo anexado — o texto abaixo é gerado automaticamente.']);
+  const botaoRemover = criarBotao({
+    texto: 'Remover anexo',
+    icon: 'x',
+    variante: 'danger',
+    onClick: () => {
+      anexo = null;
+      input.value = '';
+      legenda.textContent = 'Nenhum arquivo anexado — o texto abaixo é gerado automaticamente.';
+      botaoRemover.style.display = 'none';
+      onMudar();
+    },
+  });
+  botaoRemover.style.display = 'none';
+  const botaoAnexar = criarBotao({
+    texto: 'Anexar PDF (substitui o texto gerado)',
+    icon: 'paperclip',
+    variante: 'secondary',
+    onClick: () => input.click(),
+  });
+
+  input.addEventListener('change', async () => {
+    const arquivo = input.files?.[0];
+    if (!arquivo) return;
+    try {
+      anexo = { dataUrls: await converterParaImagensEmbutidas(arquivo), nomeArquivo: arquivo.name };
+      legenda.textContent = `Anexado: ${arquivo.name} (substitui o texto gerado nesta exportação)`;
+      botaoRemover.style.display = '';
+      onMudar();
+    } catch (erro) {
+      console.error('Falha ao processar anexo substituto:', erro);
+      mostrarToast(erro.message ?? 'Não foi possível processar o anexo.', 'erro');
+    }
+  });
+
+  return {
+    elemento: criarElemento('div', { class: 'documentos__acoes' }, [botaoAnexar, legenda, botaoRemover, input]),
+    obterAnexo: () => anexo,
+  };
+}
+
+/** Quando há um anexo substituto, troca o corpo gerado do documento pelas páginas do anexo — mantém título/subtítulo/assinaturas do template original. */
+export function aplicarAnexoSubstituto(documento, anexo) {
+  if (!anexo) return documento;
+  return {
+    ...documento,
+    secoes: [],
+    anexos: anexo.dataUrls.map((dataUrl, indice) => ({
+      dataUrl,
+      legenda: anexo.dataUrls.length > 1 ? `${anexo.nomeArquivo} (página ${indice + 1})` : anexo.nomeArquivo,
+    })),
+  };
+}
+
+/**
+ * Botão de ditado por voz (Web Speech API — navegador, sem custo/API paga;
+ * Chrome/Edge only). Anexa o texto reconhecido ao valor atual do campo e
+ * dispara `input` para a pré-visualização atualizar sozinha, igual à
+ * digitação manual.
+ * @param {HTMLTextAreaElement|HTMLInputElement} campoTexto
+ */
+export function criarBotaoDitado(campoTexto) {
+  const ReconhecimentoDeVoz = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const botao = criarBotao({ texto: 'Ditar', icon: 'mic', variante: 'secondary', onClick: () => {} });
+
+  if (!ReconhecimentoDeVoz) {
+    botao.addEventListener('click', () => {
+      mostrarToast('Ditado por voz não é suportado neste navegador (funciona no Chrome/Edge).', 'aviso');
+    });
+    return botao;
+  }
+
+  const reconhecimento = new ReconhecimentoDeVoz();
+  reconhecimento.lang = 'pt-BR';
+  reconhecimento.continuous = true;
+  reconhecimento.interimResults = false;
+  let gravando = false;
+
+  function pararVisual() {
+    gravando = false;
+    botao.classList.remove('btn--gravando');
+    botao.querySelector('span:last-child').textContent = 'Ditar';
+  }
+
+  reconhecimento.addEventListener('result', (evento) => {
+    let textoNovo = '';
+    for (let i = evento.resultIndex; i < evento.results.length; i += 1) {
+      if (evento.results[i].isFinal) textoNovo += evento.results[i][0].transcript;
+    }
+    if (!textoNovo.trim()) return;
+    const separador = campoTexto.value && !campoTexto.value.endsWith(' ') ? ' ' : '';
+    campoTexto.value += separador + textoNovo.trim();
+    campoTexto.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  reconhecimento.addEventListener('end', pararVisual);
+  reconhecimento.addEventListener('error', (evento) => {
+    console.error('Falha no ditado por voz:', evento.error);
+    if (evento.error !== 'no-speech') mostrarToast('Não foi possível continuar o ditado por voz.', 'erro');
+    pararVisual();
+  });
+
+  botao.addEventListener('click', () => {
+    if (gravando) {
+      reconhecimento.stop();
+      return;
+    }
+    gravando = true;
+    botao.classList.add('btn--gravando');
+    botao.querySelector('span:last-child').textContent = 'Parar';
+    reconhecimento.start();
+  });
+
+  return botao;
 }
 
 export function criarBotaoSalvar(onSalvar, { aposSalvar } = {}) {

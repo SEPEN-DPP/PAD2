@@ -2,8 +2,9 @@
  * Ofício de Encaminhamento à VEP — no PAD V1 este documento existia no
  * código mas nunca ficou acessível na tela; portado como um documento real
  * e navegável na V2, a pedido do usuário. Estruturalmente simétrico ao
- * Ofício ao Juiz, com um parágrafo extra que resume o parecer do Conselho
- * (`conselho.conclusao`).
+ * Ofício ao Juiz (mesmo layout do modelo oficial — sem título centralizado,
+ * destinatário fixo no rodapé da 1ª página), com um parágrafo extra que
+ * resume o parecer do Conselho (`conselho.conclusao`).
  */
 import { formatarData, dataPorExtenso } from '../utils/dateUtils.js';
 import { nomeIpenIncidentado, artigoTextoCompleto, dataInfracaoFormatada, diretorDaUnidade, cidadeDaUnidade, placeholder } from './shared/condicionais.js';
@@ -12,6 +13,7 @@ export function renderizar(pad) {
   const numero = pad.oficioVep?.numero || placeholder('Nº DO OFÍCIO');
   const numeroPad = pad.dadosGerais?.numero || placeholder('Nº DO PAD');
   const diretor = diretorDaUnidade(pad);
+  const cidade = cidadeDaUnidade(pad);
   const dataOficio = pad.oficioVep?.data ? dataPorExtenso(pad.oficioVep.data) : dataPorExtenso(new Date());
   const dataInstNumerica = pad.portaria?.dataAssinatura ? formatarData(pad.portaria.dataAssinatura) : placeholder('DATA DE INSTAURAÇÃO');
 
@@ -20,9 +22,8 @@ export function renderizar(pad) {
     : 'O Conselho Disciplinar manifestou-se conforme parecer em anexo.';
 
   return {
-    titulo: `OFÍCIO Nº ${numero}`,
+    numeroELinha: { numero: `Ofício n.º ${numero}`, data: `${cidade}, ${dataOficio}.` },
     secoes: [
-      { conteudo: `${cidadeDaUnidade(pad)}, ${dataOficio}.` },
       { conteudo: 'Senhor(a) Juiz(a),' },
       {
         conteudo: `Cumprimentando Vossa Excelência, comunicamos que em ${dataInstNumerica} foi instaurado, nesta Unidade, o Procedimento Administrativo Disciplinar (PAD) nº ${numeroPad} em desfavor do(a) apenado(a) ${nomeIpenIncidentado(pad)}, pela prática, em tese, do ${artigoTextoCompleto(pad)}, ocorrida em ${dataInfracaoFormatada(pad)}.`,
@@ -30,8 +31,15 @@ export function renderizar(pad) {
       { conteudo: paragrafoConselho },
       { conteudo: 'Encaminhamos os autos do presente procedimento para conhecimento e as providências que Vossa Excelência entender cabíveis.' },
       { conteudo: 'Atenciosamente,' },
-      { conteudo: 'A Sua Excelência o(a) Senhor(a)\nMM.(ª) Juiz(íza) da Vara de Execuções Penais' },
     ],
     assinaturas: [{ nome: diretor.nome, cargo: `${diretor.cargo} — ${diretor.unidade}` }],
+    destinatario: {
+      linhas: [
+        'Ao(à) Senhor(a)',
+        'MM.(ª) JUIZ(A) DE DIREITO DA VARA DE EXECUÇÕES PENAIS',
+        `Comarca de ${cidade}`,
+        cidade,
+      ],
+    },
   };
 }

@@ -12,11 +12,12 @@ import { criarEmptyState } from '../../../components/emptyState/emptyState.js';
 import { obterPad } from '../../../services/pads/padService.js';
 import { obterConfiguracaoUnidade } from '../../../services/configuracoesUnidade/configuracaoUnidadeService.js';
 import { formatarData } from '../../../utils/dateUtils.js';
+import { renderIncidentadosTab } from './documentos/incidentadosTab.js';
 import { renderPortariaTab } from './documentos/portariaTab.js';
 import { renderDocInicialTab } from './documentos/docInicialTab.js';
 import { renderTermoCientificacaoTab } from './documentos/termoCientificacaoTab.js';
 import { renderTestemunhasTab } from './documentos/testemunhasTab.js';
-import { renderDeclaracoesApenadoTab } from './documentos/declaracoesApenadoTab.js';
+import { renderDepoimentoIncidentadoTab } from './documentos/depoimentoIncidentadoTab.js';
 import { renderConselhoTab } from './documentos/conselhoTab.js';
 import { renderDefesaTab } from './documentos/defesaTab.js';
 import { renderDecisaoTab } from './documentos/decisaoTab.js';
@@ -37,23 +38,6 @@ function secaoDadosGerais(pad) {
       criarElemento('dt', {}, [rotulo]),
       criarElemento('dd', {}, [rotulo === 'Status' ? criarStatusBadge({ status: pad.status }) : (valor ?? '—')]),
     ]),
-  );
-}
-
-function secaoIncidentados(pad) {
-  const incidentados = pad.incidentados ?? [];
-  if (!incidentados.length) {
-    return criarEmptyState({ titulo: 'Nenhum incidentado vinculado ainda', icon: 'users' });
-  }
-  return criarElemento(
-    'div',
-    { class: 'pad-detail__incidentados' },
-    incidentados.map((pessoa) =>
-      criarElemento('div', { class: 'pad-detail__incidentado-card' }, [
-        criarElemento('strong', {}, [pessoa.nomeCompleto ?? '—']),
-        criarElemento('span', { class: 'text-muted' }, [`IPEN ${pessoa.ipen ?? '—'}`]),
-      ]),
-    ),
   );
 }
 
@@ -91,14 +75,14 @@ export async function render(container, params) {
 
   const tabs = criarTabs([
     { id: 'dados-gerais', titulo: 'Dados Gerais', render: () => secaoDadosGerais(pad) },
-    { id: 'incidentados', titulo: 'Incidentados', render: () => secaoIncidentados(pad) },
+    { id: 'incidentados', titulo: 'Incidentados', render: () => renderIncidentadosTab(pad, configUnidade, { onAtualizar }) },
     { id: 'portaria', titulo: 'Portaria', render: () => renderPortariaTab(pad, configUnidade, { onAtualizar }) },
     { id: 'doc-inicial', titulo: 'Doc. Inicial', render: () => renderDocInicialTab(pad, configUnidade, { onAtualizar }) },
     { id: 'termo-cientificacao', titulo: 'Cientificação', render: () => renderTermoCientificacaoTab(pad, configUnidade, { onAtualizar }) },
-    { id: 'testemunhas', titulo: 'Testemunhas', render: () => renderTestemunhasTab(pad, configUnidade, { onAtualizar }) },
-    { id: 'declaracoes-apenado', titulo: 'Declarações', render: () => renderDeclaracoesApenadoTab(pad, configUnidade, { onAtualizar }) },
-    { id: 'conselho', titulo: 'Conselho', render: () => renderConselhoTab(pad, configUnidade, { onAtualizar }) },
-    { id: 'defesa', titulo: 'Defesa', render: () => renderDefesaTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'testemunhas', titulo: 'Depoimento(s) Testemunha(s)', render: () => renderTestemunhasTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'declaracoes-apenado', titulo: 'Depoimento Incidentado', render: () => renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'conselho', titulo: 'Manifestação do Conselho Disciplinar', render: () => renderConselhoTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'defesa', titulo: 'Manifestação da Defesa', render: () => renderDefesaTab(pad, configUnidade, { onAtualizar }) },
     { id: 'decisao', titulo: 'Decisão', render: () => renderDecisaoTab(pad, configUnidade, { onAtualizar }) },
     { id: 'oficios', titulo: 'Ofícios', render: () => renderOficiosTab(pad, configUnidade, { onAtualizar }) },
   ]);

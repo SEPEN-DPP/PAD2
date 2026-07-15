@@ -12,7 +12,7 @@ estrutura do Firestore (coleções e schema documentado), estrutura de services,
 documentados para os módulos futuros (`templates`, `parser`, `ai`).
 
 Sem regra de negócio. Sem parser de PDF. Sem IA. Sem geração de PDF. Sem envio de e-mail.
-Sem Portal do Advogado funcional.
+Sem Portal da Defesa funcional.
 
 **Critério de conclusão:** navegação completa entre todos os módulos, login funcional
 contra Firebase Auth, dashboard lendo contagens reais (ainda que zeradas) do Firestore,
@@ -109,14 +109,19 @@ de anexos fica indisponível.
 - Metadados em `anexos` (tipo, autor, data, tamanho, vínculo com evento).
 - Visualização de fotos/vídeos/laudos e download controlado por permissão.
 
-## Fase 6 — Portal do Advogado
+## Fase 6 — Portal da Defesa
 
-- Cadastro de advogado após a Cientificação, com envio de e-mail (Cloud Functions) contendo
-  link de primeiro acesso.
+(Renomeado de "Portal do Advogado" em 2026-07-15 — cobre tanto advogado constituído quanto
+defensor público, ver ARCHITECTURE.md §6.)
+
+- Cadastro de advogado/defensor após a Cientificação, com envio de e-mail (Cloud Functions)
+  contendo link de primeiro acesso.
 - Definição de senha no primeiro acesso, autenticação isolada do painel institucional.
+- Vínculo real ao PAD específico: definir em que momento do fluxo o vínculo é criado e como
+  o defensor passa a enxergar as peças já inseridas naquele PAD.
 - Acompanhamento de andamento, visualização de documentos autorizados, envio de memoriais e
   documentos, consulta de histórico e decisões.
-- Log de acesso obrigatório para toda ação do advogado.
+- Log de acesso obrigatório para toda ação do defensor.
 
 ## Fase 7 — Relatórios e Exportação
 

@@ -14,13 +14,54 @@
 }
 
 .documento-preview__cabecalho {
-  text-align: center;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
   font-weight: 700;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   margin-bottom: var(--space-5);
   border-bottom: 1px solid #ccc;
   padding-bottom: var(--space-4);
+}
+
+.documento-preview__logo {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.documento-preview__cabecalho-texto {
+  line-height: 1.35;
+}
+
+.documento-preview__numero-data {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-5);
+}
+
+.documento-preview--sem-cabecalho {
+  min-height: 400px;
+}
+
+.documento-preview__destinatario {
+  margin-top: var(--space-6);
+  font-size: var(--font-size-sm);
+}
+
+.documento-preview__destinatario-rotulo {
+  color: #777;
+  font-style: italic;
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--space-2);
+}
+
+.documento-preview__destinatario-nome {
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .documento-preview__titulo {

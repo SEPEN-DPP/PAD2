@@ -9,13 +9,13 @@ estrangeira). Ver [ARCHITECTURE.md](../ARCHITECTURE.md) §4 para o racional.
 {
   dadosGerais: { numero, unidade, dataAbertura },
   superintendencia, // SR da unidade (ex.: "SR04") — denormalizado, mesma razão que em `usuarios`
-  incidentados: [{ nomeCompleto, ipen }],
+  incidentados: [{ id, nomeCompleto, ipen }], // normalmente 1, mas pode ter mais de um (mesma infração, vários envolvidos) — ver §"Múltiplos incidentados" abaixo
   infracao: { data, tipificacao, artigoLep: { codigo, rotulo } | null, detentosEnvolvidos: [], agentesEnvolvidos: [], observacoes, descricaoFatos },
   portaria: { dataAssinatura, autoridadeSignataria: { nome, cargo } },
   docInicial: { itens: [{ titulo }] }, // sem anexo — ver "Documentação Inicial" abaixo
   termoCientificacao: { observacoes },
   testemunhas: [{ id, nome, qualificacao, qualidade: 'testemunha'|'informante', depoimento }],
-  declaracoesApenado: { silencio: boolean, versaoIncidentado },
+  declaracoesApenado: [{ incidentadoId, silencio: boolean, versaoIncidentado }], // um item por incidentado, casado por incidentadoId
   conselho: {
     integrantes: { presidente, membro1, membro2 }, // cada { nome, matricula } — designados na Portaria
     conclusao: 'procedencia'|'improcedencia'|'desclassificacao', fundamento,
@@ -43,6 +43,21 @@ número**). `infracao.tipificacao` vem do campo `UNIDADE / INFRAÇÃO:` do formu
 curto de enquadramento, não o campo `DESCRIÇÃO:` — o relato narrativo do incidente não faz
 parte do escopo de extração atual). Ver
 [src/parser/README.md](../src/parser/README.md) para o mapeamento completo de rótulos.
+
+### Múltiplos incidentados (2026-07-15)
+
+Um PAD normalmente tem 1 incidentado, mas pode ter mais de um (mesma infração, vários
+envolvidos). A aba "Incidentados" (`src/pages/pad/detail/documentos/incidentadosTab.js`)
+gerencia `incidentados[]` com o mesmo padrão lista+modal de `testemunhas[]`, com o cuidado
+de nunca deixar o array vazio (mínimo 1). A aba "Depoimento Incidentado"
+(`depoimentoIncidentadoTab.js`, antiga "Declarações") é array-based: uma linha e um Termo de
+Declarações por incidentado, casado por `incidentadoId`. Templates que mencionam o(s)
+incidentado(s) do PAD como um todo (Portaria, Termo de Cientificação, Manifestação do
+Conselho, Decisão, Ofícios) continuam tratando o caso como um bloco só — juntam os nomes com
+"e" (`condicionais.js: nomeIpenIncidentado`) — só "Depoimento Incidentado" e "Depoimento(s)
+Testemunha(s)" são de fato array-based nesta rodada. `manifestacaoConselhoTemplate.js` e
+`decisaoTemplate.js` leem apenas `declaracoesApenado[0]` (simplificação documentada: com mais
+de um incidentado, essas duas peças refletem só a declaração do primeiro).
 
 ### Criação (Fase 2, 2026-07-14)
 
@@ -91,9 +106,10 @@ listagem geral de Eventos passar a incomodar com registros órfãos.
 ### Gerador de documentos do PAD (Fase 2, 2026-07-15)
 
 10 documentos institucionais por PAD — Portaria de Instauração, Documentação Inicial,
-Termo de Cientificação, Oitiva de Testemunhas, Declarações do Apenado, Manifestação do
-Conselho Disciplinar, Manifestação da Defesa, Decisão da Direção, Ofício ao Juiz e Ofício
-de Encaminhamento à VEP —, cada um **derivado** dos campos acima por um template em
+Termo de Cientificação, Depoimento(s) Testemunha(s), Depoimento Incidentado (antigo
+"Declarações do Apenado"), Manifestação do Conselho Disciplinar, Manifestação da Defesa,
+Decisão da Direção, Ofício ao Juiz e Ofício de Encaminhamento à VEP —, cada um **derivado**
+dos campos acima por um template em
 `src/templates/*Template.js` (nunca editado como texto solto). Conteúdo/redação portados
 do PAD V1 (`github.com/SEPEN-DPP/PAD`), nunca o código — ver
 [src/templates/README.md](../src/templates/README.md) para o contrato de template e a
@@ -117,7 +133,7 @@ permanece).
 
 **`termoCientificacao` só grava observações** — o tipo de defesa (advogado/defensoria) é
 gravado direto em `defesa.tipo`/`advogadoNome`/`advogadoOab` pela mesma aba, já que é ali
-que o incidentado formalmente indica sua defesa; as abas "Declarações do Apenado",
+que o incidentado formalmente indica sua defesa; as abas "Depoimento Incidentado",
 "Manifestação da Defesa" e "Decisão" só leem esse mesmo campo (ver
 `src/templates/shared/condicionais.js:textoDefensor`).
 

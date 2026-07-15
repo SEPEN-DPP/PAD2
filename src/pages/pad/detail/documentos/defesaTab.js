@@ -1,9 +1,11 @@
 /**
  * Aba "Defesa" (Manifestação da Defesa) — o tipo de defesa (advogado/
  * defensoria) já foi indicado na aba "Termo de Cientificação"; aqui só se
- * registra o texto da manifestação em si (`defesa.texto`).
+ * registra o texto da manifestação em si (`defesa.texto`), ditado por voz ou
+ * substituído por upload de PDF (o documento exportado nunca leva
+ * cabeçalho institucional — ver manifestacaoDefesaTemplate.js).
  */
-import { criarElemento, carregarCssUmaVez, criarCampo, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstituto, aplicarAnexoSubstituto, salvarSecaoDoPad } from './_shared.js';
 import { renderizar as renderizarManifDefesa } from '../../../../templates/manifestacaoDefesaTemplate.js';
 import { textoDefensor } from '../../../../templates/shared/condicionais.js';
 
@@ -11,9 +13,13 @@ export function renderDefesaTab(pad, _configUnidade, { onAtualizar } = {}) {
   carregarCssUmaVez('src/pages/pad/detail/documentos/documentos.css');
 
   const defesa = pad.defesa ?? {};
-  const campoTexto = criarCampo({ rotulo: 'Manifestação da Defesa', multilinha: true, valor: defesa.texto });
+  const campoTexto = criarCampoComDitado({ rotulo: 'Manifestação da Defesa', valor: defesa.texto });
+  const anexoSubstituto = criarAnexoSubstituto({ onMudar: () => preview.atualizar() });
 
-  const preview = criarAreaPreview(pad, () => renderizarManifDefesa({ ...pad, defesa: { ...pad.defesa, texto: campoTexto.input.value.trim() } }));
+  const preview = criarAreaPreview(pad, () => aplicarAnexoSubstituto(
+    renderizarManifDefesa({ ...pad, defesa: { ...pad.defesa, texto: campoTexto.input.value.trim() } }),
+    anexoSubstituto.obterAnexo(),
+  ));
   campoTexto.input.addEventListener('input', preview.atualizar);
 
   const secao = criarCardEditavel({
@@ -21,6 +27,7 @@ export function renderDefesaTab(pad, _configUnidade, { onAtualizar } = {}) {
     corpo: [
       criarElemento('p', { class: 'text-muted' }, [`Defensor(a): ${textoDefensor(defesa)} (indicado no Termo de Cientificação).`]),
       campoTexto.elemento,
+      anexoSubstituto.elemento,
     ],
   });
 

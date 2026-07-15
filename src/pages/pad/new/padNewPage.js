@@ -123,7 +123,7 @@ function criarFormularioRevisao(campos, perfilUsuario) {
         const padId = await criarPad({
           numero,
           unidade,
-          incidentados: [{ nomeCompleto: campoNome.input.value.trim(), ipen: campoIpen.input.value.trim() }],
+          incidentados: [{ id: crypto.randomUUID(), nomeCompleto: campoNome.input.value.trim(), ipen: campoIpen.input.value.trim() }],
           infracao: {
             data: dataInfracao,
             tipificacao: campoInfracao.input.value.trim(),

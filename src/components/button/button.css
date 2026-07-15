@@ -52,3 +52,15 @@
 .btn__icone {
   display: inline-flex;
 }
+
+.btn--gravando {
+  background: var(--color-danger-500);
+  border-color: var(--color-danger-500);
+  color: #fff;
+  animation: btn-gravando-pulso 1.2s ease-in-out infinite;
+}
+
+@keyframes btn-gravando-pulso {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}

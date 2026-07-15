@@ -3,7 +3,7 @@
  * sub-formulário aparece: desclassificação (grau + incisos, como no
  * Conselho) ou falta grave (sanções a aplicar).
  */
-import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstituto, aplicarAnexoSubstituto, salvarSecaoDoPad } from './_shared.js';
 import { renderizar as renderizarDecisao } from '../../../../templates/decisaoTemplate.js';
 import { obterIncisosDesclassificacao, SANCOES_FALTA_GRAVE } from '../../../../config/baseLegal.js';
 
@@ -31,7 +31,7 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
   const sancoesAtuais = atual.sancoes ?? {};
 
   const campoResultado = criarCampoSelect({ rotulo: 'Resultado da Decisão', valor: atual.resultado ?? '', opcoes: OPCOES_RESULTADO });
-  const campoFundamentacao = criarCampo({ rotulo: 'Fundamentação', multilinha: true, valor: atual.fundamentacao });
+  const campoFundamentacao = criarCampoComDitado({ rotulo: 'Fundamentação', valor: atual.fundamentacao });
 
   // Desclassificação
   const campoGrau = criarCampoSelect({ rotulo: 'Grau da desclassificação', valor: atual.desclassGrau ?? 'leve', opcoes: OPCOES_GRAU });
@@ -107,7 +107,12 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
     };
   }
 
-  const preview = criarAreaPreview(pad, () => renderizarDecisao({ ...pad, decisao: lerFormulario() }));
+  const anexoSubstituto = criarAnexoSubstituto({ onMudar: () => preview.atualizar() });
+
+  const preview = criarAreaPreview(pad, () => aplicarAnexoSubstituto(
+    renderizarDecisao({ ...pad, decisao: lerFormulario() }),
+    anexoSubstituto.obterAnexo(),
+  ));
   campoFundamentacao.input.addEventListener('input', preview.atualizar);
 
   const secao = criarCardEditavel({
@@ -117,6 +122,7 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
       areaDesclassificacao,
       areaFaltaGrave,
       campoFundamentacao.elemento,
+      anexoSubstituto.elemento,
     ],
   });
 

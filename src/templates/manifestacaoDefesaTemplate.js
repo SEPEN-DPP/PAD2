@@ -1,26 +1,21 @@
 /**
- * Manifestação da Defesa — `defesa.tipo` muda só a identificação do
- * defensor (advogado constituído, defensoria pública ou nenhum).
+ * Manifestação da Defesa — a pedido do usuário (2026-07-15), este é o único
+ * documento que NUNCA leva o cabeçalho/rodapé institucional
+ * (`semCabecalho: true`): é uma folha em branco com o texto que a defesa
+ * escreveu (digitado ou ditado), ou o container onde entra o PDF anexado
+ * pela defesa (ver `src/pages/pad/detail/documentos/defesaTab.js` — quando
+ * há anexo, a aba substitui totalmente este retorno, ver §3 do plano).
  */
-import { dataPorExtenso } from '../utils/dateUtils.js';
-import { nomeIpenIncidentado, artigoRotulo, dataInfracaoFormatada, textoDefensor, cidadeDaUnidade, placeholder } from './shared/condicionais.js';
+import { placeholder } from './shared/condicionais.js';
 
 export function renderizar(pad) {
-  const numero = pad.dadosGerais?.numero || placeholder('Nº DO PAD');
   const defesa = pad.defesa ?? {};
-  const dataInst = pad.portaria?.dataAssinatura ? dataPorExtenso(pad.portaria.dataAssinatura) : placeholder('DATA DE INSTAURAÇÃO');
-  const defensor = textoDefensor(defesa);
 
   return {
-    titulo: 'MANIFESTAÇÃO DA DEFESA',
-    subtitulo: `PAD Nº ${numero}`,
+    titulo: null,
+    semCabecalho: true,
     secoes: [
-      { conteudo: `Incidentado(a): ${nomeIpenIncidentado(pad)}` },
-      { conteudo: `Infração: ${artigoRotulo(pad)} — Data: ${dataInfracaoFormatada(pad)}` },
-      { conteudo: `${defensor}, no exercício da defesa do(a) incidentado(a), vem apresentar sua manifestação:` },
-      { conteudo: defesa.texto || placeholder('MANIFESTAÇÃO DA DEFESA — preencha no formulário ou faça upload do documento') },
-      { conteudo: `${cidadeDaUnidade(pad)}, ${dataInst}.` },
+      { conteudo: defesa.texto || placeholder('MANIFESTAÇÃO DA DEFESA — preencha no formulário, dite por voz ou anexe o PDF') },
     ],
-    assinaturas: [{ nome: defensor }],
   };
 }

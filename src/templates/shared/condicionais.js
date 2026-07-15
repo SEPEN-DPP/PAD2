@@ -8,11 +8,23 @@ import { obterUnidadePorNome } from '../../config/unidadesPrisionais.js';
 
 const ph = (rotulo) => `‹${rotulo}›`;
 
+/**
+ * "NOME – IPEN Nº X" para o único incidentado do PAD, ou "NOME1 – IPEN Nº
+ * X1 e NOME2 – IPEN Nº X2" quando houver mais de um (ver
+ * src/pages/pad/detail/documentos/incidentadosTab.js) — os demais
+ * documentos (Portaria, Termo, Conselho, Decisão, Ofícios) tratam o PAD
+ * como um todo, não incidentado a incidentado.
+ */
 export function nomeIpenIncidentado(pad) {
-  const incidentado = pad.incidentados?.[0] ?? {};
-  const nome = incidentado.nomeCompleto || ph('NOME DO INCIDENTADO');
-  const ipen = incidentado.ipen || ph('PRONTUÁRIO');
-  return `${nome} – IPEN Nº ${ipen}`;
+  const incidentados = pad.incidentados?.length ? pad.incidentados : [{}];
+  const nomes = incidentados.map((incidentado) => {
+    const nome = incidentado.nomeCompleto || ph('NOME DO INCIDENTADO');
+    const ipen = incidentado.ipen || ph('PRONTUÁRIO');
+    return `${nome} – IPEN Nº ${ipen}`;
+  });
+  if (nomes.length === 1) return nomes[0];
+  const ultimo = nomes.pop();
+  return `${nomes.join(', ')} e ${ultimo}`;
 }
 
 export function dataInfracaoFormatada(pad) {

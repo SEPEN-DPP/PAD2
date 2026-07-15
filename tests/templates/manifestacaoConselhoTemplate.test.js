@@ -42,7 +42,7 @@ test('inclui a versão do incidentado quando ele declarou (não ficou em silênc
   const texto = textoManifestacao({
     ...PAD_BASE,
     conselho: { conclusao: 'procedencia' },
-    declaracoesApenado: { silencio: false, versaoIncidentado: 'Não fiz nada.' },
+    declaracoesApenado: [{ silencio: false, versaoIncidentado: 'Não fiz nada.' }],
   });
   assert.match(texto, /Não fiz nada\./);
 });
@@ -51,7 +51,7 @@ test('não inclui versão do incidentado quando ele permaneceu em silêncio', ()
   const texto = textoManifestacao({
     ...PAD_BASE,
     conselho: { conclusao: 'procedencia' },
-    declaracoesApenado: { silencio: true },
+    declaracoesApenado: [{ silencio: true }],
   });
   assert.doesNotMatch(texto, /apresentou a seguinte versão/);
 });

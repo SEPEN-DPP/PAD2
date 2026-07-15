@@ -9,7 +9,7 @@
  * livre começando com "<" seja interpretado como HTML.
  */
 import { criarElemento, carregarCssUmaVez } from '../../utils/domUtils.js';
-import { montarCabecalho, montarRodape } from './letterhead.js';
+import { montarCabecalho, montarRodape, LOGO_URL } from './letterhead.js';
 import { agruparAssinaturas } from './assinaturas.js';
 
 function texto(valor) {
@@ -34,6 +34,14 @@ export function renderizarPreview(pad, documento) {
 
   const cabecalho = montarCabecalho(pad);
   const rodape = montarRodape(pad);
+  const semCabecalho = Boolean(documento.semCabecalho);
+
+  const numeroELinha = documento.numeroELinha
+    ? criarElemento('div', { class: 'documento-preview__numero-data' }, [
+      linhaTexto('span', documento.numeroELinha.numero),
+      linhaTexto('span', documento.numeroELinha.data),
+    ])
+    : null;
 
   const corpo = (documento.secoes ?? []).flatMap((secao) => [
     secao.heading ? linhaTexto('h4', secao.heading, { class: 'documento-preview__heading' }) : null,
@@ -66,17 +74,29 @@ export function renderizarPreview(pad, documento) {
     ].filter(Boolean)),
   );
 
+  const destinatario = documento.destinatario
+    ? criarElemento('div', { class: 'documento-preview__destinatario' }, [
+      linhaTexto('p', 'Destinatário (fixo no rodapé da 1ª página do PDF):', { class: 'documento-preview__destinatario-rotulo' }),
+      ...documento.destinatario.linhas.map((l, i) => linhaTexto('div', l, i === 1 ? { class: 'documento-preview__destinatario-nome' } : {})),
+    ])
+    : null;
+
   return criarElemento(
     'div',
-    { class: 'documento-preview' },
+    { class: `documento-preview${semCabecalho ? ' documento-preview--sem-cabecalho' : ''}` },
     [
-      criarElemento('div', { class: 'documento-preview__cabecalho' }, cabecalho.linhas.map((l) => linhaTexto('div', l))),
-      linhaTexto('h3', documento.titulo, { class: 'documento-preview__titulo' }),
+      semCabecalho ? null : criarElemento('div', { class: 'documento-preview__cabecalho' }, [
+        criarElemento('img', { src: LOGO_URL, alt: 'Brasão', class: 'documento-preview__logo' }),
+        criarElemento('div', { class: 'documento-preview__cabecalho-texto' }, cabecalho.linhas.map((l) => linhaTexto('div', l))),
+      ]),
+      documento.titulo ? linhaTexto('h3', documento.titulo, { class: 'documento-preview__titulo' }) : null,
       documento.subtitulo ? linhaTexto('div', documento.subtitulo, { class: 'documento-preview__subtitulo' }) : null,
+      numeroELinha,
       criarElemento('div', { class: 'documento-preview__corpo' }, corpo),
       linhasAssinaturas.length ? criarElemento('div', { class: 'documento-preview__assinaturas' }, linhasAssinaturas) : null,
       anexos.length ? criarElemento('div', { class: 'documento-preview__anexos' }, anexos) : null,
-      criarElemento('div', { class: 'documento-preview__rodape' }, rodape.linhas.map((l) => linhaTexto('div', l))),
+      destinatario,
+      semCabecalho ? null : criarElemento('div', { class: 'documento-preview__rodape' }, rodape.linhas.map((l) => linhaTexto('div', l))),
     ].filter(Boolean),
   );
 }

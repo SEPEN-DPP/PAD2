@@ -1,7 +1,10 @@
 /**
- * Portal do Advogado — reserva de rota e navegação apenas. Implementação
- * completa (autenticação isolada, memoriais, log de acesso) é da Fase 6
- * (ver ROADMAP.md). Nada é implementado aqui além do placeholder.
+ * Portal da Defesa (renomeado de "Portal do Advogado", 2026-07-15 — cobre
+ * tanto advogado constituído quanto defensor público, já que o Termo de
+ * Cientificação já distingue os dois em `defesa.tipo`) — reserva de rota e
+ * navegação apenas. Implementação completa (autenticação isolada,
+ * vínculo real ao PAD, memoriais, log de acesso) é da Fase 6 (ver
+ * ROADMAP.md). Nada é implementado aqui além do placeholder.
  */
 import { carregarCssUmaVez } from '../../utils/domUtils.js';
 import { criarPageHeader } from '../../components/pageHeader/pageHeader.js';
@@ -13,8 +16,8 @@ export async function render(container) {
 
   container.append(
     criarPageHeader({
-      titulo: 'Portal do Advogado',
-      descricao: 'Acompanhamento processual para advogados e defensores públicos.',
+      titulo: 'Portal da Defesa',
+      descricao: 'Acompanhamento processual para advogados constituídos e defensores públicos.',
     }),
   );
 
@@ -22,9 +25,9 @@ export async function render(container) {
     criarCard({
       filhos: [
         criarEmptyState({
-          titulo: 'Portal do Advogado ainda não disponível',
+          titulo: 'Portal da Defesa ainda não disponível',
           descricao:
-            'Cadastro pós-cientificação, acesso isolado por convite, memoriais e histórico serão habilitados na Fase 6.',
+            'Vínculo do defensor a um PAD específico, acesso isolado por convite, memoriais e histórico serão habilitados na Fase 6.',
           icon: 'scale',
         }),
       ],

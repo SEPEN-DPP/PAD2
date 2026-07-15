@@ -38,7 +38,7 @@ function relatorioTestemunhas(pad) {
 }
 
 function relatorioIncidentado(pad) {
-  const declaracoes = pad.declaracoesApenado ?? {};
+  const declaracoes = pad.declaracoesApenado?.[0] ?? {};
   if (declaracoes.silencio) {
     return `Na sequência, procedeu-se à inquirição do(a) incidentado(a) ${nomeIpenIncidentado(pad)}, que, devidamente cientificado(a) do seu direito constitucional ao silêncio, optou por não prestar declarações.`;
   }

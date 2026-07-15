@@ -157,9 +157,11 @@ ordem) — fica para uma fase futura do [ROADMAP.md](ROADMAP.md).
 Perfis suportados (Firebase Authentication + campo `perfil` em `usuarios`):
 Administrador, Diretor, Subdiretor, Servidor, Conselho Disciplinar, Advogado, Defensor
 Público. A matriz de permissões por página/ação vive em `src/config/roles.js` e está
-documentada em [docs/permissions-matrix.md](docs/permissions-matrix.md). O Portal do
-Advogado é tratado como um contexto de autenticação separado do painel institucional
-(fase futura), mas a estrutura de rotas já reserva o espaço (`src/pages/portal-advogado`).
+documentada em [docs/permissions-matrix.md](docs/permissions-matrix.md). O Portal da
+Defesa (renomeado de "Portal do Advogado", 2026-07-15 — atende tanto advogado constituído
+quanto defensor público) é tratado como um contexto de autenticação separado do painel
+institucional (fase futura), mas a estrutura de rotas já reserva o espaço
+(`src/pages/portal-advogado`).
 
 **`perfil` (página) vs `vinculo` (dado) — 2026-07-14.** `perfil` decide *quais páginas* o
 usuário acessa. Um segundo campo, `vinculo` (`{ tipo: 'UNIDADE'|'REGIONAL', valor }`),
@@ -202,5 +204,5 @@ dados de outra unidade) é trabalho de segurança pendente para a Fase 2/9.
 
 Esta primeira entrega contém **apenas arquitetura, navegação, layout e integração inicial**
 com o Firebase. Não há regras de negócio, parser de PDF, IA, geração de documentos, envio
-de e-mail ou Portal do Advogado funcional. Ver o detalhamento fase a fase em
+de e-mail ou Portal da Defesa funcional. Ver o detalhamento fase a fase em
 [ROADMAP.md](ROADMAP.md).
