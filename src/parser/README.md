@@ -30,7 +30,7 @@ documento, na ordem em que aparecem:
 | `nomeCompleto`         | `Nome:`                       | `CRISTIAN NELSON CONCEIÇÃO SOUZA` |
 | `ipen`                 | `Prontuário:` (só a parte numérica) | `750126` |
 | `dataInfracao`         | `DATA:` (dentro do bloco "DADOS INFRAÇÃO") | `25/05/2026` — **mantido em dd/mm/aaaa, nunca convertido para ISO** |
-| `infracao`             | `UNIDADE / INFRAÇÃO:`         | `152 TIVER EM SUA POSSE, UTILIZAR OU FORNECER APARELHO TELEFÔNICO...` |
+| `infracao`             | `UNIDADE / INFRAÇÃO:`         | `TIVER EM SUA POSSE, UTILIZAR OU FORNECER APARELHO TELEFÔNICO...` (o "152" à frente no PDF é um número de controle interno do i-PEN referente à unidade, não parte do texto — removido por `removerCodigoInterno`) |
 | `artigoLep`            | *(derivado de `infracao`, não de um rótulo)* | `{ codigo: 'art50_vii', rotulo: 'Art. 50, VII — LEP' }` |
 | `detentosEnvolvidos`   | `DETENTOS ENVOLVIDOS:`        | (pode vir vazio) → `[]` |
 | `agentesEnvolvidos`    | `AGENTES ENVOLVIDOS:`         | `MARCELO FAUTH PIANA, RAFAÉL COELHO, DANIEL LIMA` → array de 3 nomes |

@@ -17,7 +17,7 @@ export const ARTIGOS_LEP = Object.freeze([
   { cod: 'art50_v', label: 'Art. 50, V — LEP', texto: 'descumprir, no regime aberto, as condições impostas' },
   { cod: 'art50_vi', label: 'Art. 50, VI — LEP', texto: 'inobservar os deveres previstos nos incisos II e V do art. 39 desta Lei' },
   { cod: 'art50_vii', label: 'Art. 50, VII — LEP', texto: 'tiver em sua posse, utilizar ou fornecer aparelho telefônico, de rádio ou similar, que permita a comunicação com outros presos ou com o ambiente externo' },
-  { cod: 'art52', label: 'Art. 52 — LEP (RDD)', texto: 'praticar fato previsto como crime doloso constituindo infração disciplinar grave e quando ocasionar subversão da ordem ou disciplina internas' },
+  { cod: 'art52', label: 'Art. 52 — LEP', texto: 'praticar fato previsto como crime doloso constituindo infração disciplinar grave e quando ocasionar subversão da ordem ou disciplina internas' },
 ]);
 
 /** Sanções possíveis em caso de falta grave, com a base legal de cada uma. */

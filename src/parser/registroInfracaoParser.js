@@ -93,6 +93,16 @@ function normalizarCampoVazio(valor) {
 }
 
 /**
+ * O campo "UNIDADE / INFRAÇÃO:" do i-PEN vem prefixado com um número de
+ * controle interno (ex.: "152 TIVER EM SUA POSSE...") que identifica a
+ * unidade prisional no cadastro do próprio i-PEN — não faz parte do texto
+ * da infração e nunca deve aparecer na tela nem ser gravado no PAD.
+ */
+function removerCodigoInterno(valor) {
+  return valor.replace(/^\d+\s+/, '');
+}
+
+/**
  * Identifica a qual inciso do art. 50 da LEP (faltas graves) — ou ao art. 52
  * caput (RDD) — corresponde o texto da infração. O texto cadastrado no i-PEN
  * para cada tipo de infração já segue de perto a redação da LEP, então basta
@@ -128,7 +138,7 @@ export async function extrairCamposRegistroInfracao(textoExtraido) {
   const ocorrencias = localizarRotulos(texto);
 
   const prontuarioBruto = capturarValor(ocorrencias, texto, 'prontuario');
-  const infracaoTexto = capturarValor(ocorrencias, texto, 'infracao');
+  const infracaoTexto = removerCodigoInterno(capturarValor(ocorrencias, texto, 'infracao'));
 
   return {
     nomeCompleto: capturarValor(ocorrencias, texto, 'nome'),

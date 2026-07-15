@@ -56,7 +56,9 @@ test('extrai os 8 campos do Registro de Infração a partir do modelo real', asy
   assert.equal(resultado.nomeCompleto, 'CRISTIAN NELSON CONCEIÇÃO SOUZA');
   assert.equal(resultado.ipen, '750126'); // Prontuário — não confundir com RG i-PEN
   assert.equal(resultado.dataInfracao, '25/05/2026'); // mantido em dd/mm/aaaa, nunca convertido para ISO
-  assert.match(resultado.infracao, /^152 TIVER EM SUA POSSE/);
+  // "152" é um número de controle interno do i-PEN (referente à unidade), não
+  // parte do texto da infração — nunca deve aparecer no campo extraído.
+  assert.match(resultado.infracao, /^TIVER EM SUA POSSE/);
   assert.deepEqual(resultado.artigoLep, { codigo: 'art50_vii', rotulo: 'Art. 50, VII — LEP' });
   assert.deepEqual(resultado.detentosEnvolvidos, []);
   assert.deepEqual(resultado.agentesEnvolvidos, ['MARCELO FAUTH PIANA', 'RAFAÉL COELHO', 'DANIEL LIMA']);
@@ -80,7 +82,7 @@ test('identifica o art. 52 (RDD) quando o texto da infração corresponde', asyn
   const texto =
     'UNIDADE / INFRAÇÃO:\n120 PRATICAR FATO PREVISTO COMO CRIME DOLOSO CONSTITUINDO INFRAÇÃO DISCIPLINAR GRAVE E QUANDO OCASIONAR SUBVERSÃO DA ORDEM OU DISCIPLINA INTERNAS\nGRAU:';
   const resultado = await extrairCamposRegistroInfracao({ paginas: [texto], textoCompleto: texto });
-  assert.deepEqual(resultado.artigoLep, { codigo: 'art52', rotulo: 'Art. 52 — LEP (RDD)' });
+  assert.deepEqual(resultado.artigoLep, { codigo: 'art52', rotulo: 'Art. 52 — LEP' });
 });
 
 test('retorna artigoLep nulo quando o texto da infração não corresponde a nenhum artigo conhecido', async () => {
