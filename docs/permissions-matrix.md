@@ -49,3 +49,9 @@ Um gestor não-Administrador só pode atribuir os perfis em `PERFIS_ATRIBUIVEIS_
 Administrador por essa tela — ver `souGestorDoAlvo`/`perfilPermitidoParaGestor` em
 `firestore.rules` (fonte de verdade da autorização) e a seção "Editar/Excluir" em
 [firestore-schema.md](firestore-schema.md).
+
+**Criar/excluir PAD (2026-07-14):** dentro de `/pad/novo`, qualquer perfil da unidade
+(Administrador, Diretor, Subdiretor, Servidor) pode criar um PAD — mas só Direção/CPEN da
+própria unidade/regional, ou Administrador, podem excluí-lo depois (`souCriadorDoPad` e
+`souGestorDoPad` em `firestore.rules`). Ver a seção "Exclusão de PAD" em
+[firestore-schema.md](firestore-schema.md).

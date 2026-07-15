@@ -61,6 +61,18 @@ lançado automaticamente com os mesmos dados revisados na tela "Novo PAD" — a 
 tempo nunca começa vazia. A regra de criação (`firestore.rules`) reaplica `souCriadorDoPad`
 sobre o PAD referenciado por `padId` (via `get()`), não sobre o evento em si.
 
+### Exclusão de PAD (Fase 2, 2026-07-14)
+
+Qualquer usuário da unidade (Administrador, Diretor, Subdiretor ou Servidor) pode **criar**
+um PAD, mas só **Direção/CPEN da própria unidade ou regional** (perfil `DIRETOR` — os dois
+usam o mesmo perfil) ou Administrador podem **excluir** um da relação (`souGestorDoPad` em
+`firestore.rules`) — nunca um Servidor, mesmo o autor do PAD. Ver
+[padListPage.js](../src/pages/pad/list/padListPage.js) (botão "Excluir" por linha, com
+confirmação). A exclusão remove só o documento em `pads`; os `eventos` associados (ex.: o
+"Registro de Infração" lançado na criação) não são apagados em cascata — ficam órfãos,
+referenciando um `padId` que não resolve mais. Aceitável nesta fase; revisitar se a
+listagem geral de Eventos passar a incomodar com registros órfãos.
+
 ## `documentos`
 
 ```

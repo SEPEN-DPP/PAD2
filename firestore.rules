@@ -74,6 +74,17 @@ service cloud.firestore {
       );
     }
 
+    // Só Direção/CPEN (perfil DIRETOR — os dois usam o mesmo perfil, ver
+    // docs/permissions-matrix.md) da própria unidade/regional, ou
+    // Administrador, podem excluir um PAD da relação — nunca um Servidor,
+    // mesmo que tenha sido quem o criou.
+    function souGestorDoPad(dadosPad) {
+      return tenhoPerfil() && meuUsuario().perfil == 'DIRETOR' && (
+        (meuUsuario().vinculo.tipo == 'UNIDADE' && meuUsuario().vinculo.valor == dadosPad.dadosGerais.unidade)
+        || (meuUsuario().vinculo.tipo == 'REGIONAL' && meuUsuario().vinculo.valor == dadosPad.superintendencia)
+      );
+    }
+
     // Coleção de contas institucionais (Administrador, Diretor, Subdiretor,
     // Servidor, Conselho Disciplinar, Defensor Público). Autocadastro
     // (Fase 1, 2026-07-14): qualquer pessoa autenticada pode criar o PRÓPRIO
@@ -114,7 +125,8 @@ service cloud.firestore {
       allow read: if autenticado();
       allow create: if souCriadorDoPad(request.resource.data)
         && request.resource.data.status == 'EM_ANDAMENTO';
-      allow update, delete: if false;
+      allow delete: if souAdministrador() || souGestorDoPad(resource.data);
+      allow update: if false;
     }
 
     // Evento "Registro de Infração" lançado junto com a criação do PAD (ver

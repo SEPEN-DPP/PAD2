@@ -45,6 +45,10 @@ tela "Novo PAD" com upload de PDF apenas como interface.
   ("Registro de Infração", já `CONCLUIDO`) — ver `src/pages/pad/new/padNewPage.js`,
   `src/services/pads/padService.js`, `src/services/eventos/eventoService.js` e as regras
   `souCriadorDoPad` em `firestore.rules`. ✅ (2026-07-14)
+- Exclusão de PAD: qualquer perfil da unidade cria, mas só Direção/CPEN (própria
+  unidade/regional) ou Administrador excluem — botão "Excluir" com confirmação em
+  `src/pages/pad/list/padListPage.js`, regra `souGestorDoPad` em `firestore.rules`. Não
+  cascateia para os `eventos` do PAD excluído (ver docs/firestore-schema.md). ✅ (2026-07-14)
 - Modelagem completa do objeto PAD no Firestore (`pads`, `eventos`).
 - Máquina de estados do fluxo processual (Registro → Portaria → Cientificação → Oitiva →
   Conselho → Defesa → Decisão → Ofício → Arquivamento), com validação de transição e

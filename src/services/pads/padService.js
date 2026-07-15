@@ -60,6 +60,15 @@ export async function contarTodosPads(unidades) {
  * @param {{ numero: string, unidade: string, incidentados: Array, infracao: object }} dados
  * @returns {Promise<string>} id do PAD criado
  */
+/**
+ * Exclui um PAD da listagem. Autorização (Direção/CPEN da unidade ou
+ * regional, ou Administrador) é decidida por `souGestorDoPad` em
+ * firestore.rules — esta função só encapsula a chamada, sem regra própria.
+ */
+export async function excluirPad(id) {
+  await repo.remover(id);
+}
+
 export async function criarPad({ numero, unidade, incidentados, infracao }) {
   if (!numero?.trim()) throw new Error('O número do PAD é obrigatório.');
   if (!unidade?.trim()) throw new Error('A unidade do PAD é obrigatória.');
