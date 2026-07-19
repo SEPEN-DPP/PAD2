@@ -5,7 +5,7 @@
  * é um array `{ incidentadoId, silencio, versaoIncidentado }`, um item por
  * incidentado — mesmo padrão array-based de testemunhasTab.js.
  */
-import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarBotao, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarBotao, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad, criarBotaoConfirmar } from './_shared.js';
 import { abrirModal } from '../../../../components/modal/modal.js';
 import { renderizar as renderizarDeclaracao } from '../../../../templates/declaracaoApenadoTemplate.js';
 import { baixarComoPdf } from '../../../../templates/shared/pdfExporter.js';
@@ -53,7 +53,11 @@ export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar
   }
 
   async function persistir() {
-    await salvarSecaoDoPad(pad, { declaracoesApenado: declaracoes }, { etapa: 'OITIVA_INCIDENTADO', jaTinhaEtapa: (pad.declaracoesApenado ?? []).length > 0 });
+    await salvarSecaoDoPad(
+      pad,
+      { declaracoesApenado: declaracoes },
+      { etapa: 'OITIVA_INCIDENTADO', jaTinhaEtapa: (pad.declaracoesApenado ?? []).length > 0, chaveConfirmacao: 'declaracoesApenado' },
+    );
     onAtualizar?.();
   }
 
@@ -109,6 +113,7 @@ export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar
       listaEl,
     ],
   });
+  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'declaracoesApenado', { onAtualizar }));
 
   const botaoSalvar = criarBotaoSalvar(persistir, { aposSalvar: secao.esconder });
   secao.areaCorpo.append(criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]));

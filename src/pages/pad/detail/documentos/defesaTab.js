@@ -5,7 +5,7 @@
  * substituído por upload de PDF (o documento exportado nunca leva
  * cabeçalho institucional — ver manifestacaoDefesaTemplate.js).
  */
-import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstituto, aplicarAnexoSubstituto, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstituto, aplicarAnexoSubstituto, salvarSecaoDoPad, criarBotaoConfirmar } from './_shared.js';
 import { renderizar as renderizarManifDefesa } from '../../../../templates/manifestacaoDefesaTemplate.js';
 import { textoDefensor } from '../../../../templates/shared/condicionais.js';
 
@@ -30,13 +30,14 @@ export function renderDefesaTab(pad, _configUnidade, { onAtualizar } = {}) {
       anexoSubstituto.elemento,
     ],
   });
+  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'defesa', { onAtualizar }));
 
   const botaoSalvar = criarBotaoSalvar(
     async () => {
       await salvarSecaoDoPad(
         pad,
         { defesa: { ...pad.defesa, texto: campoTexto.input.value.trim() } },
-        { etapa: 'MANIFESTACAO_DEFESA', jaTinhaEtapa: Boolean(pad.defesa?.texto) },
+        { etapa: 'MANIFESTACAO_DEFESA', jaTinhaEtapa: Boolean(pad.defesa?.texto), chaveConfirmacao: 'defesa' },
       );
       preview.atualizar();
       onAtualizar?.();

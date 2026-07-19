@@ -16,11 +16,20 @@ a versão legível para consulta rápida — se divergir do código, o código v
 | `/exportacao`     | ✔ | ✔ | ✔ | ✔ | ✔ |   |   |
 | `/ia`             | ✔ |   |   |   |   |   |   |
 | `/configuracoes`  | ✔ | ✔ | ✔ | ✔ | ✔ |   |   |
-| Portal da Defesa | — | — | — | — | — | próprio contexto (Fase 6) | próprio contexto (Fase 6) |
 
-O Portal da Defesa (`/portal-advogado`, renomeado de "Portal do Advogado" — atende tanto
-advogado constituído quanto defensor público) usa um contexto de autenticação separado do
-painel institucional e não é regido por esta matriz — ver ARCHITECTURE.md §6.
+As colunas Advogado/Defensor Público acima são resquício do desenho anterior à Fase 6 e não
+correspondem a nada usado de fato — o **Portal da Defesa** (implementado em 2026-07-19,
+atende tanto advogado constituído quanto defensor público) não é uma rota do painel
+institucional nem passa por esta matriz: é um contexto de autenticação inteiramente
+separado, com conta própria na coleção `defensores` (não em `usuarios`) e shell próprio
+(`src/layout/portalDefesaLayout.js`) montado direto por `src/app/app.js`. Ver
+[firestore-schema.md](firestore-schema.md) §"Portal da Defesa" para o desenho completo
+(vínculo, confirmação de documento, regras do Firestore) e ARCHITECTURE.md §6.
+
+**Confirmar/reabrir um documento do PAD (2026-07-19):** mesmo escopo de `souCriadorDoPad` —
+qualquer perfil que já edita o PAD também pode confirmar/reabrir (ver linha abaixo sobre
+"Preencher os documentos"). **Revogar o acesso de um defensor a um PAD** já é mais restrito:
+mesmo escopo de `souGestorDoPad` (Diretor/CPEN da unidade ou regional, ou Administrador).
 
 Esta matriz controla apenas **navegação** (o que aparece no menu e é acessível por rota).
 Regras de permissão por **ação** (quem pode decidir, quem pode assinar, quem pode enviar

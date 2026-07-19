@@ -53,7 +53,7 @@ export const STATUS_PAD_LABELS = Object.freeze({
 export const COLLECTIONS = Object.freeze({
   PADS: 'pads',
   USUARIOS: 'usuarios',
-  ADVOGADOS: 'advogados',
+  DEFENSORES: 'defensores',
   EVENTOS: 'eventos',
   DOCUMENTOS: 'documentos',
   ANEXOS: 'anexos',

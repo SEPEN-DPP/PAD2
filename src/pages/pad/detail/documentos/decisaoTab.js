@@ -3,7 +3,7 @@
  * sub-formulário aparece: desclassificação (grau + incisos, como no
  * Conselho) ou falta grave (sanções a aplicar).
  */
-import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstituto, aplicarAnexoSubstituto, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstitutoPersistido, aplicarAnexoSubstituto, salvarSecaoDoPad, criarBotaoConfirmar } from './_shared.js';
 import { renderizar as renderizarDecisao } from '../../../../templates/decisaoTemplate.js';
 import { obterIncisosDesclassificacao, SANCOES_FALTA_GRAVE } from '../../../../config/baseLegal.js';
 
@@ -107,7 +107,7 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
     };
   }
 
-  const anexoSubstituto = criarAnexoSubstituto({ onMudar: () => preview.atualizar() });
+  const anexoSubstituto = criarAnexoSubstitutoPersistido({ valorInicial: pad.decisao?.anexoPersistido ?? null, onMudar: () => preview.atualizar() });
 
   const preview = criarAreaPreview(pad, () => aplicarAnexoSubstituto(
     renderizarDecisao({ ...pad, decisao: lerFormulario() }),
@@ -125,10 +125,15 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
       anexoSubstituto.elemento,
     ],
   });
+  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'decisao', { onAtualizar }));
 
   const botaoSalvar = criarBotaoSalvar(
     async () => {
-      await salvarSecaoDoPad(pad, { decisao: lerFormulario() }, { etapa: 'DECISAO_FINAL', jaTinhaEtapa: Boolean(pad.decisao?.resultado) });
+      await salvarSecaoDoPad(
+        pad,
+        { decisao: { ...lerFormulario(), anexoPersistido: anexoSubstituto.obterAnexo() } },
+        { etapa: 'DECISAO_FINAL', jaTinhaEtapa: Boolean(pad.decisao?.resultado), chaveConfirmacao: 'decisao' },
+      );
       preview.atualizar();
       onAtualizar?.();
     },

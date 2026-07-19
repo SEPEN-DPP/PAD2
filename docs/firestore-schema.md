@@ -20,15 +20,24 @@ estrangeira). Ver [ARCHITECTURE.md](../ARCHITECTURE.md) §4 para o racional.
     integrantes: { presidente, membro1, membro2 }, // cada { nome, matricula } — designados na Portaria
     conclusao: 'procedencia'|'improcedencia'|'desclassificacao', fundamento,
     desclassGrau: 'leve'|'media', desclassIncisos: [],
+    anexoPersistido: { dataUrls: [], nomeArquivo } | null, // PDF que substitui o texto gerado — ver §"Portal da Defesa"
   },
-  defesa: { tipo: 'advogado'|'defensoria'|null, advogadoNome, advogadoOab, texto }, // tipo/advogado* vêm do Termo de Cientificação
+  defesa: { tipo: 'advogado'|'defensoria'|null, advogadoNome, advogadoOab, emailDefensor, texto, anexoPersistido }, // tipo/advogado*/emailDefensor vêm do Termo de Cientificação
+  defesaVinculo: { uid, email, ativo } | null, // vínculo do defensor a ESTE pad — ver §"Portal da Defesa"
   decisao: {
     resultado: 'absolvicao'|'desclassificacao'|'falta_grave', fundamentacao,
     desclassGrau: 'leve'|'media', desclassIncisos: [],
     sancoes: { regressaoRegime, interrupcaoProgressao, perdaRemicao: { ativo, valor, modalidade: 'dias'|'fracao' }, revogacaoSaidaTemp, revogacaoTrabalhoExt },
+    anexoPersistido: { dataUrls: [], nomeArquivo } | null,
   },
   oficioJuizo: { numero, data },
   oficioVep: { numero, data },
+  confirmacoes: { // uma chave por documento gerado — ver §"Portal da Defesa"
+    portaria, docInicial, termoCientificacao, testemunhas, declaracoesApenado,
+    conselho, defesa, decisao, oficioJuizo, oficioVep: {
+      confirmado: boolean, confirmadoEm, confirmadoPor,
+    },
+  },
   status: 'EM_ANDAMENTO' | 'AGUARDANDO_DEFESA' | 'AGUARDANDO_DECISAO' | 'CONCLUIDO' | 'ARQUIVADO',
   criadoEm, atualizadoEm
 }
@@ -255,12 +264,57 @@ outro Diretor, CPEN, Regional ou Administrador (ver `souGestorDoAlvo` e
 a UI só reflete o que as regras já impõem). "Excluir" remove o documento em `usuarios`; a
 conta de autenticação permanece (mesma limitação de Admin SDK/Blaze citada acima).
 
-## `advogados`
+## `defensores` — Portal da Defesa (Fase 6, 2026-07-19)
 
 ```
-{ nome, email, oab, padId, primeiroAcessoConcluido, criadoEm }
+defensores/{uid}   // uid = Firebase Auth do defensor
+{
+  nome, oab, tipo: 'advogado' | 'defensoria',
+  email,
+  padsVinculados: [padId, ...],  // um defensor pode acompanhar mais de um PAD
+  ativo: true,                   // false = conta inteira revogada (kill-switch, só Administrador)
+  criadoPor, criadoEm, atualizadoEm,
+}
 ```
-Contexto de autenticação separado (Fase 6).
+
+Contexto de autenticação **totalmente separado** do painel institucional — implementado sem
+Cloud Functions e sem o plano Blaze, reaproveitando só recursos gratuitos do Firebase já
+usados em outras partes do app (ver `src/services/defensores/defensorService.js`):
+
+- **Vínculo**: nasce no Termo de Cientificação (campo "E-mail do defensor" + botão "Criar
+  acesso ao Portal da Defesa"). Se o e-mail já existe em `defensores`, só adiciona o `padId`
+  a `padsVinculados`; senão cria a conta. `pads/{padId}.defesaVinculo = { uid, email, ativo }`
+  denormaliza o estado do vínculo direto no PAD.
+- **Criação da conta sem derrubar a sessão institucional**: `createUserWithEmailAndPassword`
+  do SDK client troca a sessão ativa para a conta recém-criada — por isso a chamada acontece
+  num app Firebase **secundário e descartável** (`initializeApp(firebaseConfig, nome-único)`),
+  nunca no `auth` principal.
+- **Convite**: e-mail automático de redefinição de senha (`sendPasswordResetEmail`, nativo do
+  Firebase Auth, gratuito) **e** um botão manual (`mailto:`/Gmail) como reforço — nenhum dos
+  dois envia nada sozinho além do automático.
+- **Confirmação de documento** (`pads/{padId}.confirmacoes`, ver acima): só documentos
+  confirmados pela Unidade aparecem no Portal — granularidade por documento inteiro, não por
+  item (mesmo em abas array-based como Testemunhas/Depoimento Incidentado). Qualquer novo
+  "Salvar" reabre automaticamente (`confirmado: false`) até confirmar de novo. Confirmar
+  dispara um evento na linha do tempo (`<CHAVE>_CONFIRMADO`).
+- **Manifestação da Defesa pelo próprio Portal**: enquanto `defesa` não estiver confirmada,
+  o defensor vê um formulário (texto + ditado + upload de PDF) em vez da pré-visualização —
+  grava direto em `pads/{padId}.defesa`, autorizado por uma regra específica em
+  `firestore.rules` (só esse campo, só enquanto não confirmado).
+- **Upload de PDF persistido** (Conselho, Decisão, e a Manifestação da Defesa via Portal):
+  ao contrário do anexo efêmero da Documentação Inicial, este é gravado no PAD
+  (`<secao>.anexoPersistido`) — limite de ~700.000 caracteres de base64 (margem sob o limite
+  de ~1MB por documento do Firestore, já que não há Storage disponível).
+- **Revogar acesso**: "Revogar acesso a este PAD" (Diretor/Administrador/CPEN da unidade)
+  remove só aquele `padId` de `padsVinculados` — não afeta o acesso do defensor a outros
+  PADs. O `ativo:false` (kill-switch da conta inteira) é uma ação separada, só Administrador.
+- **Login**: `src/app/app.js` reconhece uma conta de defensor pela simples ausência de
+  documento em `usuarios` combinada com a presença de um em `defensores` — monta um shell
+  minimalista (`src/layout/portalDefesaLayout.js`), nunca o painel institucional.
+- **Regras do Firestore** (`firestore.rules`): `souDefensorVinculado(padId)` — defensor só
+  lê PADs em que está vinculado (a regra antiga `allow read: if autenticado()` foi
+  restringida para `tenhoPerfil() || souDefensorVinculado(padId)`, senão qualquer conta de
+  defensor enxergaria todos os PADs do sistema).
 
 ## `logs`
 

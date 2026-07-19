@@ -4,7 +4,7 @@
  * Conselho (Presidente/Membros) é designada na aba "Portaria" e só exibida
  * aqui como contexto, não editável.
  */
-import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstituto, aplicarAnexoSubstituto, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstitutoPersistido, aplicarAnexoSubstituto, salvarSecaoDoPad, criarBotaoConfirmar } from './_shared.js';
 import { renderizar as renderizarManifestacao } from '../../../../templates/manifestacaoConselhoTemplate.js';
 import { integrantesConselho } from '../../../../templates/shared/condicionais.js';
 import { obterIncisosDesclassificacao } from '../../../../config/baseLegal.js';
@@ -84,7 +84,7 @@ export function renderConselhoTab(pad, configUnidade, { onAtualizar } = {}) {
     };
   }
 
-  const anexoSubstituto = criarAnexoSubstituto({ onMudar: () => preview.atualizar() });
+  const anexoSubstituto = criarAnexoSubstitutoPersistido({ valorInicial: pad.conselho?.anexoPersistido ?? null, onMudar: () => preview.atualizar() });
 
   const preview = criarAreaPreview(pad, () => aplicarAnexoSubstituto(
     renderizarManifestacao({ ...pad, conselho: lerFormulario() }, configUnidade),
@@ -104,10 +104,15 @@ export function renderConselhoTab(pad, configUnidade, { onAtualizar } = {}) {
       anexoSubstituto.elemento,
     ],
   });
+  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'conselho', { onAtualizar }));
 
   const botaoSalvar = criarBotaoSalvar(
     async () => {
-      await salvarSecaoDoPad(pad, { conselho: lerFormulario() }, { etapa: 'MANIFESTACAO_CONSELHO', jaTinhaEtapa: Boolean(pad.conselho?.conclusao) });
+      await salvarSecaoDoPad(
+        pad,
+        { conselho: { ...lerFormulario(), anexoPersistido: anexoSubstituto.obterAnexo() } },
+        { etapa: 'MANIFESTACAO_CONSELHO', jaTinhaEtapa: Boolean(pad.conselho?.conclusao), chaveConfirmacao: 'conselho' },
+      );
       preview.atualizar();
       onAtualizar?.();
     },

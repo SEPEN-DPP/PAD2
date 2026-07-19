@@ -131,9 +131,38 @@ service cloud.firestore {
         || (resource.data.status == 'ATIVO' && resource.data.perfil == 'SERVIDOR' && souGestorDoAlvo(resource.data));
     }
 
-    // Contas do Portal do Advogado — contexto de autenticação separado (Fase 6).
-    match /advogados/{advogadoId} {
-      allow read, write: if false;
+    // Contas do Portal da Defesa — contexto de autenticação separado do
+    // painel institucional (Fase 6, 2026-07-19). `defensorId` = uid da conta
+    // de Firebase Auth do defensor (advogado constituído ou defensor
+    // público) — ver src/services/defensores/defensorService.js.
+    function tenhoPerfilDefensor() {
+      return autenticado() && exists(/databases/$(database)/documents/defensores/$(request.auth.uid));
+    }
+
+    function meuDefensor() {
+      return get(/databases/$(database)/documents/defensores/$(request.auth.uid)).data;
+    }
+
+    // Usado pela regra de `pads` abaixo — o defensor só lê/edita PADs em que
+    // está vinculado (`padsVinculados`) e com a conta ativa.
+    function souDefensorVinculado(padId) {
+      return tenhoPerfilDefensor() && padId in meuDefensor().padsVinculados && meuDefensor().ativo == true;
+    }
+
+    match /defensores/{defensorId} {
+      allow read: if ehDonoDoDocumento(defensorId) || tenhoPerfil();
+      // Criar o vínculo/conta é parte de preencher o Termo de Cientificação
+      // — mesmo escopo de quem já edita o PAD (ver `pads` abaixo).
+      allow create: if tenhoPerfil();
+      // Adicionar/remover um `padId` de `padsVinculados` (vincular a um novo
+      // PAD ou "Revogar acesso a este PAD") fica aberto a qualquer conta
+      // institucional; já `ativo` (kill-switch da conta inteira) só o
+      // Administrador mexe. `atualizadoEm` sempre vem junto — o repositório
+      // genérico grava esse campo em toda escrita (ver firestoreRepository.js).
+      allow update: if tenhoPerfil() && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['padsVinculados', 'atualizadoEm'])
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ativo', 'atualizadoEm']) && souAdministrador())
+      );
     }
 
     // PAD (Fase 2, 2026-07-14). Criação: numeração+unidade+status inicial.
@@ -147,13 +176,26 @@ service cloud.firestore {
     // garantimos que a identidade (unidade/regional) do PAD não muda e que
     // `status` continua um valor válido do enum.
     match /pads/{padId} {
-      allow read: if autenticado();
+      // Institucional vê tudo (mesmo comportamento de sempre); um defensor só
+      // vê os PADs em que está vinculado — sem isto, qualquer conta de
+      // defensor conseguiria ler PADs alheios (ver souDefensorVinculado acima).
+      allow read: if tenhoPerfil() || souDefensorVinculado(padId);
       allow create: if souCriadorDoPad(request.resource.data)
         && request.resource.data.status == 'EM_ANDAMENTO';
-      allow update: if souCriadorDoPad(resource.data)
-        && souCriadorDoPad(request.resource.data)
-        && identidadeInalterada(resource.data, request.resource.data)
-        && request.resource.data.status in ['EM_ANDAMENTO', 'AGUARDANDO_DEFESA', 'AGUARDANDO_DECISAO', 'CONCLUIDO', 'ARQUIVADO'];
+      allow update: if (
+          souCriadorDoPad(resource.data)
+          && souCriadorDoPad(request.resource.data)
+          && identidadeInalterada(resource.data, request.resource.data)
+          && request.resource.data.status in ['EM_ANDAMENTO', 'AGUARDANDO_DEFESA', 'AGUARDANDO_DECISAO', 'CONCLUIDO', 'ARQUIVADO']
+        ) || (
+          // Manifestação da Defesa enviada pelo próprio Portal da Defesa —
+          // só o campo `defesa` (mais `atualizadoEm`, que o repositório
+          // genérico sempre grava junto, ver firestoreRepository.js), e só
+          // enquanto a Unidade ainda não confirmou/fechou esse documento.
+          souDefensorVinculado(padId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['defesa', 'atualizadoEm'])
+          && (!('confirmacoes' in resource.data) || !('defesa' in resource.data.confirmacoes) || resource.data.confirmacoes.defesa.confirmado != true)
+        );
       allow delete: if souAdministrador() || souGestorDoPad(resource.data);
     }
 

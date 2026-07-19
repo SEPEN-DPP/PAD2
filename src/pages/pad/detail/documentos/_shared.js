@@ -155,14 +155,21 @@ export function criarCardEditavel({ titulo, corpo }) {
 
 /**
  * Salva `patch` no PAD e, na primeira vez que essa etapa é preenchida,
- * lança o evento correspondente na linha do tempo (ver ETAPAS_PAD).
+ * lança o evento correspondente na linha do tempo (ver ETAPAS_PAD). Quando
+ * `chaveConfirmacao` é passada, qualquer "Salvar" reabre automaticamente o
+ * documento se ele já estava confirmado (ver criarBotaoConfirmar) — evita
+ * que o defensor veja, no Portal da Defesa, uma versão que está sendo
+ * editada nesse momento.
  * @param {object} pad
  * @param {object} patch — objeto aninhado inteiro da seção (ex.: `{ conselho: {...} }`)
- * @param {{ etapa?: string, jaTinhaEtapa: boolean }} opcoes
+ * @param {{ etapa?: string, jaTinhaEtapa: boolean, chaveConfirmacao?: string }} opcoes
  */
-export async function salvarSecaoDoPad(pad, patch, { etapa, jaTinhaEtapa } = {}) {
-  await atualizarPad(pad.id, patch);
-  Object.assign(pad, patch);
+export async function salvarSecaoDoPad(pad, patch, { etapa, jaTinhaEtapa, chaveConfirmacao } = {}) {
+  const patchFinal = chaveConfirmacao
+    ? { ...patch, confirmacoes: { ...pad.confirmacoes, [chaveConfirmacao]: { confirmado: false } } }
+    : patch;
+  await atualizarPad(pad.id, patchFinal);
+  Object.assign(pad, patchFinal);
 
   if (etapa && !jaTinhaEtapa) {
     const perfil = await obterPerfilDoUsuario(usuarioAtual()?.uid);
@@ -175,6 +182,81 @@ export async function salvarSecaoDoPad(pad, patch, { etapa, jaTinhaEtapa } = {})
       observacoes: '',
     });
   }
+}
+
+/**
+ * Marca um documento como confirmado/fechado — só documentos confirmados
+ * aparecem no Portal da Defesa (ver src/pages/portal-defesa). Dispara um
+ * evento na linha do tempo, além do evento de primeiro-preenchimento que
+ * `salvarSecaoDoPad` já lança (dois marcos distintos: "começou" e "fechado").
+ * @param {object} pad
+ * @param {string} chaveConfirmacao — mesma chave usada em `pad.confirmacoes`
+ */
+export async function confirmarSecaoDoPad(pad, chaveConfirmacao) {
+  const perfil = await obterPerfilDoUsuario(usuarioAtual()?.uid);
+  const confirmadoPor = perfil?.nome ?? usuarioAtual()?.email ?? '—';
+  const patch = {
+    confirmacoes: {
+      ...pad.confirmacoes,
+      [chaveConfirmacao]: { confirmado: true, confirmadoEm: new Date(), confirmadoPor },
+    },
+  };
+  await atualizarPad(pad.id, patch);
+  Object.assign(pad, patch);
+  await criarEvento({
+    padId: pad.id,
+    tipo: `${chaveConfirmacao.toUpperCase()}_CONFIRMADO`,
+    responsavel: confirmadoPor,
+    data: new Date(),
+    status: 'CONCLUIDO',
+    observacoes: '',
+  });
+}
+
+/** Reabre um documento já confirmado (sem evento — é a instituição corrigindo algo, não um marco novo). */
+export async function reabrirSecaoDoPad(pad, chaveConfirmacao) {
+  const patch = { confirmacoes: { ...pad.confirmacoes, [chaveConfirmacao]: { confirmado: false } } };
+  await atualizarPad(pad.id, patch);
+  Object.assign(pad, patch);
+}
+
+/**
+ * Botão "Confirmar documento" / "Reabrir" — alterna `pad.confirmacoes.<chave>`.
+ * Qualquer usuário que já edita o PAD pode confirmar/reabrir (mesmo escopo de
+ * `souCriadorDoPad` em firestore.rules — não há restrição adicional aqui).
+ * @param {object} pad
+ * @param {string} chaveConfirmacao
+ * @param {{ onAtualizar?: () => void }} [opcoes]
+ */
+export function criarBotaoConfirmar(pad, chaveConfirmacao, { onAtualizar } = {}) {
+  const estaConfirmado = () => Boolean(pad.confirmacoes?.[chaveConfirmacao]?.confirmado);
+
+  const botao = criarBotao({
+    texto: estaConfirmado() ? 'Reabrir' : 'Confirmar documento',
+    icon: estaConfirmado() ? 'lock-open' : 'lock',
+    variante: 'secondary',
+    onClick: async () => {
+      botao.disabled = true;
+      try {
+        if (estaConfirmado()) {
+          await reabrirSecaoDoPad(pad, chaveConfirmacao);
+          mostrarToast('Documento reaberto para edição.', 'sucesso');
+        } else {
+          await confirmarSecaoDoPad(pad, chaveConfirmacao);
+          mostrarToast('Documento confirmado — já aparece no Portal da Defesa.', 'sucesso');
+        }
+        botao.querySelector('span:last-child').textContent = estaConfirmado() ? 'Reabrir' : 'Confirmar documento';
+        onAtualizar?.();
+      } catch (erro) {
+        console.error('Falha ao confirmar/reabrir documento:', erro);
+        mostrarToast('Não foi possível concluir a ação.', 'erro');
+      } finally {
+        botao.disabled = false;
+      }
+    },
+  });
+
+  return botao;
 }
 
 /**
@@ -228,6 +310,72 @@ export function criarAnexoSubstituto({ onMudar }) {
   };
 }
 
+/** Acima disso, o base64 resultante fica perto demais do limite de ~1MB por documento do Firestore (o restante do PAD também mora no mesmo documento). */
+const LIMITE_ANEXO_PERSISTIDO_CARACTERES = 700_000;
+
+/**
+ * Igual a `criarAnexoSubstituto`, mas o anexo passa a ser PERSISTIDO no PAD
+ * (via `salvarSecaoDoPad`/`atualizarPad` de quem chama este widget) em vez
+ * de só durar a sessão do navegador — usado onde o anexo precisa sobreviver
+ * a um recarregamento de página (Conselho, Decisão, e a Manifestação da
+ * Defesa enviada pelo Portal da Defesa). Como não há Storage disponível
+ * (Blaze), o limite de tamanho é o do próprio documento do Firestore.
+ * @param {{ valorInicial?: { dataUrls: string[], nomeArquivo: string } | null, onMudar: () => void }} params
+ */
+export function criarAnexoSubstitutoPersistido({ valorInicial = null, onMudar }) {
+  let anexo = valorInicial;
+  const input = criarElemento('input', { type: 'file', accept: 'application/pdf,image/*', class: 'sr-only' });
+  const legendaPadrao = 'Nenhum arquivo anexado — o texto acima é o que vai no documento gerado.';
+  const legenda = criarElemento('span', { class: 'text-muted' }, [
+    anexo ? `Anexado: ${anexo.nomeArquivo} (substitui o texto gerado nesta exportação)` : legendaPadrao,
+  ]);
+  const botaoRemover = criarBotao({
+    texto: 'Remover anexo',
+    icon: 'x',
+    variante: 'danger',
+    onClick: () => {
+      anexo = null;
+      input.value = '';
+      legenda.textContent = legendaPadrao;
+      botaoRemover.style.display = 'none';
+      onMudar();
+    },
+  });
+  botaoRemover.style.display = anexo ? '' : 'none';
+  const botaoAnexar = criarBotao({
+    texto: 'Anexar PDF (substitui o texto gerado)',
+    icon: 'paperclip',
+    variante: 'secondary',
+    onClick: () => input.click(),
+  });
+
+  input.addEventListener('change', async () => {
+    const arquivo = input.files?.[0];
+    if (!arquivo) return;
+    try {
+      const dataUrls = await converterParaImagensEmbutidas(arquivo);
+      const tamanho = dataUrls.reduce((soma, url) => soma + url.length, 0);
+      if (tamanho > LIMITE_ANEXO_PERSISTIDO_CARACTERES) {
+        input.value = '';
+        mostrarToast('Documento muito grande para anexar — cole o texto no campo acima ou envie um arquivo menor.', 'aviso');
+        return;
+      }
+      anexo = { dataUrls, nomeArquivo: arquivo.name };
+      legenda.textContent = `Anexado: ${arquivo.name} (substitui o texto gerado nesta exportação)`;
+      botaoRemover.style.display = '';
+      onMudar();
+    } catch (erro) {
+      console.error('Falha ao processar anexo substituto:', erro);
+      mostrarToast(erro.message ?? 'Não foi possível processar o anexo.', 'erro');
+    }
+  });
+
+  return {
+    elemento: criarElemento('div', { class: 'documentos__acoes' }, [botaoAnexar, legenda, botaoRemover, input]),
+    obterAnexo: () => anexo,
+  };
+}
+
 /** Quando há um anexo substituto, troca o corpo gerado do documento pelas páginas do anexo — mantém título/subtítulo/assinaturas do template original. */
 export function aplicarAnexoSubstituto(documento, anexo) {
   if (!anexo) return documento;
@@ -239,6 +387,47 @@ export function aplicarAnexoSubstituto(documento, anexo) {
       legenda: anexo.dataUrls.length > 1 ? `${anexo.nomeArquivo} (página ${indice + 1})` : anexo.nomeArquivo,
     })),
   };
+}
+
+/**
+ * Dois botões de convite para o defensor — nenhum dos dois envia nada
+ * sozinho, só preparam um rascunho de e-mail e é a própria pessoa quem
+ * clica "Enviar" no cliente que abrir. O envio automático (gratuito, via
+ * `sendPasswordResetEmail`) já acontece sozinho em
+ * `defensorService.js:vincularDefensorAoPad` — isto aqui é só o reforço
+ * manual, para quando o e-mail automático não chega ou a unidade prefere um
+ * contato mais pessoal.
+ * @param {{ email: string, padNumero: string }} params
+ */
+export function criarBotoesConvidarPorEmail({ email, padNumero }) {
+  const assunto = encodeURIComponent(`Acesso ao Portal da Defesa — PAD ${padNumero}`);
+  const corpo = encodeURIComponent(
+    `Olá,\n\nVocê foi vinculado(a) ao PAD ${padNumero} no Portal da Defesa.\n\n` +
+      `Acesse ${location.origin}${location.pathname} e clique em "Esqueci minha senha" ` +
+      `usando este e-mail (${email}) para definir sua senha de acesso.\n\nAtenciosamente.`,
+  );
+
+  const botaoMailto = criarBotao({
+    texto: 'Abrir e-mail',
+    icon: 'mail',
+    variante: 'secondary',
+    onClick: () => {
+      window.location.href = `mailto:${email}?subject=${assunto}&body=${corpo}`;
+    },
+  });
+
+  const linkGmail = criarElemento(
+    'a',
+    {
+      class: 'link-discreto',
+      href: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${assunto}&body=${corpo}`,
+      target: '_blank',
+      rel: 'noopener',
+    },
+    ['ou abrir no Gmail'],
+  );
+
+  return criarElemento('div', { class: 'documentos__acoes' }, [botaoMailto, linkGmail]);
 }
 
 /**

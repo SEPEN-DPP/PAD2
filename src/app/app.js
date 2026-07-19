@@ -8,6 +8,8 @@ import { observarSessao, obterPerfilDoUsuario, usuarioAtual, sair } from '../ser
 import { registrarLog } from '../services/logs/logService.js';
 import { montarAppShell } from '../layout/appShell.js';
 import { montarAuthLayout } from '../layout/authLayout.js';
+import { montarPortalDefesaShell } from '../layout/portalDefesaLayout.js';
+import { obterDefensor } from '../services/defensores/defensorService.js';
 import { criarRouter } from './router.js';
 import { DEFAULT_ROUTE } from '../config/routes.js';
 import { podeAcessarRota } from '../config/roles.js';
@@ -68,6 +70,26 @@ async function montarTelaAguardandoOuCompletarCadastro(raiz, perfilDoc) {
   );
 }
 
+/**
+ * Portal da Defesa (Fase 6, 2026-07-19) — contexto de login separado do
+ * painel institucional para contas de `defensores` (advogado constituído ou
+ * defensor público). Nunca passa por `montarAppShell`/`criarRouter`: é um
+ * shell minimalista próprio (ver src/layout/portalDefesaLayout.js), sem
+ * sidebar nem rotas institucionais.
+ */
+async function montarPortalDefesaApp(raiz, usuarioFirebase, defensorDoc) {
+  const { montarPortalDefesa } = await import('../pages/portal-defesa/portalDefesaPage.js');
+  const shell = montarPortalDefesaShell({
+    nome: defensorDoc.nome ?? usuarioFirebase.email ?? 'Defensor(a)',
+    onSair: async () => {
+      await registrarLog({ usuarioId: usuarioFirebase.uid, acao: 'LOGOUT' });
+      await sair();
+    },
+  });
+  raiz.replaceChildren(shell.raiz);
+  await montarPortalDefesa({ outlet: shell.outlet, defensor: { ...defensorDoc, uid: usuarioFirebase.uid } });
+}
+
 async function montarPainel(raiz, usuario) {
   const shell = await montarAppShell({
     usuario,
@@ -111,6 +133,14 @@ export function iniciarApp(raizId = 'app') {
       const perfilDoc = await obterPerfilDoUsuario(usuarioFirebase.uid);
 
       if (!perfilDoc || perfilDoc.status === 'PENDENTE') {
+        // Contas do Portal da Defesa nunca têm documento em `usuarios` — só
+        // em `defensores` (ver src/services/defensores/defensorService.js).
+        const defensorDoc = await obterDefensor(usuarioFirebase.uid);
+        if (defensorDoc?.ativo) {
+          await registrarLog({ usuarioId: usuarioFirebase.uid, acao: 'LOGIN' });
+          await montarPortalDefesaApp(raiz, usuarioFirebase, defensorDoc);
+          return;
+        }
         await montarTelaAguardandoOuCompletarCadastro(raiz, perfilDoc);
         return;
       }

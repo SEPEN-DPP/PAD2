@@ -154,14 +154,20 @@ ordem) — fica para uma fase futura do [ROADMAP.md](ROADMAP.md).
 
 ## 6. Perfis e permissões
 
-Perfis suportados (Firebase Authentication + campo `perfil` em `usuarios`):
-Administrador, Diretor, Subdiretor, Servidor, Conselho Disciplinar, Advogado, Defensor
-Público. A matriz de permissões por página/ação vive em `src/config/roles.js` e está
-documentada em [docs/permissions-matrix.md](docs/permissions-matrix.md). O Portal da
-Defesa (renomeado de "Portal do Advogado", 2026-07-15 — atende tanto advogado constituído
-quanto defensor público) é tratado como um contexto de autenticação separado do painel
-institucional (fase futura), mas a estrutura de rotas já reserva o espaço
-(`src/pages/portal-advogado`).
+Perfis institucionais (Firebase Authentication + campo `perfil` em `usuarios`):
+Administrador, Diretor, Subdiretor, Servidor, Conselho Disciplinar. A matriz de permissões
+por página/ação vive em `src/config/roles.js` e está documentada em
+[docs/permissions-matrix.md](docs/permissions-matrix.md).
+
+O **Portal da Defesa** (Fase 6, implementado em 2026-07-19 — atende tanto advogado
+constituído quanto defensor público) é um contexto de autenticação **totalmente separado**
+do painel institucional: contas de defensor vivem na coleção `defensores` (não em
+`usuarios`), nunca passam por `src/config/roles.js`/`criarRouter`, e o bootstrap
+(`src/app/app.js`) as reconhece pelo simples fato de terem um documento em `defensores` em
+vez de `usuarios` — ver `docs/firestore-schema.md` §"Portal da Defesa" para o desenho
+completo (vínculo, confirmação de documento, regras do Firestore). Os perfis `ADVOGADO`/
+`DEFENSOR_PUBLICO` ainda existem em `src/config/roles.js` como resquício do desenho anterior
+a essa implementação — não são usados pelo fluxo real do Portal da Defesa.
 
 **`perfil` (página) vs `vinculo` (dado) — 2026-07-14.** `perfil` decide *quais páginas* o
 usuário acessa. Um segundo campo, `vinculo` (`{ tipo: 'UNIDADE'|'REGIONAL', valor }`),

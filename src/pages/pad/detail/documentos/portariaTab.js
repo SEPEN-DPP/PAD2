@@ -4,7 +4,7 @@
  * só preenche a manifestação depois, lendo essa mesma composição). Todos os
  * três pré-preenchidos a partir de `configuracoesUnidade` na primeira vez.
  */
-import { criarElemento, carregarCssUmaVez, criarCampo, criarBlocoPessoa, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad, paraValorInputDate } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarBlocoPessoa, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad, criarBotaoConfirmar, paraValorInputDate } from './_shared.js';
 import { renderizar as renderizarPortaria } from '../../../../templates/portariaAberturaTemplate.js';
 
 /**
@@ -89,6 +89,7 @@ export function renderPortariaTab(pad, configUnidade, { onAtualizar } = {}) {
       criarElemento('div', { class: 'documentos__conselho' }, [blocoPresidente.elemento, blocoMembro1.elemento, blocoMembro2.elemento]),
     ],
   });
+  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'portaria', { onAtualizar }));
 
   const botaoSalvar = criarBotaoSalvar(
     async () => {
@@ -100,7 +101,7 @@ export function renderPortariaTab(pad, configUnidade, { onAtualizar } = {}) {
           infracao: { ...pad.infracao, descricaoFatos: dados.descricaoFatos },
           conselho: { ...pad.conselho, integrantes: dados.conselho },
         },
-        { etapa: 'PORTARIA_ABERTURA', jaTinhaEtapa: Boolean(pad.portaria?.dataAssinatura) },
+        { etapa: 'PORTARIA_ABERTURA', jaTinhaEtapa: Boolean(pad.portaria?.dataAssinatura), chaveConfirmacao: 'portaria' },
       );
       preview.atualizar();
       onAtualizar?.();

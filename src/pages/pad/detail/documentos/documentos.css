@@ -43,6 +43,16 @@
   flex-wrap: wrap;
 }
 
+.link-discreto {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-decoration: underline;
+}
+
+.link-discreto:hover {
+  color: var(--color-text);
+}
+
 .documentos__lista-itens {
   list-style: none;
   padding: 0;

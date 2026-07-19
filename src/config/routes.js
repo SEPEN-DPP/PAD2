@@ -56,13 +56,6 @@ export const ROUTES = Object.freeze([
     nav: true,
   },
   {
-    path: '/portal-advogado',
-    title: 'Portal da Defesa',
-    icon: 'scale',
-    load: () => import('../pages/portal-advogado/portalAdvogadoPage.js'),
-    nav: true,
-  },
-  {
     path: '/usuarios',
     title: 'Usuários',
     icon: 'users',

@@ -4,7 +4,7 @@
  * Sem preview única (cada testemunha tem seu próprio documento) — cada linha
  * baixa o PDF/.doc daquela testemunha diretamente.
  */
-import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarBotao, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarBotao, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad, criarBotaoConfirmar } from './_shared.js';
 import { abrirModal } from '../../../../components/modal/modal.js';
 import { renderizar as renderizarOitiva } from '../../../../templates/oitivaTestemunhaTemplate.js';
 import { baixarComoPdf } from '../../../../templates/shared/pdfExporter.js';
@@ -49,7 +49,11 @@ export function renderTestemunhasTab(pad, configUnidade, { onAtualizar } = {}) {
   const listaEl = criarElemento('ul', { class: 'documentos__lista-itens' });
 
   async function persistir() {
-    await salvarSecaoDoPad(pad, { testemunhas }, { etapa: 'OITIVA_INCIDENTADO', jaTinhaEtapa: (pad.testemunhas ?? []).length > 0 });
+    await salvarSecaoDoPad(
+      pad,
+      { testemunhas },
+      { etapa: 'OITIVA_INCIDENTADO', jaTinhaEtapa: (pad.testemunhas ?? []).length > 0, chaveConfirmacao: 'testemunhas' },
+    );
     onAtualizar?.();
   }
 
@@ -117,6 +121,7 @@ export function renderTestemunhasTab(pad, configUnidade, { onAtualizar } = {}) {
       listaEl,
     ],
   });
+  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'testemunhas', { onAtualizar }));
 
   const botaoSalvar = criarBotaoSalvar(persistir, { aposSalvar: secao.esconder });
   secao.areaCorpo.append(criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]));

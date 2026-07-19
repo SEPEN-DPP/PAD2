@@ -109,19 +109,32 @@ de anexos fica indisponível.
 - Metadados em `anexos` (tipo, autor, data, tamanho, vínculo com evento).
 - Visualização de fotos/vídeos/laudos e download controlado por permissão.
 
-## Fase 6 — Portal da Defesa
+## Fase 6 — Portal da Defesa ✅ (2026-07-19)
 
 (Renomeado de "Portal do Advogado" em 2026-07-15 — cobre tanto advogado constituído quanto
-defensor público, ver ARCHITECTURE.md §6.)
+defensor público.) Implementado **sem Cloud Functions e sem o plano Blaze** — ver
+docs/firestore-schema.md §"Portal da Defesa" para o detalhe completo.
 
-- Cadastro de advogado/defensor após a Cientificação, com envio de e-mail (Cloud Functions)
-  contendo link de primeiro acesso.
-- Definição de senha no primeiro acesso, autenticação isolada do painel institucional.
-- Vínculo real ao PAD específico: definir em que momento do fluxo o vínculo é criado e como
-  o defensor passa a enxergar as peças já inseridas naquele PAD.
-- Acompanhamento de andamento, visualização de documentos autorizados, envio de memoriais e
-  documentos, consulta de histórico e decisões.
-- Log de acesso obrigatório para toda ação do defensor.
+- Vínculo nasce no Termo de Cientificação (e-mail do defensor + botão "Criar acesso ao
+  Portal da Defesa"), reaproveitando o mesmo padrão de conta client-side já usado no
+  autocadastro institucional — um app Firebase secundário evita derrubar a sessão de quem
+  está criando o vínculo.
+- Convite ao defensor: e-mail automático de redefinição de senha (`sendPasswordResetEmail`,
+  nativo do Firebase Auth, gratuito) **e** botão manual (`mailto:`/Gmail) como reforço.
+- Confirmação por documento (`pad.confirmacoes.<chave>`) — só documentos confirmados pela
+  Unidade aparecem no Portal; qualquer novo "Salvar" reabre automaticamente.
+- Login do defensor cai num shell isolado (`src/layout/portalDefesaLayout.js`), sem
+  sidebar/rotas institucionais — lista os PADs vinculados e mostra os documentos
+  confirmados em modo somente-leitura.
+- Manifestação da Defesa pelo próprio Portal: texto + ditado + upload de PDF persistido
+  (com aviso de tamanho, já que não há Storage).
+- Revogar acesso a um PAD específico (Diretor/Administrador/CPEN da unidade); kill-switch
+  da conta inteira reservado ao Administrador.
+- Regras do Firestore: defensor só lê os PADs em `padsVinculados` (nunca a coleção inteira),
+  e só escreve o campo `defesa` enquanto não confirmado.
+
+Pendente para uma rodada futura: log de acesso dedicado (hoje só o log genérico de
+LOGIN/LOGOUT), granularidade de confirmação por item (hoje é por aba inteira).
 
 ## Fase 7 — Relatórios e Exportação
 

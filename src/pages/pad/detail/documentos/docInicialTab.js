@@ -6,7 +6,7 @@
  * persistido (ver docs/firestore-schema.md e
  * src/templates/shared/anexoEmbutido.js).
  */
-import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad, criarBotao } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad, criarBotao, criarBotaoConfirmar } from './_shared.js';
 import { renderizar as renderizarDocInicial } from '../../../../templates/docInicialTemplate.js';
 import { converterParaImagensEmbutidas } from '../../../../templates/shared/anexoEmbutido.js';
 import { mostrarToast } from '../../../../utils/toast.js';
@@ -87,12 +87,17 @@ export function renderDocInicialTab(pad, _configUnidade, { onAtualizar } = {}) {
 
   const botaoSalvar = criarBotaoSalvar(async () => {
     // Só o título de cada item é persistido — o anexo é efêmero (ver cabeçalho deste arquivo).
-    await salvarSecaoDoPad(pad, { docInicial: { itens: itens.map(({ titulo }) => ({ titulo })) } }, { etapa: null, jaTinhaEtapa: true });
+    await salvarSecaoDoPad(
+      pad,
+      { docInicial: { itens: itens.map(({ titulo }) => ({ titulo })) } },
+      { etapa: null, jaTinhaEtapa: true, chaveConfirmacao: 'docInicial' },
+    );
     onAtualizar?.();
   });
 
   const formulario = criarCard({
     titulo: 'Documentação Inicial',
+    acoes: [criarBotaoConfirmar(pad, 'docInicial', { onAtualizar })],
     filhos: [
       criarElemento('p', { class: 'text-muted' }, ['Anexos (PDF/imagem) ficam só nesta sessão do navegador — use "Baixar PDF"/"Baixar .doc" antes de sair da página para não perdê-los.']),
       criarElemento('div', { class: 'documentos__campos' }, [campoTitulo.elemento]),
