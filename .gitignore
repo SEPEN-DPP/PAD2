@@ -12,5 +12,9 @@ Thumbs.db
 src/config/firebaseConfig.local.js
 .firebaserc
 
+# Dados gerados com informação pessoal real (ex.: índice de busca da Relação
+# de Advogados) — só existem publicados no Hosting, nunca no histórico do Git.
+public/dados/
+
 functions/node_modules/
 functions/.env
