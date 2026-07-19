@@ -126,6 +126,17 @@ organização de `src/templates/shared/` (cabeçalho/rodapé, exportação PDF v
 exportação .doc, anexo embutido). UI de cada documento em
 [src/pages/pad/detail/documentos/](../src/pages/pad/detail/documentos).
 
+**"Baixar PAD completo" (2026-07-19)** — botão no cabeçalho da tela de Detalhe do PAD
+(`src/pages/pad/detail/padDetailPage.js`, visível em qualquer aba), gera um único PDF com
+Portaria, Documentação Inicial, Depoimento(s) de Testemunha(s) (se houver), Depoimento
+Incidentado (um por incidentado), Manifestação do Conselho, Manifestação da Defesa e
+Decisão, nessa ordem — cada um começando em página nova. Termo de Cientificação e Ofícios
+ficam de fora (decisão do usuário: são correspondência/formalidade à parte, não "o
+processo" em si). Reaproveita `pdfExporter.js:baixarTodosComoPdf` (já existia desde a
+entrega inicial do gerador, mas nunca tinha sido ligado a um botão) e
+`aplicarAnexoSubstituto` para refletir o PDF anexado quando Conselho/Defesa/Decisão tiverem
+`anexoPersistido`.
+
 **Convenção de escrita**: cada aba sempre grava o objeto aninhado **inteiro** da sua seção
 (nunca um sub-campo em notação de ponto) — importante porque `portaria` e `conselho`
 dividem responsabilidade: a aba "Portaria" grava `portaria.*` **e** `conselho.integrantes`

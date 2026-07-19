@@ -1,3 +1,12 @@
+.pad-detail__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
 .pad-detail__lista-dados {
   display: grid;
   grid-template-columns: max-content 1fr;

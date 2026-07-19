@@ -7,8 +7,10 @@ import { criarElemento, carregarCssUmaVez } from '../../../utils/domUtils.js';
 import { criarBreadcrumbs } from '../../../components/breadcrumbs/breadcrumbs.js';
 import { criarTabs } from '../../../components/tabs/tabs.js';
 import { criarCard } from '../../../components/card/card.js';
+import { criarBotao } from '../../../components/button/button.js';
 import { criarStatusBadge } from '../../../components/statusBadge/statusBadge.js';
 import { criarEmptyState } from '../../../components/emptyState/emptyState.js';
+import { mostrarToast } from '../../../utils/toast.js';
 import { obterPad } from '../../../services/pads/padService.js';
 import { obterConfiguracaoUnidade } from '../../../services/configuracoesUnidade/configuracaoUnidadeService.js';
 import { formatarData } from '../../../utils/dateUtils.js';
@@ -22,6 +24,41 @@ import { renderConselhoTab } from './documentos/conselhoTab.js';
 import { renderDefesaTab } from './documentos/defesaTab.js';
 import { renderDecisaoTab } from './documentos/decisaoTab.js';
 import { renderOficiosTab } from './documentos/oficiosTab.js';
+import { aplicarAnexoSubstituto } from './documentos/_shared.js';
+import { baixarTodosComoPdf } from '../../../templates/shared/pdfExporter.js';
+import { renderizar as renderizarPortaria } from '../../../templates/portariaAberturaTemplate.js';
+import { renderizar as renderizarDocInicial } from '../../../templates/docInicialTemplate.js';
+import { renderizar as renderizarOitiva } from '../../../templates/oitivaTestemunhaTemplate.js';
+import { renderizar as renderizarDeclaracao } from '../../../templates/declaracaoApenadoTemplate.js';
+import { renderizar as renderizarConselho } from '../../../templates/manifestacaoConselhoTemplate.js';
+import { renderizar as renderizarDefesa } from '../../../templates/manifestacaoDefesaTemplate.js';
+import { renderizar as renderizarDecisao } from '../../../templates/decisaoTemplate.js';
+
+/**
+ * Monta o PDF do PAD completo — Portaria, Documentação Inicial, Depoimento(s)
+ * de Testemunha(s) (se houver), Depoimento Incidentado, Manifestação do
+ * Conselho, Manifestação da Defesa e Decisão, nessa ordem. Termo de
+ * Cientificação e Ofícios ficam de fora (decisão do usuário — são
+ * correspondência/formalidade à parte, não "o processo" em si).
+ */
+function montarDocumentosCompletos(pad, configUnidade) {
+  const documentos = [renderizarPortaria(pad, configUnidade), renderizarDocInicial(pad)];
+
+  for (const testemunha of pad.testemunhas ?? []) {
+    documentos.push(renderizarOitiva(pad, testemunha, configUnidade));
+  }
+
+  for (const incidentado of pad.incidentados ?? []) {
+    const declaracao = (pad.declaracoesApenado ?? []).find((d) => d.incidentadoId === incidentado.id) ?? {};
+    documentos.push(renderizarDeclaracao(pad, incidentado, declaracao, configUnidade));
+  }
+
+  documentos.push(aplicarAnexoSubstituto(renderizarConselho(pad, configUnidade), pad.conselho?.anexoPersistido));
+  documentos.push(aplicarAnexoSubstituto(renderizarDefesa(pad), pad.defesa?.anexoPersistido));
+  documentos.push(aplicarAnexoSubstituto(renderizarDecisao(pad), pad.decisao?.anexoPersistido));
+
+  return documentos;
+}
 
 function secaoDadosGerais(pad) {
   const dados = pad.dadosGerais ?? {};
@@ -83,19 +120,40 @@ export async function render(container, params) {
     return;
   }
 
-  container.append(
-    criarBreadcrumbs(
-      [
-        { texto: 'PAD', path: '/pad' },
-        { texto: pad.dadosGerais?.numero ?? pad.id },
-      ],
-      (path) => {
-        location.hash = path;
-      },
-    ),
-  );
-
   const configUnidade = await obterConfiguracaoUnidade(pad.dadosGerais?.unidade);
+
+  const botaoBaixarPad = criarBotao({
+    texto: 'Baixar PAD completo (PDF)',
+    icon: 'download',
+    variante: 'secondary',
+    onClick: async () => {
+      botaoBaixarPad.disabled = true;
+      try {
+        const documentos = montarDocumentosCompletos(pad, configUnidade);
+        await baixarTodosComoPdf(pad, documentos, `PAD_${pad.dadosGerais?.numero ?? pad.id}.pdf`);
+      } catch (erro) {
+        console.error('Falha ao gerar o PAD completo:', erro);
+        mostrarToast('Não foi possível gerar o PDF do PAD.', 'erro');
+      } finally {
+        botaoBaixarPad.disabled = false;
+      }
+    },
+  });
+
+  container.append(
+    criarElemento('div', { class: 'pad-detail__cabecalho' }, [
+      criarBreadcrumbs(
+        [
+          { texto: 'PAD', path: '/pad' },
+          { texto: pad.dadosGerais?.numero ?? pad.id },
+        ],
+        (path) => {
+          location.hash = path;
+        },
+      ),
+      botaoBaixarPad,
+    ]),
+  );
 
   const onAtualizar = () => {};
 
