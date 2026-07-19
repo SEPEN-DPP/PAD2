@@ -224,6 +224,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Relação de Advogados (2026-07-19) — diretório de contato institucional,
+    // pré-importado de uma planilha real do i-PEN (ver docs/firestore-schema.md).
+    // Independente do Portal da Defesa (`defensores`): existe pra qualquer
+    // advogado conhecido, tenha ele vínculo ativo a algum PAD ou não. Chave =
+    // OAB. Sem restrição fina por campo — é um diretório de contato que
+    // qualquer conta institucional pode completar/corrigir.
+    match /advogadosCadastro/{oab} {
+      allow read: if tenhoPerfil();
+      allow create: if tenhoPerfil();
+      allow update: if tenhoPerfil();
+    }
+
     // Conselho Disciplinar/Diretor(a) por unidade (Fase 2, 2026-07-14) — id do
     // documento é o nome da unidade. Reaproveitado como valor inicial (cópia,
     // não referência viva) ao preencher a Portaria/Conselho/Decisão de um

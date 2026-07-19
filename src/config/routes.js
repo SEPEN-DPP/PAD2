@@ -70,6 +70,13 @@ export const ROUTES = Object.freeze([
     nav: true,
   },
   {
+    path: '/advogados',
+    title: 'Relação de Advogados',
+    icon: 'scale',
+    load: () => import('../pages/advogados/advogadosPage.js'),
+    nav: true,
+  },
+  {
     path: '/configuracoes',
     title: 'Configurações',
     icon: 'settings',

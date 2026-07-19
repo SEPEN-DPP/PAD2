@@ -54,6 +54,7 @@ export const ROUTE_PERMISSIONS = Object.freeze({
   '/relatorios': [ROLES.ADMINISTRADOR, ROLES.DIRETOR, ROLES.SUBDIRETOR],
   '/ia': [ROLES.ADMINISTRADOR],
   '/exportacao': PAINEL_INSTITUCIONAL,
+  '/advogados': PAINEL_INSTITUCIONAL,
 });
 
 /** Verifica se um perfil pode acessar uma rota. */

@@ -55,6 +55,7 @@ export const COLLECTIONS = Object.freeze({
   USUARIOS: 'usuarios',
   DEFENSORES: 'defensores',
   EVENTOS: 'eventos',
+  ADVOGADOS_CADASTRO: 'advogadosCadastro',
   LOGS: 'logs',
   CONFIGURACOES: 'configuracoes',
   CONFIGURACOES_UNIDADE: 'configuracoesUnidade',
