@@ -125,19 +125,17 @@ export function criarAreaPreview(pad, obterDocumento) {
 }
 
 /**
- * Envolve um card no modo "visualização por padrão, edição sob demanda":
- * o conteúdo (`corpo`) começa oculto; um botão "Editar" no cabeçalho do
- * card revela/esconde os campos. Evita deixar formulários abertos e
- * editáveis o tempo todo numa aba que já tem dados salvos.
+ * Envolve um card com os campos já visíveis (nasce expandido — sem precisar
+ * clicar em "Editar"); um botão no cabeçalho do card ainda permite recolher
+ * a área de edição para quem quiser reduzir a poluição visual da aba.
  * @param {{ titulo: string, corpo: Node[] }} params
  * @returns {{ elemento: Node, esconder: () => void }}
  */
 export function criarCardEditavel({ titulo, corpo }) {
   const areaCorpo = criarElemento('div', { class: 'documentos__corpo-editavel' }, corpo);
-  areaCorpo.style.display = 'none';
 
   const botaoEditar = criarBotao({
-    texto: 'Editar',
+    texto: 'Cancelar',
     icon: 'settings',
     variante: 'secondary',
     onClick: () => {
