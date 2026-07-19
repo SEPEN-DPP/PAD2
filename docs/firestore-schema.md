@@ -323,6 +323,47 @@ usados em outras partes do app (ver `src/services/defensores/defensorService.js`
   restringida para `tenhoPerfil() || souDefensorVinculado(padId)`, senão qualquer conta de
   defensor enxergaria todos os PADs do sistema).
 
+## `advogadosCadastro` — Relação de Advogados (Fase 6+, 2026-07-19)
+
+```
+advogadosCadastro/{oab}   // oab = número da OAB (sanitizado: "/" vira "-" no ID do doc)
+{
+  nome, oab,               // `oab` guarda o valor original, com barra, se houver (ex.: "27249/SC")
+  endereco: { rua, numero, complemento, bairro, cidade, estado },
+  telefone, email,
+  completo: boolean,       // true só quando tudo preenchido, exceto complemento
+  criadoEm, atualizadoEm, atualizadoPor,
+}
+```
+
+Diretório de contato institucional — **independente** do Portal da Defesa (`defensores`):
+existe para qualquer advogado conhecido, tenha ele vínculo ativo a algum PAD ou não, e ainda
+não está integrado ao fluxo de vínculo de defensor do Termo de Cientificação (que continua
+com campos digitados à parte).
+
+- **Origem dos dados**: pré-importado de uma planilha real do i-PEN (~12.768 registros),
+  nascendo com `completo: false` (a planilha não tem e-mail). Importação é um script único,
+  fora do repo (não versionado), rodado manualmente uma vez.
+- **Busca sem gastar cota do Firestore**: a tela (`src/pages/advogados/advogadosPage.js`)
+  carrega um arquivo estático (`public/dados/advogados-busca.json` — só `nome`/`oab`/`cidade`/
+  `estado`, gerado pelo mesmo script de importação) e filtra por substring 100% no navegador.
+  Só ao abrir um resultado (Visualizar/Editar) é que o documento completo é lido do
+  Firestore — garante dado sempre atual sem custo de leitura na busca em si.
+- **OAB como chave**: identificador mais estável da fonte original (e-mail não existe, nomes
+  têm homônimos reais). Como pode conter "/" (sufixo de seccional, ex. "27249/SC") e Firestore
+  não aceita "/" dentro de um único segmento de ID, o ID do documento é sanitizado
+  (`idParaOab` em `advogadoCadastroService.js`) trocando "/" por "-"; o campo `oab` no
+  documento mantém o valor original para exibição.
+- **Completude obrigatória e global**: o modal de edição só grava se nome, OAB, telefone,
+  e-mail e todo o endereço (exceto complemento) estiverem preenchidos, e exige uma
+  confirmação explícita ("Você confirma que todos os dados estão corretos?") antes de
+  persistir. Qualquer gravação por esse modal marca `completo: true` — vale tanto para
+  completar um registro pré-importado quanto para só corrigir um já completo — e, uma vez
+  `true`, nenhuma conta institucional vê o aviso de novo para aquele registro.
+- **Regras do Firestore**: sem restrição fina por campo — qualquer conta institucional
+  (`tenhoPerfil()`) pode ler, criar ou atualizar, mesmo padrão de simplicidade de
+  `configuracoes`.
+
 ## `logs`
 
 ```
