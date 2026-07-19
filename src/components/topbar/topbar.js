@@ -20,10 +20,16 @@ function alternarTema() {
 }
 
 /**
- * @param {{ titulo: string, usuario: { nome: string, perfilLabel: string } | null, onSair: () => void, contadorPendencias?: number, onClicarSino?: () => void, onClicarUsuario?: () => void, seletorUnidade?: Node }} params
+ * @param {{ titulo: string, usuario: { nome: string, perfilLabel: string } | null, onSair: () => void, contadorPendencias?: number, onClicarSino?: () => void, onClicarUsuario?: () => void, seletorUnidade?: Node, onAbrirMenuMobile?: () => void }} params
  */
-export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, onClicarSino, onClicarUsuario, seletorUnidade }) {
+export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, onClicarSino, onClicarUsuario, seletorUnidade, onAbrirMenuMobile }) {
   carregarCssUmaVez('src/components/topbar/topbar.css');
+
+  const botaoMenuMobile = criarElemento(
+    'button',
+    { class: 'topbar__icone-btn app-shell__botao-menu', type: 'button', title: 'Abrir menu', onClick: onAbrirMenuMobile },
+    [icone('menu')],
+  );
 
   const botaoTema = criarElemento(
     'button',
@@ -75,6 +81,7 @@ export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, o
   );
 
   const raiz = criarElemento('header', { class: 'topbar' }, [
+    botaoMenuMobile,
     tituloEl,
     criarElemento('div', { class: 'topbar__acoes' }, [seletorUnidade ?? null, botaoTema, botaoSino, usuarioBloco].filter(Boolean)),
   ]);

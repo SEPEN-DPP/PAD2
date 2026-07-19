@@ -7,7 +7,6 @@ import { criarSidebar } from '../components/sidebar/sidebar.js';
 import { criarTopbar } from '../components/topbar/topbar.js';
 import { criarSeletorUnidade } from '../components/seletorUnidade/seletorUnidade.js';
 import { criarElemento, carregarCssUmaVez } from '../utils/domUtils.js';
-import { icone } from '../components/icon/icon.js';
 import { ROUTES } from '../config/routes.js';
 import { podeAcessarRota, ROLE_LABELS, ROLES } from '../config/roles.js';
 import { calcularEscopoDeGestao, listarSolicitacoesPendentes } from '../services/usuarios/usuarioService.js';
@@ -49,12 +48,6 @@ export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair, 
     },
   });
 
-  const botaoMenuMobile = criarElemento(
-    'button',
-    { class: 'topbar__icone-btn app-shell__botao-menu', type: 'button', title: 'Abrir menu', onClick: alternarMenuMobile },
-    [icone('menu')],
-  );
-
   const topbar = criarTopbar({
     titulo: ROUTES.find((r) => r.path === rotaInicial)?.title ?? '',
     usuario: usuario ? { nome: usuario.nome, perfilLabel: ROLE_LABELS[usuario.perfil] ?? usuario.perfil } : null,
@@ -65,8 +58,8 @@ export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair, 
     seletorUnidade: usuario?.perfil === ROLES.ADMINISTRADOR
       ? criarSeletorUnidade({ valorInicial: null, onSelecionar: onMudarUnidadeAtiva })
       : null,
+    onAbrirMenuMobile: alternarMenuMobile,
   });
-  topbar.prepend(botaoMenuMobile);
 
   const backdrop = criarElemento('div', { class: 'app-shell__backdrop', onClick: fecharMenuMobile });
 
