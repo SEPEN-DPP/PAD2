@@ -180,6 +180,8 @@ export async function salvarSecaoDoPad(pad, patch, { etapa, jaTinhaEtapa, chaveC
       data: new Date(),
       status: 'CONCLUIDO',
       observacoes: '',
+      unidade: pad.dadosGerais?.unidade,
+      superintendencia: pad.superintendencia ?? null,
     });
   }
 }
@@ -210,6 +212,8 @@ export async function confirmarSecaoDoPad(pad, chaveConfirmacao) {
     data: new Date(),
     status: 'CONCLUIDO',
     observacoes: '',
+    unidade: pad.dadosGerais?.unidade,
+    superintendencia: pad.superintendencia ?? null,
   });
 }
 

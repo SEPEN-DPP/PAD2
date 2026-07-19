@@ -34,6 +34,24 @@
       ]
     },
     {
+      "collectionGroup": "eventos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "padId", "order": "ASCENDING" },
+        { "fieldPath": "unidade", "order": "ASCENDING" },
+        { "fieldPath": "superintendencia", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "eventos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unidade", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "documentos",
       "queryScope": "COLLECTION",
       "fields": [

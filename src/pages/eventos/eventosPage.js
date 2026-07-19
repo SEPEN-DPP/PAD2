@@ -8,6 +8,8 @@ import { criarCard } from '../../components/card/card.js';
 import { criarDataTable } from '../../components/dataTable/dataTable.js';
 import { criarStatusBadge } from '../../components/statusBadge/statusBadge.js';
 import { listarUltimosEventos } from '../../services/eventos/eventoService.js';
+import { calcularUnidadesVisiveis } from '../../services/pads/escopoPad.js';
+import { usuarioAtual, obterPerfilDoUsuario } from '../../services/auth/authService.js';
 import { formatarDataHora } from '../../utils/dateUtils.js';
 import { ETAPA_LABELS } from '../../config/constants.js';
 
@@ -29,7 +31,9 @@ export async function render(container) {
     }),
   );
 
-  const eventos = await listarUltimosEventos(50);
+  const perfilUsuario = await obterPerfilDoUsuario(usuarioAtual()?.uid);
+  const unidadesVisiveis = calcularUnidadesVisiveis(perfilUsuario);
+  const eventos = await listarUltimosEventos(50, unidadesVisiveis);
 
   container.append(
     criarCard({

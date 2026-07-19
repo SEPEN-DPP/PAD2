@@ -151,7 +151,7 @@ export async function render(container) {
 
   const cardUltimosPads = criarCard({ titulo: 'Últimos PADs', filhos: [containerTabela] });
 
-  const ultimosEventos = await listarUltimosEventos(8);
+  const ultimosEventos = await listarUltimosEventos(8, unidadesVisiveis);
   const cardTimeline = criarCard({
     titulo: 'Timeline de atividades',
     filhos: [

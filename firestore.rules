@@ -85,6 +85,20 @@ service cloud.firestore {
       );
     }
 
+    // Leitura de um PAD (2026-07-19, auditoria de segurança) — igual a
+    // `souCriadorDoPad`, mas SEM a restrição de perfil, porque Conselho
+    // Disciplinar também precisa ler PADs da própria unidade (só não pode
+    // criar/editar). Antes desta função, `pads.allow read` usava só
+    // `tenhoPerfil()` (qualquer conta institucional, de qualquer unidade) —
+    // vazava leitura entre unidades.
+    function souInstitucionalNoEscopoDoPad(dadosPad) {
+      return tenhoPerfil() && (
+        meuUsuario().perfil == 'ADMINISTRADOR'
+        || (meuUsuario().vinculo.tipo == 'UNIDADE' && meuUsuario().vinculo.valor == dadosPad.dadosGerais.unidade)
+        || (meuUsuario().vinculo.tipo == 'REGIONAL' && meuUsuario().vinculo.valor == dadosPad.superintendencia)
+      );
+    }
+
     // Um PAD atualizado (Fase 2, 2026-07-14) não pode ser "movido" para outra
     // unidade/regional por essa via — só o escopo com que ele nasceu.
     function identidadeInalterada(antes, depois) {
@@ -149,18 +163,57 @@ service cloud.firestore {
       return tenhoPerfilDefensor() && padId in meuDefensor().padsVinculados && meuDefensor().ativo == true;
     }
 
+    // `padsVinculados` só muda de duas formas na aplicação real (ver
+    // src/services/defensores/defensorService.js): `vincularDefensorAoPad`
+    // sempre ACRESCENTA um `padId` no fim (via
+    // `Array.from(new Set([...existentes, padId]))`, que preserva ordem de
+    // inserção); `desvincularDefensorDoPad` sempre REMOVE um `padId` via
+    // `filter` (de qualquer posição do array).
+    function souInstitucionalNoEscopoDeVincularDefensor() {
+      return souCriadorDoPad(get(/databases/$(database)/documents/pads/$(request.resource.data.padsVinculados[request.resource.data.padsVinculados.size() - 1])).data);
+    }
+
     match /defensores/{defensorId} {
       allow read: if ehDonoDoDocumento(defensorId) || tenhoPerfil();
       // Criar o vínculo/conta é parte de preencher o Termo de Cientificação
       // — mesmo escopo de quem já edita o PAD (ver `pads` abaixo).
       allow create: if tenhoPerfil();
-      // Adicionar/remover um `padId` de `padsVinculados` (vincular a um novo
-      // PAD ou "Revogar acesso a este PAD") fica aberto a qualquer conta
-      // institucional; já `ativo` (kill-switch da conta inteira) só o
-      // Administrador mexe. `atualizadoEm` sempre vem junto — o repositório
-      // genérico grava esse campo em toda escrita (ver firestoreRepository.js).
+      // `padsVinculados` (2026-07-19, auditoria de segurança): antes disso,
+      // QUALQUER conta institucional podia adicionar ou remover QUALQUER
+      // `padId` de QUALQUER defensor — um vazamento indireto (concede acesso
+      // de defensor a PAD de outra unidade sem nenhum vínculo real com ele).
+      // Agora: ADICIONAR (vincular) exige que quem grava esteja no escopo
+      // do PAD sendo vinculado (mesmo escopo de quem edita o PAD).
+      // REMOVER (revogar) fica restrito a Diretor/CPEN (perfil `DIRETOR`) ou
+      // Administrador — mais amplo que o ideal (não confirma que é
+      // especificamente o Diretor/CPEN *daquela* unidade, já que a regra não
+      // consegue identificar de forma confiável qual elemento do array foi
+      // removido sem iterar posição a posição, algo que a linguagem de
+      // regras do Firestore não permite de forma genérica) — ainda assim já
+      // fecha a maior parte da exposição (Servidor/Subdiretor/Conselho não
+      // conseguem mais revogar acesso de defensor nenhum). Documentado como
+      // limitação conhecida, não solução completa — ver auditoria
+      // 2026-07-19. `ativo` (kill-switch da conta inteira) continua só
+      // Administrador. `atualizadoEm` sempre vem junto (repositório genérico
+      // grava em toda escrita, ver firestoreRepository.js).
       allow update: if tenhoPerfil() && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['padsVinculados', 'atualizadoEm'])
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['padsVinculados', 'atualizadoEm'])
+          && (
+            // Sem mudança real de conteúdo (reenvio idempotente — ex.:
+            // "Criar acesso" clicado de novo pra um defensor já vinculado a
+            // este mesmo PAD) — nada a autorizar, o conjunto continua igual.
+            request.resource.data.padsVinculados.toSet() == resource.data.padsVinculados.toSet()
+            || (
+              request.resource.data.padsVinculados.size() > resource.data.padsVinculados.size()
+              && souInstitucionalNoEscopoDeVincularDefensor()
+            )
+            || (
+              request.resource.data.padsVinculados.size() < resource.data.padsVinculados.size()
+              && (souAdministrador() || meuUsuario().perfil == 'DIRETOR')
+            )
+          )
+        )
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ativo', 'atualizadoEm']) && souAdministrador())
       );
     }
@@ -176,10 +229,12 @@ service cloud.firestore {
     // garantimos que a identidade (unidade/regional) do PAD não muda e que
     // `status` continua um valor válido do enum.
     match /pads/{padId} {
-      // Institucional vê tudo (mesmo comportamento de sempre); um defensor só
-      // vê os PADs em que está vinculado — sem isto, qualquer conta de
-      // defensor conseguiria ler PADs alheios (ver souDefensorVinculado acima).
-      allow read: if tenhoPerfil() || souDefensorVinculado(padId);
+      // Leitura escopada por unidade/regional (2026-07-19, auditoria de
+      // segurança) — antes disso, qualquer conta institucional lia qualquer
+      // PAD de qualquer unidade (`tenhoPerfil()` sozinho não olha `vinculo`).
+      // Um defensor só vê os PADs em que está vinculado (sem isto, qualquer
+      // conta de defensor conseguiria ler PADs alheios).
+      allow read: if souInstitucionalNoEscopoDoPad(resource.data) || souDefensorVinculado(padId);
       allow create: if souCriadorDoPad(request.resource.data)
         && request.resource.data.status == 'EM_ANDAMENTO';
       allow update: if (
@@ -199,15 +254,34 @@ service cloud.firestore {
       allow delete: if souAdministrador() || souGestorDoPad(resource.data);
     }
 
+    // Leitura de um evento (2026-07-19, auditoria de segurança) — `eventos`
+    // agora grava `unidade`/`superintendencia` denormalizados (mesma
+    // convenção já usada em `pads.superintendencia`/`usuarios.superintendencia`)
+    // no momento da criação, então a checagem de escopo é direta no próprio
+    // documento — sem precisar de `get()` no PAD referenciado (o que também
+    // evita quebrar a leitura de eventos órfãos, de PAD já excluído, para
+    // quem já tinha escopo sobre eles). Antes, `allow read: if autenticado()`
+    // liberava QUALQUER sessão autenticada — inclusive defensor do Portal da
+    // Defesa e autocadastro ainda PENDENTE — a ler o histórico de eventos de
+    // todos os PADs do Estado.
+    function souInstitucionalNoEscopoDoEvento(dadosEvento) {
+      return tenhoPerfil() && (
+        meuUsuario().perfil == 'ADMINISTRADOR'
+        || (meuUsuario().vinculo.tipo == 'UNIDADE' && meuUsuario().vinculo.valor == dadosEvento.unidade)
+        || (meuUsuario().vinculo.tipo == 'REGIONAL' && meuUsuario().vinculo.valor == dadosEvento.superintendencia)
+      );
+    }
+
     // Evento lançado junto com o preenchimento de uma etapa do PAD (ver
     // src/pages/pad/new/padNewPage.js e src/pages/pad/detail/documentos) —
-    // autorização espelha a do próprio PAD referenciado por `padId`, não a
-    // do evento em si (que não tem vínculo/unidade próprios). Exclusão só
-    // em cascata com o PAD (ver `excluirPad` em padService.js — os eventos
-    // são removidos ANTES do PAD, enquanto `get()` ainda o encontra) e só
-    // por quem poderia excluir o próprio PAD.
+    // autorização de criação/exclusão espelha a do próprio PAD referenciado
+    // por `padId` (via `get()`); leitura usa os campos denormalizados no
+    // próprio evento (ver acima). Exclusão só em cascata com o PAD (ver
+    // `excluirPad` em padService.js — os eventos são removidos ANTES do PAD,
+    // enquanto `get()` ainda o encontra) e só por quem poderia excluir o
+    // próprio PAD.
     match /eventos/{eventoId} {
-      allow read: if autenticado();
+      allow read: if souInstitucionalNoEscopoDoEvento(resource.data) || souDefensorVinculado(resource.data.padId);
       allow create: if souCriadorDoPad(get(/databases/$(database)/documents/pads/$(request.resource.data.padId)).data);
       allow delete: if souAdministrador() || souGestorDoPad(get(/databases/$(database)/documents/pads/$(resource.data.padId)).data);
       allow update: if false;

@@ -69,10 +69,14 @@ export async function contarTodosPads(unidades) {
  * para autorizar. Autorização (Direção/CPEN da unidade ou regional, ou
  * Administrador) é decidida por `souGestorDoPad`/`souGestorDoPadDoEvento`
  * em firestore.rules — esta função só encapsula as chamadas, sem regra
- * própria.
+ * própria. Busca o próprio PAD primeiro só para poder passar
+ * `unidade`/`superintendencia` para `excluirEventosPorPad` — ver o
+ * comentário em `eventoService.js:listarEventosPorPad` sobre por que a
+ * consulta de eventos precisa desse filtro.
  */
 export async function excluirPad(id) {
-  await excluirEventosPorPad(id);
+  const pad = await obterPad(id);
+  await excluirEventosPorPad(id, pad?.dadosGerais?.unidade, pad?.superintendencia);
   await repo.remover(id);
 }
 

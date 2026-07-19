@@ -16,7 +16,7 @@ import { mostrarToast } from '../../../utils/toast.js';
 import { extrairTexto } from '../../../parser/pdfParserService.js';
 import { extrairCamposRegistroInfracao } from '../../../parser/registroInfracaoParser.js';
 import { ARTIGOS_LEP } from '../../../config/baseLegal.js';
-import { UNIDADES_PRISIONAIS } from '../../../config/unidadesPrisionais.js';
+import { UNIDADES_PRISIONAIS, obterUnidadePorNome } from '../../../config/unidadesPrisionais.js';
 import { usuarioAtual, obterPerfilDoUsuario } from '../../../services/auth/authService.js';
 import { criarPad } from '../../../services/pads/padService.js';
 import { criarEvento } from '../../../services/eventos/eventoService.js';
@@ -142,6 +142,8 @@ function criarFormularioRevisao(campos, perfilUsuario) {
           data: dataBrParaDate(dataInfracao),
           status: 'CONCLUIDO',
           observacoes: campoObs.input.value.trim(),
+          unidade,
+          superintendencia: obterUnidadePorNome(unidade)?.superintendencia ?? null,
         });
 
         mostrarToast('PAD criado com sucesso.', 'sucesso');
