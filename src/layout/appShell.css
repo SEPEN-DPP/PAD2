@@ -14,3 +14,37 @@
   flex: 1;
   padding: var(--space-6);
 }
+
+/*
+ * Botão ☰ — só existe visualmente em telas estreitas (ver sidebar.css).
+ * Precisa de mais especificidade que .topbar__icone-btn (display:inline-flex
+ * em topbar.css) pra garantir que "escondido" vence no desktop independente
+ * da ordem de carregamento dos dois CSS.
+ */
+.topbar .app-shell__botao-menu {
+  display: none;
+}
+
+/* Escurece o conteúdo atrás da sidebar quando ela está aberta em modo
+   celular/tablet — clicar aqui fecha o menu (ver src/layout/appShell.js). */
+.app-shell__backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .topbar .app-shell__botao-menu {
+    display: inline-flex;
+  }
+
+  .app-shell__outlet {
+    padding: var(--space-4);
+  }
+
+  .app-shell--menu-aberto .app-shell__backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 19, 32, 0.5);
+    z-index: 250;
+  }
+}

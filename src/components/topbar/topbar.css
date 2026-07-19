@@ -108,3 +108,29 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+@media (max-width: 768px) {
+  .topbar {
+    padding: 0 var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .topbar__titulo {
+    font-size: var(--font-size-md);
+  }
+
+  .topbar__acoes {
+    gap: var(--space-1);
+  }
+
+  /* Mantém o avatar (alvo de clique pra Configurações) e some só com o
+     nome/perfil por extenso — economiza espaço sem perder a ação. */
+  .topbar__usuario-info {
+    display: none;
+  }
+
+  .topbar__usuario {
+    padding-left: var(--space-2);
+    margin-left: var(--space-1);
+  }
+}

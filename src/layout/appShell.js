@@ -7,6 +7,7 @@ import { criarSidebar } from '../components/sidebar/sidebar.js';
 import { criarTopbar } from '../components/topbar/topbar.js';
 import { criarSeletorUnidade } from '../components/seletorUnidade/seletorUnidade.js';
 import { criarElemento, carregarCssUmaVez } from '../utils/domUtils.js';
+import { icone } from '../components/icon/icon.js';
 import { ROUTES } from '../config/routes.js';
 import { podeAcessarRota, ROLE_LABELS, ROLES } from '../config/roles.js';
 import { calcularEscopoDeGestao, listarSolicitacoesPendentes } from '../services/usuarios/usuarioService.js';
@@ -26,7 +27,34 @@ export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair, 
     ? (await listarSolicitacoesPendentes(escopoDeGestao)).length
     : 0;
 
-  const sidebar = criarSidebar({ rotas: rotasVisiveis, rotaAtiva: rotaInicial, onNavegar });
+  // Em celular/tablet retrato a sidebar vira um painel escondido por padrão
+  // (ver @media em sidebar.css) — este botão e o backdrop abaixo controlam a
+  // classe única que decide se ela está aberta ou não. `raiz` é referenciada
+  // pelas closures antes de existir, mas só é usada de fato depois de
+  // montada (clique do usuário), então a atribuição tardia não é problema.
+  let raiz;
+  function fecharMenuMobile() {
+    raiz.classList.remove('app-shell--menu-aberto');
+  }
+  function alternarMenuMobile() {
+    raiz.classList.toggle('app-shell--menu-aberto');
+  }
+
+  const sidebar = criarSidebar({
+    rotas: rotasVisiveis,
+    rotaAtiva: rotaInicial,
+    onNavegar: (path) => {
+      fecharMenuMobile();
+      onNavegar(path);
+    },
+  });
+
+  const botaoMenuMobile = criarElemento(
+    'button',
+    { class: 'topbar__icone-btn app-shell__botao-menu', type: 'button', title: 'Abrir menu', onClick: alternarMenuMobile },
+    [icone('menu')],
+  );
+
   const topbar = criarTopbar({
     titulo: ROUTES.find((r) => r.path === rotaInicial)?.title ?? '',
     usuario: usuario ? { nome: usuario.nome, perfilLabel: ROLE_LABELS[usuario.perfil] ?? usuario.perfil } : null,
@@ -38,14 +66,18 @@ export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair, 
       ? criarSeletorUnidade({ valorInicial: null, onSelecionar: onMudarUnidadeAtiva })
       : null,
   });
+  topbar.prepend(botaoMenuMobile);
+
+  const backdrop = criarElemento('div', { class: 'app-shell__backdrop', onClick: fecharMenuMobile });
 
   const outlet = criarElemento('div', { class: 'app-shell__outlet' });
   const main = criarElemento('main', { class: 'app-shell__main' }, [topbar, outlet]);
-  const raiz = criarElemento('div', { class: 'app-shell' }, [sidebar, main]);
+  raiz = criarElemento('div', { class: 'app-shell' }, [sidebar, backdrop, main]);
 
   function definirRotaAtiva(path, titulo) {
     sidebar.atualizarRotaAtiva(path);
     topbar.atualizarTitulo(titulo);
+    fecharMenuMobile();
   }
 
   return { raiz, outlet, definirRotaAtiva };

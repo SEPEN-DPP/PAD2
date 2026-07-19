@@ -210,6 +210,27 @@ recorte, sem precisar de um mecanismo de estado reativo mais complexo.
   geração de documento, leitura de PDF ou IA foi implementada. Ver seção "Primeira
   entrega" do ROADMAP.
 
+**Responsividade (2026-07-19).** Ponto de quebra único, `max-width: 768px`, cobrindo celular
+e tablet retrato — acima disso (tablet paisagem, notebook, PC) o layout é o mesmo de sempre
+(sidebar fixa ao lado do conteúdo). Abaixo do ponto de quebra:
+- A sidebar (`src/components/sidebar/sidebar.css`) vira um painel `position: fixed` escondido
+  fora da tela (`transform: translateX(-100%)`), em vez de empurrar o conteúdo — nunca disputa
+  espaço com a página.
+- Um botão ☰ novo na Topbar (`src/layout/appShell.js`, só existe visualmente abaixo do ponto
+  de quebra) e um backdrop escurecido alternam uma única classe, `app-shell--menu-aberto`, na
+  raiz do shell — é essa classe (não duas variáveis de estado separadas) que decide se a
+  sidebar e o backdrop aparecem, evitando os dois ficarem dessincronizados. Navegar pra
+  qualquer rota (clique num item do menu ou `definirRotaAtiva`) fecha o menu automaticamente.
+  O modo "colapsada" (ícones só, ver botão "Recolher menu") é exclusivo do desktop — não faz
+  sentido num painel que já é só aberto/fechado.
+- A Topbar esconde nome/perfil por extenso (mantém só o avatar, que já é o alvo de clique pra
+  Configurações) e reduz paddings/gaps pra não estourar em telas estreitas.
+- **Cuidado com empates de especificidade CSS entre arquivos independentes:** o botão ☰
+  reaproveita a classe `.topbar__icone-btn` (de `topbar.css`) só pelo visual — como as duas
+  classes têm a mesma especificidade (uma classe cada), qual delas "ganha" o `display` fora do
+  breakpoint dependeria da ordem de carregamento dos dois CSS. A regra em `appShell.css` usa
+  `.topbar .app-shell__botao-menu` (duas classes) precisamente pra não depender dessa ordem.
+
 ## 8. Segurança
 
 - Toda leitura/escrita passa por `firestore.rules`/`storage.rules` com **negação por

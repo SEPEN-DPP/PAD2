@@ -85,3 +85,39 @@
 .sidebar__colapsar:hover {
   color: #fff;
 }
+
+/*
+ * Em telas estreitas (celular/tablet retrato), a sidebar deixa de ocupar
+ * espaço ao lado do conteúdo e vira um painel fixo escondido fora da tela —
+ * abre por cima do conteúdo (ver .app-shell__backdrop em appShell.css) via a
+ * classe .app-shell--menu-aberto alternada pelo botão ☰ da Topbar (ver
+ * src/layout/appShell.js). O modo "colapsada" (ícones só, para desktop) não
+ * faz sentido aqui — a sidebar mobile é sempre largura cheia com rótulos
+ * quando aberta.
+ */
+@media (max-width: 768px) {
+  .sidebar,
+  .sidebar--colapsada {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    z-index: 300;
+    transform: translateX(-100%);
+    transition: transform var(--transition-base);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .app-shell--menu-aberto .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar--colapsada .sidebar__marca-texto,
+  .sidebar--colapsada .sidebar__item-texto {
+    display: inline;
+  }
+
+  .sidebar__colapsar {
+    display: none;
+  }
+}

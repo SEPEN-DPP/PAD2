@@ -3,6 +3,12 @@
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  .seletor-unidade__botao {
+    max-width: 120px;
+  }
+}
+
 .seletor-unidade__botao span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
