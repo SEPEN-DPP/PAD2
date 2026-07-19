@@ -12,7 +12,7 @@ import {
   criarCardEditavel, salvarSecaoDoPad, criarBotaoConfirmar, criarBotoesConvidarPorEmail,
 } from './_shared.js';
 import { renderizar as renderizarTermo } from '../../../../templates/termoCientificacaoTemplate.js';
-import { vincularDefensorAoPad, desvincularDefensorDoPad, notificarDefensorPorEmail } from '../../../../services/defensores/defensorService.js';
+import { vincularDefensorAoPad, desvincularDefensorDoPad, notificarDefensorPorEmail, obterDefensor } from '../../../../services/defensores/defensorService.js';
 import { usuarioAtual, obterPerfilDoUsuario } from '../../../../services/auth/authService.js';
 import { mostrarToast } from '../../../../utils/toast.js';
 
@@ -44,25 +44,7 @@ function criarBlocoVinculoDefensor(pad, { obterDadosAtuais, onAtualizar }) {
     const vinculo = pad.defesaVinculo;
 
     if (vinculo?.ativo && vinculo.email === email) {
-      const status = criarElemento('p', { class: 'text-muted' }, [
-        `Vinculado ao Portal da Defesa — ${vinculo.email}. Ele ainda não sabe disso nem tem acesso até você notificá-lo.`,
-      ]);
-      const botaoNotificar = criarBotao({
-        texto: 'Notificar advogado — e-mail',
-        icon: 'mail',
-        onClick: async () => {
-          botaoNotificar.disabled = true;
-          try {
-            await notificarDefensorPorEmail(vinculo.email);
-            mostrarToast('E-mail de acesso enviado ao defensor.', 'sucesso');
-          } catch (erro) {
-            console.error('Falha ao notificar defensor por e-mail:', erro);
-            mostrarToast('Não foi possível enviar o e-mail.', 'erro');
-          } finally {
-            botaoNotificar.disabled = false;
-          }
-        },
-      });
+      const padNumero = pad.dadosGerais?.numero ?? pad.id;
       const botaoRevogar = criarBotao({
         texto: 'Revogar acesso a este PAD',
         icon: 'x',
@@ -88,12 +70,54 @@ function criarBlocoVinculoDefensor(pad, { obterDadosAtuais, onAtualizar }) {
         if (podeRevogarAcesso(perfil, pad)) botaoRevogar.style.display = '';
       });
 
-      container.append(
-        status,
-        criarElemento('div', { class: 'documentos__acoes' }, [botaoNotificar, botaoRevogar]),
-        criarElemento('p', { class: 'text-muted' }, ['Se o e-mail automático não chegar, notifique manualmente:']),
-        criarBotoesConvidarPorEmail({ email: vinculo.email, padNumero: pad.dadosGerais?.numero ?? pad.id }),
-      );
+      const areaStatus = criarElemento('div');
+      container.append(areaStatus, criarElemento('div', { class: 'documentos__acoes' }, [botaoRevogar]));
+
+      // Um defensor já pode atender outras unidades/PADs — só o próprio
+      // sistema sabe se essa conta já existia (não dá pra depender de quem
+      // está vinculando "saber" disso). `padsVinculados.length > 1` indica
+      // que esse defensor já tem acesso funcionando em outro PAD, então não
+      // faz sentido mandar e-mail de redefinição de senha de novo — só o
+      // aviso manual, com um texto diferente ("você também tem acesso a
+      // este PAD" em vez de "defina sua senha").
+      obterDefensor(vinculo.uid).then((defensor) => {
+        const jaTemOutroPad = (defensor?.padsVinculados?.length ?? 0) > 1;
+
+        if (jaTemOutroPad) {
+          areaStatus.append(
+            criarElemento('p', { class: 'text-muted' }, [
+              `Este defensor já tem acesso ao Portal da Defesa por outro PAD — ${vinculo.email}. Avise sobre este PAD adicional:`,
+            ]),
+            criarBotoesConvidarPorEmail({ email: vinculo.email, padNumero, jaTemAcesso: true }),
+          );
+          return;
+        }
+
+        const botaoNotificar = criarBotao({
+          texto: 'Notificar advogado — e-mail',
+          icon: 'mail',
+          onClick: async () => {
+            botaoNotificar.disabled = true;
+            try {
+              await notificarDefensorPorEmail(vinculo.email);
+              mostrarToast('E-mail de acesso enviado ao defensor.', 'sucesso');
+            } catch (erro) {
+              console.error('Falha ao notificar defensor por e-mail:', erro);
+              mostrarToast('Não foi possível enviar o e-mail.', 'erro');
+            } finally {
+              botaoNotificar.disabled = false;
+            }
+          },
+        });
+        areaStatus.append(
+          criarElemento('p', { class: 'text-muted' }, [
+            `Vinculado ao Portal da Defesa — ${vinculo.email}. Ele ainda não sabe disso nem tem acesso até você notificá-lo.`,
+          ]),
+          criarElemento('div', { class: 'documentos__acoes' }, [botaoNotificar]),
+          criarElemento('p', { class: 'text-muted' }, ['Se o e-mail automático não chegar, notifique manualmente:']),
+          criarBotoesConvidarPorEmail({ email: vinculo.email, padNumero }),
+        );
+      });
       return;
     }
 

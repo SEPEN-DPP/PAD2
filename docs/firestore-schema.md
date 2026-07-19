@@ -291,9 +291,16 @@ usados em outras partes do app (ver `src/services/defensores/defensorService.js`
   nunca no `auth` principal.
 - **Convite (2026-07-19, ação explícita da Unidade)**: `vincularDefensorAoPad` **nunca**
   dispara e-mail — o defensor fica vinculado mas sem saber e sem acesso até a Unidade clicar
-  em "Notificar advogado — e-mail" (`notificarDefensorPorEmail`, dispara
-  `sendPasswordResetEmail`, nativo do Firebase Auth, gratuito). Um botão manual
-  (`mailto:`/Gmail) fica disponível como reforço, para quando esse e-mail não chega.
+  em notificar. Um defensor pode atender unidades diferentes sem que ninguém saiba disso de
+  antemão (cada usuário institucional só enxerga a própria unidade/regional), então quem
+  decide o texto/botão certo é o próprio sistema, olhando `defensor.padsVinculados.length`:
+  - **1 PAD só (vínculo novo)**: botão "Notificar advogado — e-mail" dispara
+    `notificarDefensorPorEmail` → `sendPasswordResetEmail` (nativo do Firebase Auth,
+    gratuito) — ele ainda não tem senha, precisa definir uma.
+  - **Mais de 1 PAD (defensor já tem acesso por outro PAD, possível de outra unidade)**:
+    não manda e-mail de redefinição de novo (ele já tem senha funcionando) — só o aviso
+    manual (`mailto:`/Gmail), com texto de "você também tem acesso a este PAD".
+  Em ambos os casos, o botão manual (`mailto:`/Gmail) fica disponível como reforço.
 - **Confirmação de documento** (`pads/{padId}.confirmacoes`, ver acima): só documentos
   confirmados pela Unidade aparecem no Portal — granularidade por documento inteiro, não por
   item (mesmo em abas array-based como Testemunhas/Depoimento Incidentado). Qualquer novo

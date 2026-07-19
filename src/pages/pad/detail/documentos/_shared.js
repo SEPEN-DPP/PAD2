@@ -392,19 +392,25 @@ export function aplicarAnexoSubstituto(documento, anexo) {
 /**
  * Dois botões de convite manual para o defensor — nenhum dos dois envia nada
  * sozinho, só preparam um rascunho de e-mail e é a própria pessoa quem
- * clica "Enviar" no cliente que abrir. Reforço ao botão "Notificar advogado
- * — e-mail" (que dispara `defensorService.js:notificarDefensorPorEmail`),
- * para quando esse e-mail automático não chega ou a unidade prefere um
- * contato mais pessoal. O vínculo em si (`vincularDefensorAoPad`) nunca
- * dispara e-mail nenhum sozinho — só quando a Unidade clica em notificar.
- * @param {{ email: string, padNumero: string }} params
+ * clica "Enviar" no cliente que abrir. Quando `jaTemAcesso` é falso (primeiro
+ * vínculo do defensor, ainda sem senha), é reforço ao botão "Notificar
+ * advogado — e-mail" (`defensorService.js:notificarDefensorPorEmail`), para
+ * quando esse e-mail automático não chega. Quando `jaTemAcesso` é true (o
+ * defensor já atende outro PAD e já tem senha — ver
+ * `criarBlocoVinculoDefensor`), é o ÚNICO aviso disponível, já que reenviar
+ * e-mail de redefinição de senha pra quem já tem acesso funcionando seria
+ * confuso (ver §"Portal da Defesa" em docs/firestore-schema.md).
+ * @param {{ email: string, padNumero: string, jaTemAcesso?: boolean }} params
  */
-export function criarBotoesConvidarPorEmail({ email, padNumero }) {
+export function criarBotoesConvidarPorEmail({ email, padNumero, jaTemAcesso = false }) {
   const assunto = encodeURIComponent(`Acesso ao Portal da Defesa — PAD ${padNumero}`);
   const corpo = encodeURIComponent(
-    `Olá,\n\nVocê foi vinculado(a) ao PAD ${padNumero} no Portal da Defesa.\n\n` +
-      `Acesse ${location.origin}${location.pathname} e clique em "Esqueci minha senha" ` +
-      `usando este e-mail (${email}) para definir sua senha de acesso.\n\nAtenciosamente.`,
+    jaTemAcesso
+      ? `Olá,\n\nVocê agora também tem acesso ao PAD ${padNumero} no Portal da Defesa.\n\n` +
+        `Acesse ${location.origin}${location.pathname} com o e-mail e a senha que você já usa.\n\nAtenciosamente.`
+      : `Olá,\n\nVocê foi vinculado(a) ao PAD ${padNumero} no Portal da Defesa.\n\n` +
+        `Acesse ${location.origin}${location.pathname} e clique em "Esqueci minha senha" ` +
+        `usando este e-mail (${email}) para definir sua senha de acesso.\n\nAtenciosamente.`,
   );
 
   const botaoMailto = criarBotao({
