@@ -244,7 +244,7 @@ export async function render(container) {
 
   let indice = [];
   try {
-    const resposta = await fetch(CAMINHO_INDICE_BUSCA, { cache: 'force-cache' });
+    const resposta = await fetch(CAMINHO_INDICE_BUSCA, { cache: 'no-cache' });
     if (resposta.ok) {
       const bruto = await resposta.json();
       indice = bruto.map((item) => ({
