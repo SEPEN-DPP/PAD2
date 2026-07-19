@@ -156,12 +156,24 @@ function criarFormularioRevisao(campos, perfilUsuario) {
 
   return criarElemento('div', { class: 'pad-new__revisao' }, [
     criarElemento('p', { class: 'text-muted' }, [
-      'Confira e corrija os dados extraídos antes de criar o PAD. Nenhum dado foi gravado ainda.',
+      'Confira os dados antes de criar o PAD. Nenhum dado foi gravado ainda.',
     ]),
     criarElemento('div', { class: 'pad-new__campos' }, linhas.map((l) => l.elemento)),
     criarElemento('div', { class: 'pad-new__acoes' }, [botaoCriarPad]),
   ]);
 }
+
+/** Formulário em branco — mesma revisão do fluxo por PDF, só que sem nada pré-preenchido. */
+const CAMPOS_VAZIOS = Object.freeze({
+  nomeCompleto: '',
+  ipen: '',
+  dataInfracao: '',
+  infracao: '',
+  artigoLep: null,
+  detentosEnvolvidos: [],
+  agentesEnvolvidos: [],
+  observacoes: '',
+});
 
 export async function render(container) {
   carregarCssUmaVez('src/pages/pad/new/padNewPage.css');
@@ -169,7 +181,7 @@ export async function render(container) {
   container.append(
     criarPageHeader({
       titulo: 'Novo PAD',
-      descricao: 'Inicie o registro enviando o PDF do Registro de Infração do i-PEN.',
+      descricao: 'Envie o PDF do Registro de Infração do i-PEN ou preencha os dados manualmente.',
     }),
   );
 
@@ -206,10 +218,25 @@ export async function render(container) {
     },
   });
 
+  const botaoManual = criarBotao({
+    texto: 'Preencher manualmente (sem PDF)',
+    icon: 'file-plus',
+    variante: 'secondary',
+    onClick: () => {
+      limparContainer(areaRevisao);
+      areaRevisao.append(criarCard({ titulo: 'Dados do PAD', filhos: [criarFormularioRevisao(CAMPOS_VAZIOS, perfilUsuario)] }));
+    },
+  });
+
   container.append(
     criarCard({
       titulo: 'Registro de Infração',
-      filhos: [dropzone, criarElemento('div', { class: 'pad-new__acoes' }, [botaoAnalisar])],
+      filhos: [
+        dropzone,
+        criarElemento('div', { class: 'pad-new__acoes' }, [botaoAnalisar]),
+        criarElemento('p', { class: 'text-muted' }, ['Não tem o PDF em mãos?']),
+        criarElemento('div', { class: 'pad-new__acoes' }, [botaoManual]),
+      ],
     }),
     areaRevisao,
   );
