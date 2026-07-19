@@ -7,6 +7,26 @@
 import { criarElemento, carregarCssUmaVez, criarCampo, criarBlocoPessoa, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad, paraValorInputDate } from './_shared.js';
 import { renderizar as renderizarPortaria } from '../../../../templates/portariaAberturaTemplate.js';
 
+/**
+ * Rascunho de "Descrição dos fatos" a partir do que já foi extraído do PDF
+ * do Registro de Infração na criação do PAD (tipificação, detentos/agentes
+ * envolvidos, observações) — o formulário de criação não pede uma narrativa
+ * livre (só os 8 campos objetivos, ver src/parser/README.md), então sem
+ * isto o campo nasceria em branco mesmo já havendo dado extraído
+ * aproveitável. Sempre editável; só é usado quando ainda não há
+ * `descricaoFatos` salvo manualmente.
+ */
+function sugerirDescricaoFatos(pad) {
+  const infracao = pad.infracao ?? {};
+  if (!infracao.tipificacao) return '';
+
+  const partes = [`Consta que o(a) interno(a) praticou a seguinte conduta: ${infracao.tipificacao}.`];
+  if (infracao.detentosEnvolvidos?.length) partes.push(`Detento(s) envolvido(s): ${infracao.detentosEnvolvidos.join(', ')}.`);
+  if (infracao.agentesEnvolvidos?.length) partes.push(`Agente(s) envolvido(s): ${infracao.agentesEnvolvidos.join(', ')}.`);
+  if (infracao.observacoes) partes.push(`Observações do registro: ${infracao.observacoes}`);
+  return partes.join(' ');
+}
+
 export function renderPortariaTab(pad, configUnidade, { onAtualizar } = {}) {
   carregarCssUmaVez('src/pages/pad/detail/documentos/documentos.css');
 
@@ -15,7 +35,11 @@ export function renderPortariaTab(pad, configUnidade, { onAtualizar } = {}) {
   const conselhoAtual = pad.conselho?.integrantes ?? configUnidade?.conselho ?? {};
 
   const campoData = criarCampo({ rotulo: 'Data de instauração', tipo: 'date', valor: paraValorInputDate(portariaAtual.dataAssinatura) });
-  const campoDescricaoFatos = criarCampo({ rotulo: 'Descrição dos fatos', multilinha: true, valor: pad.infracao?.descricaoFatos });
+  const campoDescricaoFatos = criarCampo({
+    rotulo: 'Descrição dos fatos',
+    multilinha: true,
+    valor: pad.infracao?.descricaoFatos || sugerirDescricaoFatos(pad),
+  });
 
   const blocoDiretor = criarBlocoPessoa('Diretor(a) da Unidade', { nome: diretorAtual.nome, matricula: null }, { comMatricula: false });
   const campoCargoDiretor = criarCampo({ rotulo: 'Cargo', valor: diretorAtual.cargo || 'Diretor(a)' });

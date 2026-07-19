@@ -31,7 +31,7 @@ function secaoDadosGerais(pad) {
     ['Data de abertura', formatarData(dados.dataAbertura)],
     ['Status', null],
   ];
-  return criarElemento(
+  const listaDados = criarElemento(
     'dl',
     { class: 'pad-detail__lista-dados' },
     linhas.flatMap(([rotulo, valor]) => [
@@ -39,6 +39,32 @@ function secaoDadosGerais(pad) {
       criarElemento('dd', {}, [rotulo === 'Status' ? criarStatusBadge({ status: pad.status }) : (valor ?? '—')]),
     ]),
   );
+
+  const infracao = pad.infracao ?? {};
+  const linhasInfracao = [
+    ['Data da infração', infracao.data],
+    ['Tipificação', infracao.tipificacao],
+    ['Artigo da LEP', infracao.artigoLep?.rotulo],
+    ['Detentos envolvidos', infracao.detentosEnvolvidos?.join(', ')],
+    ['Agentes envolvidos', infracao.agentesEnvolvidos?.join(', ')],
+    ['Observações', infracao.observacoes],
+  ].filter(([, valor]) => valor);
+
+  if (!linhasInfracao.length) return listaDados;
+
+  return criarElemento('div', { class: 'pad-detail__dados-gerais' }, [
+    listaDados,
+    criarCard({
+      titulo: 'Registro de Infração (extraído do PDF na criação do PAD)',
+      filhos: [
+        criarElemento(
+          'dl',
+          { class: 'pad-detail__lista-dados' },
+          linhasInfracao.flatMap(([rotulo, valor]) => [criarElemento('dt', {}, [rotulo]), criarElemento('dd', {}, [valor])]),
+        ),
+      ],
+    }),
+  ]);
 }
 
 export async function render(container, params) {
