@@ -45,8 +45,6 @@ export const ROUTE_PERMISSIONS = Object.freeze({
   '/pad': PAINEL_INSTITUCIONAL,
   '/pad/novo': [ROLES.ADMINISTRADOR, ROLES.DIRETOR, ROLES.SUBDIRETOR, ROLES.SERVIDOR],
   '/eventos': PAINEL_INSTITUCIONAL,
-  '/documentos': PAINEL_INSTITUCIONAL,
-  '/anexos': PAINEL_INSTITUCIONAL,
   '/usuarios': [ROLES.ADMINISTRADOR, ROLES.DIRETOR],
   // Aberta a todo o painel institucional porque "Alterar Senha" é universal
   // (ver src/pages/configuracoes/configuracoesPage.js); os parâmetros

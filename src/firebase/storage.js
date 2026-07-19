@@ -1,7 +1,8 @@
 /**
- * Instância do Firebase Storage + conexão opcional ao emulador. Regras de
- * caminho/convenção de anexos vivem em src/storage/attachmentStorage.js —
- * este arquivo só expõe a instância crua.
+ * Instância do Firebase Storage + conexão opcional ao emulador. Sem
+ * consumidor real ainda (upload de anexos é fase futura, ver ROADMAP.md
+ * Fase 5) — este arquivo só expõe a instância crua, pronta para quando a
+ * regra de caminho/convenção de anexos for implementada.
  */
 import {
   getStorage,

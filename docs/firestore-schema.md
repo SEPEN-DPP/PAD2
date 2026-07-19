@@ -177,19 +177,6 @@ DIRETOR/SUBDIRETOR com `vinculo.tipo === 'UNIDADE'`) e reaproveitados como valor
 (`souGestorDeConfigUnidade` em `firestore.rules`): DIRETOR ou SUBDIRETOR da própria
 unidade/regional, ou Administrador.
 
-## `documentos`
-
-```
-{ padId, eventoId, tipo, titulo, conteudoRenderizado, versao, criadoEm }
-```
-
-## `anexos`
-
-```
-{ padId, eventoId, tipo, nomeArquivo, caminhoStorage, tamanho, autorId, criadoEm }
-```
-Binário no Firebase Storage (`src/storage/attachmentStorage.js`); aqui só o metadado.
-
 ## `usuarios`
 
 ```

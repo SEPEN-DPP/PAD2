@@ -213,16 +213,6 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    match /documentos/{documentoId} {
-      allow read: if autenticado();
-      allow write: if false;
-    }
-
-    match /anexos/{anexoId} {
-      allow read: if autenticado();
-      allow write: if false;
-    }
-
     match /logs/{logId} {
       allow read: if false; // logs são consultados via ferramentas administrativas
       allow create: if autenticado();

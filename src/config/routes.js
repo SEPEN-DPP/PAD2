@@ -42,20 +42,6 @@ export const ROUTES = Object.freeze([
     nav: true,
   },
   {
-    path: '/documentos',
-    title: 'Documentos',
-    icon: 'file-stack',
-    load: () => import('../pages/documentos/documentosPage.js'),
-    nav: true,
-  },
-  {
-    path: '/anexos',
-    title: 'Anexos',
-    icon: 'paperclip',
-    load: () => import('../pages/anexos/anexosPage.js'),
-    nav: true,
-  },
-  {
     path: '/usuarios',
     title: 'Usuários',
     icon: 'users',
