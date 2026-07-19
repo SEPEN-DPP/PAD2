@@ -46,17 +46,27 @@ function criarColunas({ podeExcluir, onExcluir }) {
   const colunas = [
     { chave: 'numero', rotulo: 'Nº do PAD', render: (linha) => linha.dadosGerais?.numero ?? linha.id },
     {
-      chave: 'incidentado',
-      rotulo: 'Incidentado',
-      render: (linha) => linha.incidentados?.[0]?.nomeCompleto ?? '—',
+      chave: 'incidentados',
+      rotulo: 'Incidentado(s)',
+      render: (linha) => linha.incidentados?.map((i) => i.nomeCompleto).filter(Boolean).join(', ') || '—',
     },
-    { chave: 'unidade', rotulo: 'Unidade', render: (linha) => linha.dadosGerais?.unidade ?? '—' },
-    { chave: 'status', rotulo: 'Status', render: (linha) => criarStatusBadge({ status: linha.status }) },
+    {
+      chave: 'dataInfracao',
+      rotulo: 'Data da infração',
+      render: (linha) => linha.infracao?.data || '—',
+    },
+    {
+      chave: 'dispositivoLegal',
+      rotulo: 'Dispositivo legal',
+      render: (linha) => linha.infracao?.artigoLep?.rotulo || '—',
+    },
     {
       chave: 'dataAbertura',
       rotulo: 'Abertura',
       render: (linha) => formatarData(linha.dadosGerais?.dataAbertura),
     },
+    { chave: 'unidade', rotulo: 'Unidade', render: (linha) => linha.dadosGerais?.unidade ?? '—' },
+    { chave: 'status', rotulo: 'Status', render: (linha) => criarStatusBadge({ status: linha.status }) },
   ];
 
   if (podeExcluir) {
