@@ -181,6 +181,19 @@ esse recorte hoje só existe no nível da consulta (o que a UI pede ao Firestore
 checar `vinculo`. Endurecer isso nas regras (impedir uma consulta manual fora da UI de ver
 dados de outra unidade) é trabalho de segurança pendente para a Fase 2/9.
 
+**Seletor de unidade do Administrador (2026-07-19).** Administrador não tem `vinculo`, então
+por padrão vê a agregação de todas as unidades ("DPP — visão geral"). Um botão na Topbar
+(`src/components/seletorUnidade`, visível só para `ROLES.ADMINISTRADOR`) deixa "entrar" na
+visão de uma unidade específica — como se fosse o Diretor daquela unidade, mas sem perder
+nenhuma permissão. É puramente um filtro de leitura: `src/state/unidadeAtivaAdministrador.js`
+guarda a escolha **só em memória** (nunca em localStorage/sessionStorage), e
+`escopoPad.js:calcularUnidadesVisiveis` passa a devolver `[unidadeEscolhida]` em vez de `null`
+enquanto ela estiver ativa. Por ser só uma variável de módulo, a escolha é automaticamente
+descartada a cada novo carregamento de página/login — decisão deliberada ("sempre voltar para
+o DPP"), reforçada também por um reset explícito no início de `app.js:montarPainel`. Trocar de
+unidade dispara `router.navegar(rotaAtual)` pra re-renderizar a página corrente com o novo
+recorte, sem precisar de um mecanismo de estado reativo mais complexo.
+
 ## 7. Padrões de código
 
 - **Módulos pequenos, responsabilidade única.** Nenhum arquivo deve concentrar mais de uma

@@ -18,11 +18,18 @@ import { usuarioAtual, obterPerfilDoUsuario } from '../../services/auth/authServ
 import { STATUS_PAD, STATUS_PAD_LABELS } from '../../config/constants.js';
 import { ROLES } from '../../config/roles.js';
 import { SUPERINTENDENCIAS_REGIONAIS } from '../../config/unidadesPrisionais.js';
+import { obterUnidadeAtivaAdministrador } from '../../state/unidadeAtivaAdministrador.js';
 import { formatarData } from '../../utils/dateUtils.js';
 
 function descricaoDoRecorte(perfilUsuario) {
+  if (perfilUsuario?.perfil === ROLES.ADMINISTRADOR) {
+    const unidadeEscolhida = obterUnidadeAtivaAdministrador();
+    return unidadeEscolhida
+      ? `PADs da unidade: ${unidadeEscolhida}.`
+      : 'DPP — visão geral: Processos Administrativos Disciplinares de todas as unidades do Estado.';
+  }
   const vinculo = perfilUsuario?.vinculo;
-  if (!vinculo || perfilUsuario?.perfil === ROLES.ADMINISTRADOR) {
+  if (!vinculo) {
     return 'Visão geral dos Processos Administrativos Disciplinares de todas as unidades.';
   }
   if (vinculo.tipo === 'REGIONAL') {

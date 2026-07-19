@@ -14,6 +14,7 @@ import { criarRouter } from './router.js';
 import { DEFAULT_ROUTE } from '../config/routes.js';
 import { podeAcessarRota } from '../config/roles.js';
 import { mostrarToast } from '../utils/toast.js';
+import { definirUnidadeAtivaAdministrador } from '../state/unidadeAtivaAdministrador.js';
 
 const CHAVE_TEMA = 'pad2:tema';
 const HASH_CADASTRO = '#/cadastro';
@@ -91,6 +92,12 @@ async function montarPortalDefesaApp(raiz, usuarioFirebase, defensorDoc) {
 }
 
 async function montarPainel(raiz, usuario) {
+  // Reinicia sempre em DPP a cada novo login (2026-07-19) — ver
+  // src/state/unidadeAtivaAdministrador.js.
+  definirUnidadeAtivaAdministrador(null);
+
+  let router;
+
   const shell = await montarAppShell({
     usuario,
     rotaInicial: caminhoInicial(),
@@ -101,11 +108,15 @@ async function montarPainel(raiz, usuario) {
       await registrarLog({ usuarioId: usuario.uid, acao: 'LOGOUT' });
       await sair();
     },
+    onMudarUnidadeAtiva: (nomeOuNull) => {
+      definirUnidadeAtivaAdministrador(nomeOuNull);
+      router?.navegar(caminhoInicial());
+    },
   });
 
   raiz.replaceChildren(shell.raiz);
 
-  criarRouter({
+  router = criarRouter({
     outlet: shell.outlet,
     onRotaMudou: (path, titulo) => shell.definirRotaAtiva(path, titulo),
     verificarPermissao: (path) => podeAcessarRota(usuario.perfil, path),

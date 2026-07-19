@@ -5,15 +5,16 @@
  */
 import { criarSidebar } from '../components/sidebar/sidebar.js';
 import { criarTopbar } from '../components/topbar/topbar.js';
+import { criarSeletorUnidade } from '../components/seletorUnidade/seletorUnidade.js';
 import { criarElemento, carregarCssUmaVez } from '../utils/domUtils.js';
 import { ROUTES } from '../config/routes.js';
-import { podeAcessarRota, ROLE_LABELS } from '../config/roles.js';
+import { podeAcessarRota, ROLE_LABELS, ROLES } from '../config/roles.js';
 import { calcularEscopoDeGestao, listarSolicitacoesPendentes } from '../services/usuarios/usuarioService.js';
 
 /**
- * @param {{ usuario: { nome: string, perfil: string, vinculo?: object } | null, rotaInicial: string, onNavegar: (path: string) => void, onSair: () => void }} params
+ * @param {{ usuario: { nome: string, perfil: string, vinculo?: object } | null, rotaInicial: string, onNavegar: (path: string) => void, onSair: () => void, onMudarUnidadeAtiva?: (nomeOuNull: string|null) => void }} params
  */
-export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair }) {
+export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair, onMudarUnidadeAtiva }) {
   carregarCssUmaVez('src/layout/appShell.css');
 
   const rotasVisiveis = ROUTES.filter(
@@ -33,6 +34,9 @@ export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair }
     contadorPendencias,
     onClicarSino: () => onNavegar('/usuarios'),
     onClicarUsuario: () => onNavegar('/configuracoes'),
+    seletorUnidade: usuario?.perfil === ROLES.ADMINISTRADOR
+      ? criarSeletorUnidade({ valorInicial: null, onSelecionar: onMudarUnidadeAtiva })
+      : null,
   });
 
   const outlet = criarElemento('div', { class: 'app-shell__outlet' });

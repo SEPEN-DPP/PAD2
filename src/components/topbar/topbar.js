@@ -20,9 +20,9 @@ function alternarTema() {
 }
 
 /**
- * @param {{ titulo: string, usuario: { nome: string, perfilLabel: string } | null, onSair: () => void, contadorPendencias?: number, onClicarSino?: () => void, onClicarUsuario?: () => void }} params
+ * @param {{ titulo: string, usuario: { nome: string, perfilLabel: string } | null, onSair: () => void, contadorPendencias?: number, onClicarSino?: () => void, onClicarUsuario?: () => void, seletorUnidade?: Node }} params
  */
-export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, onClicarSino, onClicarUsuario }) {
+export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, onClicarSino, onClicarUsuario, seletorUnidade }) {
   carregarCssUmaVez('src/components/topbar/topbar.css');
 
   const botaoTema = criarElemento(
@@ -76,7 +76,7 @@ export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, o
 
   const raiz = criarElemento('header', { class: 'topbar' }, [
     tituloEl,
-    criarElemento('div', { class: 'topbar__acoes' }, [botaoTema, botaoSino, usuarioBloco]),
+    criarElemento('div', { class: 'topbar__acoes' }, [seletorUnidade ?? null, botaoTema, botaoSino, usuarioBloco].filter(Boolean)),
   ]);
 
   raiz.atualizarTitulo = (novoTitulo) => {

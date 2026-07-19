@@ -7,6 +7,7 @@
  */
 import { UNIDADES_PRISIONAIS } from '../../config/unidadesPrisionais.js';
 import { ROLES } from '../../config/roles.js';
+import { obterUnidadeAtivaAdministrador } from '../../state/unidadeAtivaAdministrador.js';
 
 /**
  * @param {{ perfil?: string, vinculo?: { tipo: 'UNIDADE'|'REGIONAL', valor: string } }} perfilUsuario
@@ -14,7 +15,13 @@ import { ROLES } from '../../config/roles.js';
  */
 export function calcularUnidadesVisiveis(perfilUsuario) {
   if (!perfilUsuario) return null;
-  if (perfilUsuario.perfil === ROLES.ADMINISTRADOR) return null;
+  if (perfilUsuario.perfil === ROLES.ADMINISTRADOR) {
+    // DPP por padrão vê tudo (null); "entrar" numa unidade específica via o
+    // seletor da Topbar recorta a visão como se fosse o Diretor daquela
+    // unidade — só um filtro de leitura, não muda nenhuma permissão.
+    const unidadeEscolhida = obterUnidadeAtivaAdministrador();
+    return unidadeEscolhida ? [unidadeEscolhida] : null;
+  }
 
   const vinculo = perfilUsuario.vinculo;
   if (!vinculo) return null;

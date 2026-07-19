@@ -1,0 +1,20 @@
+.seletor-unidade__botao {
+  max-width: 240px;
+  overflow: hidden;
+}
+
+.seletor-unidade__botao span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seletor-unidade__opcao {
+  cursor: pointer;
+}
+
+.seletor-unidade__opcao:hover,
+.seletor-unidade__opcao:focus-visible {
+  background: var(--color-bg);
+  outline: none;
+}
