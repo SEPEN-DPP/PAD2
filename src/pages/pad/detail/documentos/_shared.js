@@ -390,13 +390,13 @@ export function aplicarAnexoSubstituto(documento, anexo) {
 }
 
 /**
- * Dois botões de convite para o defensor — nenhum dos dois envia nada
+ * Dois botões de convite manual para o defensor — nenhum dos dois envia nada
  * sozinho, só preparam um rascunho de e-mail e é a própria pessoa quem
- * clica "Enviar" no cliente que abrir. O envio automático (gratuito, via
- * `sendPasswordResetEmail`) já acontece sozinho em
- * `defensorService.js:vincularDefensorAoPad` — isto aqui é só o reforço
- * manual, para quando o e-mail automático não chega ou a unidade prefere um
- * contato mais pessoal.
+ * clica "Enviar" no cliente que abrir. Reforço ao botão "Notificar advogado
+ * — e-mail" (que dispara `defensorService.js:notificarDefensorPorEmail`),
+ * para quando esse e-mail automático não chega ou a unidade prefere um
+ * contato mais pessoal. O vínculo em si (`vincularDefensorAoPad`) nunca
+ * dispara e-mail nenhum sozinho — só quando a Unidade clica em notificar.
  * @param {{ email: string, padNumero: string }} params
  */
 export function criarBotoesConvidarPorEmail({ email, padNumero }) {

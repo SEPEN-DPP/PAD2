@@ -119,8 +119,10 @@ docs/firestore-schema.md §"Portal da Defesa" para o detalhe completo.
   Portal da Defesa"), reaproveitando o mesmo padrão de conta client-side já usado no
   autocadastro institucional — um app Firebase secundário evita derrubar a sessão de quem
   está criando o vínculo.
-- Convite ao defensor: e-mail automático de redefinição de senha (`sendPasswordResetEmail`,
-  nativo do Firebase Auth, gratuito) **e** botão manual (`mailto:`/Gmail) como reforço.
+- Vincular **nunca** dispara e-mail sozinho — o defensor fica vinculado mas sem saber e sem
+  acesso até a Unidade clicar em "Notificar advogado — e-mail" (dispara
+  `sendPasswordResetEmail`, nativo do Firebase Auth, gratuito), com botão manual
+  (`mailto:`/Gmail) como reforço caso o e-mail automático não chegue.
 - Confirmação por documento (`pad.confirmacoes.<chave>`) — só documentos confirmados pela
   Unidade aparecem no Portal; qualquer novo "Salvar" reabre automaticamente.
 - Login do defensor cai num shell isolado (`src/layout/portalDefesaLayout.js`), sem

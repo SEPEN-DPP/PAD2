@@ -48,10 +48,10 @@ async function criarContaDefensorSemDeslogar(email) {
 
 /**
  * Vincula um defensor a um PAD — se já existe uma conta com esse e-mail, só
- * adiciona o `padId` a `padsVinculados` (sem criar conta nem mandar convite
- * de novo); senão cria a conta+documento e dispara o e-mail automático de
- * redefinição de senha (gratuito, nativo do Firebase Auth — ver
- * src/services/auth/authService.js:solicitarRedefinicaoSenha).
+ * adiciona o `padId` a `padsVinculados` (sem criar conta de novo); senão cria
+ * a conta+documento. **Não dispara nenhum e-mail** — o vínculo por si só não
+ * avisa o defensor de nada; é a Unidade quem decide o momento de notificar,
+ * clicando em "Notificar advogado — e-mail" (ver `notificarDefensorPorEmail`).
  * @returns {Promise<{ uid: string, contaNova: boolean }>}
  */
 export async function vincularDefensorAoPad({ padId, nome, oab, tipo, email, criadoPor }) {
@@ -67,12 +67,18 @@ export async function vincularDefensorAoPad({ padId, nome, oab, tipo, email, cri
     { nome, oab: oab || null, tipo, email, padsVinculados: [padId], ativo: true, criadoPor },
     uid,
   );
-  await sendPasswordResetEmail(auth, email).catch((erro) => {
-    // Não interrompe o vínculo se o e-mail automático falhar — o botão de
-    // convite manual (mailto/Gmail) continua disponível como reforço.
-    console.error('Falha ao enviar e-mail de convite automático:', erro);
-  });
   return { uid, contaNova: true };
+}
+
+/**
+ * Dispara o e-mail de redefinição de senha do Firebase (gratuito, nativo —
+ * ver src/services/auth/authService.js:solicitarRedefinicaoSenha) — só
+ * quando a Unidade clica em "Notificar advogado — e-mail". Antes disso, o
+ * defensor está vinculado mas não tem como saber ou acessar o Portal da
+ * Defesa (não recebeu nada, não tem senha definida).
+ */
+export async function notificarDefensorPorEmail(email) {
+  await sendPasswordResetEmail(auth, email);
 }
 
 /** Remove só ESTE PAD do defensor — não afeta o acesso dele a outros PADs. */

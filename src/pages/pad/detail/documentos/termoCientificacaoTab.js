@@ -12,7 +12,7 @@ import {
   criarCardEditavel, salvarSecaoDoPad, criarBotaoConfirmar, criarBotoesConvidarPorEmail,
 } from './_shared.js';
 import { renderizar as renderizarTermo } from '../../../../templates/termoCientificacaoTemplate.js';
-import { vincularDefensorAoPad, desvincularDefensorDoPad } from '../../../../services/defensores/defensorService.js';
+import { vincularDefensorAoPad, desvincularDefensorDoPad, notificarDefensorPorEmail } from '../../../../services/defensores/defensorService.js';
 import { usuarioAtual, obterPerfilDoUsuario } from '../../../../services/auth/authService.js';
 import { mostrarToast } from '../../../../utils/toast.js';
 
@@ -44,7 +44,25 @@ function criarBlocoVinculoDefensor(pad, { obterDadosAtuais, onAtualizar }) {
     const vinculo = pad.defesaVinculo;
 
     if (vinculo?.ativo && vinculo.email === email) {
-      const status = criarElemento('p', { class: 'text-muted' }, [`Acesso ao Portal da Defesa ativo — ${vinculo.email}`]);
+      const status = criarElemento('p', { class: 'text-muted' }, [
+        `Vinculado ao Portal da Defesa — ${vinculo.email}. Ele ainda não sabe disso nem tem acesso até você notificá-lo.`,
+      ]);
+      const botaoNotificar = criarBotao({
+        texto: 'Notificar advogado — e-mail',
+        icon: 'mail',
+        onClick: async () => {
+          botaoNotificar.disabled = true;
+          try {
+            await notificarDefensorPorEmail(vinculo.email);
+            mostrarToast('E-mail de acesso enviado ao defensor.', 'sucesso');
+          } catch (erro) {
+            console.error('Falha ao notificar defensor por e-mail:', erro);
+            mostrarToast('Não foi possível enviar o e-mail.', 'erro');
+          } finally {
+            botaoNotificar.disabled = false;
+          }
+        },
+      });
       const botaoRevogar = criarBotao({
         texto: 'Revogar acesso a este PAD',
         icon: 'x',
@@ -70,7 +88,12 @@ function criarBlocoVinculoDefensor(pad, { obterDadosAtuais, onAtualizar }) {
         if (podeRevogarAcesso(perfil, pad)) botaoRevogar.style.display = '';
       });
 
-      container.append(status, botaoRevogar, criarBotoesConvidarPorEmail({ email: vinculo.email, padNumero: pad.dadosGerais?.numero ?? pad.id }));
+      container.append(
+        status,
+        criarElemento('div', { class: 'documentos__acoes' }, [botaoNotificar, botaoRevogar]),
+        criarElemento('p', { class: 'text-muted' }, ['Se o e-mail automático não chegar, notifique manualmente:']),
+        criarBotoesConvidarPorEmail({ email: vinculo.email, padNumero: pad.dadosGerais?.numero ?? pad.id }),
+      );
       return;
     }
 
@@ -94,7 +117,7 @@ function criarBlocoVinculoDefensor(pad, { obterDadosAtuais, onAtualizar }) {
             criadoPor: perfil?.nome ?? usuarioAtual()?.email ?? '—',
           });
           await salvarSecaoDoPad(pad, { defesaVinculo: { uid, email, ativo: true } });
-          mostrarToast('Acesso criado — use os botões de convite para avisar o defensor.', 'sucesso');
+          mostrarToast('Vínculo criado — clique em "Notificar advogado" quando quiser avisá-lo.', 'sucesso');
           renderizarConteudo();
           onAtualizar?.();
         } catch (erro) {

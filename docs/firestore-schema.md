@@ -289,9 +289,11 @@ usados em outras partes do app (ver `src/services/defensores/defensorService.js`
   do SDK client troca a sessão ativa para a conta recém-criada — por isso a chamada acontece
   num app Firebase **secundário e descartável** (`initializeApp(firebaseConfig, nome-único)`),
   nunca no `auth` principal.
-- **Convite**: e-mail automático de redefinição de senha (`sendPasswordResetEmail`, nativo do
-  Firebase Auth, gratuito) **e** um botão manual (`mailto:`/Gmail) como reforço — nenhum dos
-  dois envia nada sozinho além do automático.
+- **Convite (2026-07-19, ação explícita da Unidade)**: `vincularDefensorAoPad` **nunca**
+  dispara e-mail — o defensor fica vinculado mas sem saber e sem acesso até a Unidade clicar
+  em "Notificar advogado — e-mail" (`notificarDefensorPorEmail`, dispara
+  `sendPasswordResetEmail`, nativo do Firebase Auth, gratuito). Um botão manual
+  (`mailto:`/Gmail) fica disponível como reforço, para quando esse e-mail não chega.
 - **Confirmação de documento** (`pads/{padId}.confirmacoes`, ver acima): só documentos
   confirmados pela Unidade aparecem no Portal — granularidade por documento inteiro, não por
   item (mesmo em abas array-based como Testemunhas/Depoimento Incidentado). Qualquer novo
