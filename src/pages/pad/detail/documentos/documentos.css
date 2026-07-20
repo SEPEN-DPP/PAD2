@@ -11,12 +11,6 @@
   }
 }
 
-.documentos__oficios {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
 .documentos__campos {
   display: grid;
   gap: var(--space-4);

@@ -4,6 +4,7 @@
  * por `decisao.resultado` ('absolvicao'|'desclassificacao'|'falta_grave').
  */
 import { dataPorExtenso } from '../utils/dateUtils.js';
+import { sintetizarTexto } from '../utils/stringUtils.js';
 import {
   nomeIpenIncidentado,
   dataInfracaoFormatada,
@@ -30,8 +31,9 @@ function relatorioTestemunhas(pad) {
   if (!testemunhas.length) return 'Não foram arroladas testemunhas no presente procedimento.';
   const linhas = testemunhas.map((t) => {
     const qualidade = t.qualidade === 'informante' ? 'informante' : 'testemunha';
-    const relato = t.depoimento
-      ? `declarando, em síntese: "${t.depoimento}".`
+    const sintese = t.sintese || sintetizarTexto(t.depoimento);
+    const relato = sintese
+      ? `declarando, em síntese: "${sintese}".`
       : 'cujo depoimento encontra-se registrado nos autos.';
     return `${t.nome || placeholder('NOME')}, ${t.qualificacao || placeholder('QUALIFICAÇÃO')}, na qualidade de ${qualidade}, ${relato}`;
   });
@@ -43,7 +45,8 @@ function relatorioIncidentado(pad) {
   if (declaracoes.silencio) {
     return `Na sequência, procedeu-se à inquirição do(a) incidentado(a) ${nomeIpenIncidentado(pad)}, que, devidamente cientificado(a) do seu direito constitucional ao silêncio, optou por não prestar declarações.`;
   }
-  return `Na sequência, procedeu-se à inquirição do(a) incidentado(a) ${nomeIpenIncidentado(pad)}, que, ao ser indagado(a), declarou, em síntese: "${declaracoes.versaoIncidentado || placeholder('VERSÃO DO INCIDENTADO')}".`;
+  const sintese = declaracoes.sintese || sintetizarTexto(declaracoes.versaoIncidentado);
+  return `Na sequência, procedeu-se à inquirição do(a) incidentado(a) ${nomeIpenIncidentado(pad)}, que, ao ser indagado(a), declarou, em síntese: "${sintese || placeholder('VERSÃO DO INCIDENTADO')}".`;
 }
 
 function relatorioConselho(pad) {
@@ -117,10 +120,10 @@ export function renderizar(pad) {
   const dataInst = pad.portaria?.dataAssinatura ? dataPorExtenso(pad.portaria.dataAssinatura) : placeholder('DATA DE INSTAURAÇÃO');
   const dataDecisao = decisao.data ? dataPorExtenso(decisao.data) : dataInst;
   const diretor = diretorDaUnidade(pad);
+  const plural = (pad.incidentados?.length ?? 1) > 1;
 
   const relatorio = [
-    `Trata-se de Procedimento Administrativo Disciplinar instaurado pela Portaria nº ${numero}, em ${dataInst}, em desfavor do(a) apenado(a) ${nomeIpenIncidentado(pad)}, decorrente do suposto cometimento de infração disciplinar de natureza grave, prevista no ${artigoTextoCompleto(pad)}, cujos fatos supostamente ocorreram em ${dataInfracaoFormatada(pad)}.`,
-    `Descrição dos fatos: "${descricaoDosFatos(pad)}"`,
+    `Trata-se de Procedimento Administrativo Disciplinar instaurado pela Portaria nº ${numero}, em ${dataInst}. Conforme os documentos que instruem o presente processo, ${plural ? 'os reeducandos' : 'o(a) reeducando(a)'} ${nomeIpenIncidentado(pad)}, na data de ${dataInfracaoFormatada(pad)}, ${plural ? 'teriam incorrido' : 'teria incorrido'} na prática da falta disciplinar prevista no ${artigoTextoCompleto(pad)}, na medida em que: "${descricaoDosFatos(pad)}".`,
     ...[].concat(relatorioTestemunhas(pad)),
     relatorioIncidentado(pad),
     relatorioConselho(pad),

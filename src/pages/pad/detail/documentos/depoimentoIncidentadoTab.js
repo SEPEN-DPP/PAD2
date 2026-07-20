@@ -2,51 +2,26 @@
  * Aba "Depoimento Incidentado" (renomeada de "Declarações do Apenado",
  * 2026-07-15) — um Termo de Declarações por incidentado do PAD (ver
  * incidentadosTab.js para adicionar/remover incidentados). `declaracoesApenado`
- * é um array `{ incidentadoId, silencio, versaoIncidentado }`, um item por
- * incidentado — mesmo padrão array-based de testemunhasTab.js.
+ * é um array `{ incidentadoId, silencio, versaoIncidentado, sintese }`, um
+ * item por incidentado. Editar usa o mesmo padrão de painel lateral com
+ * pré-visualização ao vivo das demais abas de documento único (Portaria,
+ * Conselho, Decisão) — não modal (2026-07-20).
  */
-import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarBotao, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad, criarBotaoConfirmar } from './_shared.js';
-import { abrirModal } from '../../../../components/modal/modal.js';
+import {
+  criarElemento, carregarCssUmaVez, criarCampoComDitado, criarAreaPreview, criarBotao, criarCard, salvarSecaoDoPad, criarBotaoConfirmar,
+} from './_shared.js';
 import { renderizar as renderizarDeclaracao } from '../../../../templates/declaracaoApenadoTemplate.js';
 import { baixarComoPdf } from '../../../../templates/shared/pdfExporter.js';
 import { baixarComoDoc } from '../../../../templates/shared/docExporter.js';
-
-function abrirModalDeclaracao({ incidentado, declaracao, onSalvar }) {
-  let silencio = declaracao?.silencio ?? false;
-  const botaoDeclarou = criarBotao({ texto: 'Prestou declarações', variante: silencio ? 'secondary' : 'primary', onClick: () => alternar(false) });
-  const botaoSilencio = criarBotao({ texto: 'Permaneceu em silêncio', variante: silencio ? 'primary' : 'secondary', onClick: () => alternar(true) });
-  const campoVersao = criarCampoComDitado({ rotulo: 'Versão apresentada pelo incidentado', valor: declaracao?.versaoIncidentado });
-
-  function alternar(novoValor) {
-    silencio = novoValor;
-    botaoDeclarou.className = `btn btn--${silencio ? 'secondary' : 'primary'}`;
-    botaoSilencio.className = `btn btn--${silencio ? 'primary' : 'secondary'}`;
-    campoVersao.elemento.style.display = silencio ? 'none' : '';
-  }
-  campoVersao.elemento.style.display = silencio ? 'none' : '';
-
-  const botaoSalvar = criarBotao({ texto: 'Salvar', icon: 'check' });
-  const fechar = abrirModal({
-    titulo: `Depoimento de ${incidentado.nomeCompleto}`,
-    conteudo: [
-      criarElemento('div', { class: 'documentos__acoes' }, [botaoDeclarou, botaoSilencio]),
-      campoVersao.elemento,
-    ],
-    rodape: [botaoSalvar],
-  });
-
-  botaoSalvar.addEventListener('click', () => {
-    onSalvar({ incidentadoId: incidentado.id, silencio, versaoIncidentado: campoVersao.input.value.trim() });
-    fechar();
-  });
-}
+import { sintetizarTexto } from '../../../../utils/stringUtils.js';
+import { mostrarToast } from '../../../../utils/toast.js';
 
 export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar } = {}) {
   carregarCssUmaVez('src/pages/pad/detail/documentos/documentos.css');
 
   const incidentados = pad.incidentados ?? [];
   const declaracoes = (pad.declaracoesApenado ?? []).map((d) => ({ ...d }));
-  const listaEl = criarElemento('ul', { class: 'documentos__lista-itens' });
+  const raiz = criarElemento('div');
 
   function obterDeclaracao(incidentadoId) {
     return declaracoes.find((d) => d.incidentadoId === incidentadoId);
@@ -61,7 +36,8 @@ export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar
     onAtualizar?.();
   }
 
-  function atualizarLista() {
+  function mostrarLista() {
+    const listaEl = criarElemento('ul', { class: 'documentos__lista-itens' });
     listaEl.replaceChildren(
       ...incidentados.map((incidentado) => {
         const declaracao = obterDeclaracao(incidentado.id);
@@ -70,16 +46,7 @@ export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar
           texto: declaracao ? 'Editar' : 'Registrar depoimento',
           icon: 'settings',
           variante: 'secondary',
-          onClick: () => abrirModalDeclaracao({
-            incidentado,
-            declaracao,
-            onSalvar: (dados) => {
-              const indice = declaracoes.findIndex((d) => d.incidentadoId === incidentado.id);
-              if (indice === -1) declaracoes.push(dados);
-              else declaracoes[indice] = dados;
-              atualizarLista();
-            },
-          }),
+          onClick: () => mostrarFormulario(incidentado),
         });
         const botaoPdf = criarBotao({
           texto: 'PDF',
@@ -99,24 +66,101 @@ export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar
         ]);
       }),
     );
+
+    const card = criarCard({
+      titulo: 'Depoimento Incidentado',
+      acoes: [criarBotaoConfirmar(pad, 'declaracoesApenado', { onAtualizar })],
+      filhos: [
+        criarElemento('p', { class: 'text-muted' }, [
+          incidentados.length
+            ? 'Um Termo de Declarações por incidentado — para adicionar/remover incidentados, use a aba "Incidentados".'
+            : 'Nenhum incidentado cadastrado ainda — adicione na aba "Incidentados".',
+        ]),
+        listaEl,
+      ],
+    });
+
+    raiz.replaceChildren(card);
   }
-  atualizarLista();
 
-  const secao = criarCardEditavel({
-    titulo: 'Depoimento Incidentado',
-    corpo: [
-      criarElemento('p', { class: 'text-muted' }, [
-        incidentados.length
-          ? 'Um Termo de Declarações por incidentado — para adicionar/remover incidentados, use a aba "Incidentados".'
-          : 'Nenhum incidentado cadastrado ainda — adicione na aba "Incidentados".',
-      ]),
-      listaEl,
-    ],
-  });
-  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'declaracoesApenado', { onAtualizar }));
+  function mostrarFormulario(incidentado) {
+    const declaracaoAtual = obterDeclaracao(incidentado.id);
+    let silencio = declaracaoAtual?.silencio ?? false;
 
-  const botaoSalvar = criarBotaoSalvar(persistir, { aposSalvar: secao.esconder });
-  secao.areaCorpo.append(criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]));
+    const botaoDeclarou = criarBotao({ texto: 'Prestou declarações', variante: silencio ? 'secondary' : 'primary', onClick: () => alternar(false) });
+    const botaoSilencio = criarBotao({ texto: 'Permaneceu em silêncio', variante: silencio ? 'primary' : 'secondary', onClick: () => alternar(true) });
+    const campoVersao = criarCampoComDitado({ rotulo: 'Versão apresentada pelo incidentado', valor: declaracaoAtual?.versaoIncidentado });
+    const campoSintese = criarCampoComDitado({
+      rotulo: 'Síntese da declaração (é o que entra no Relatório da Decisão — pode ajustar à vontade)',
+      valor: declaracaoAtual?.sintese || sintetizarTexto(declaracaoAtual?.versaoIncidentado),
+    });
 
-  return criarElemento('div', { class: 'documentos__aba' }, [secao.elemento]);
+    function atualizarVisibilidadeSilencio() {
+      campoVersao.elemento.style.display = silencio ? 'none' : '';
+      campoSintese.elemento.style.display = silencio ? 'none' : '';
+    }
+
+    function alternar(novoValor) {
+      silencio = novoValor;
+      botaoDeclarou.className = `btn btn--${silencio ? 'secondary' : 'primary'}`;
+      botaoSilencio.className = `btn btn--${silencio ? 'primary' : 'secondary'}`;
+      atualizarVisibilidadeSilencio();
+      preview.atualizar();
+    }
+
+    function lerFormulario() {
+      return {
+        incidentadoId: incidentado.id,
+        silencio,
+        versaoIncidentado: campoVersao.input.value.trim(),
+        sintese: campoSintese.input.value.trim(),
+      };
+    }
+
+    const preview = criarAreaPreview(pad, () => renderizarDeclaracao(pad, incidentado, lerFormulario(), configUnidade));
+    atualizarVisibilidadeSilencio();
+    [campoVersao, campoSintese].forEach((campo) => {
+      campo.input.addEventListener('input', preview.atualizar);
+      campo.input.addEventListener('change', preview.atualizar);
+    });
+
+    const botaoCancelar = criarBotao({ texto: 'Cancelar', icon: 'x', variante: 'secondary', onClick: mostrarLista });
+    const botaoSalvar = criarBotao({
+      texto: 'Salvar',
+      icon: 'check',
+      onClick: async () => {
+        botaoSalvar.disabled = true;
+        try {
+          const dados = lerFormulario();
+          const indiceExistente = declaracoes.findIndex((d) => d.incidentadoId === incidentado.id);
+          if (indiceExistente === -1) declaracoes.push(dados);
+          else declaracoes[indiceExistente] = dados;
+          await persistir();
+          mostrarToast('Salvo com sucesso.', 'sucesso');
+          mostrarLista();
+        } catch (erro) {
+          console.error('Falha ao salvar depoimento do incidentado:', erro);
+          mostrarToast('Não foi possível salvar.', 'erro');
+        } finally {
+          botaoSalvar.disabled = false;
+        }
+      },
+    });
+
+    const formulario = criarCard({
+      titulo: `Depoimento de ${incidentado.nomeCompleto}`,
+      acoes: [botaoCancelar],
+      filhos: [
+        criarElemento('div', { class: 'documentos__acoes' }, [botaoDeclarou, botaoSilencio]),
+        campoVersao.elemento,
+        campoSintese.elemento,
+        criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]),
+      ],
+    });
+
+    raiz.replaceChildren(criarElemento('div', { class: 'documentos__aba' }, [formulario, preview.elemento]));
+  }
+
+  mostrarLista();
+  return raiz;
 }

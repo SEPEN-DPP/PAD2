@@ -16,7 +16,6 @@ export const ETAPAS_PAD = Object.freeze([
   'MANIFESTACAO_CONSELHO',
   'MANIFESTACAO_DEFESA',
   'DECISAO_FINAL',
-  'OFICIO_JUIZO',
   'ARQUIVAMENTO',
 ]);
 

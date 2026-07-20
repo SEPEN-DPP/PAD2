@@ -25,3 +25,21 @@ export function enumParaLabel(valor) {
   if (!valor) return '';
   return capitalizar(valor.toLowerCase().replaceAll('_', ' '));
 }
+
+/**
+ * Resumo extrativo simples (sem IA/serviço pago): pega só as primeiras
+ * frases do texto, até um limite de frases/caracteres. Usado como rascunho
+ * inicial dos campos "Síntese" — sempre editáveis pelo usuário — que
+ * alimentam o Relatório da Decisão (ver src/templates/decisaoTemplate.js).
+ * Texto já curto o bastante volta inalterado, sem reticências.
+ */
+export function sintetizarTexto(texto, { maxFrases = 2, maxCaracteres = 280 } = {}) {
+  const limpo = (texto ?? '').trim();
+  if (!limpo) return '';
+
+  const frases = (limpo.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) ?? [limpo]).map((f) => f.trim()).filter(Boolean);
+  if (frases.length <= maxFrases && limpo.length <= maxCaracteres) return limpo;
+
+  const resumo = frases.slice(0, maxFrases).join(' ').trim();
+  return `${resumo.length > maxCaracteres ? resumo.slice(0, maxCaracteres).trim() : resumo}…`;
+}

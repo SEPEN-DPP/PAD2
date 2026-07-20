@@ -1,14 +1,19 @@
 /**
  * Aba "Oitiva de Testemunhas" — array `pad.testemunhas[]`, um documento por
- * item (padrão lista+modal já usado em src/pages/usuarios/usuariosPage.js).
- * Sem preview única (cada testemunha tem seu próprio documento) — cada linha
- * baixa o PDF/.doc daquela testemunha diretamente.
+ * item. Editar/adicionar usa o mesmo padrão de painel lateral com
+ * pré-visualização ao vivo das demais abas de documento único (Portaria,
+ * Conselho, Decisão) — não modal (2026-07-20): a lista some e dá lugar ao
+ * formulário + preview da testemunha em edição; "Cancelar"/"Salvar" volta
+ * para a lista, onde "Editar" reabre a mesma testemunha a qualquer momento.
  */
-import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarBotao, criarBotaoSalvar, criarCardEditavel, salvarSecaoDoPad, criarBotaoConfirmar } from './_shared.js';
-import { abrirModal } from '../../../../components/modal/modal.js';
+import {
+  criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotao,
+  criarCard, salvarSecaoDoPad, criarBotaoConfirmar,
+} from './_shared.js';
 import { renderizar as renderizarOitiva } from '../../../../templates/oitivaTestemunhaTemplate.js';
 import { baixarComoPdf } from '../../../../templates/shared/pdfExporter.js';
 import { baixarComoDoc } from '../../../../templates/shared/docExporter.js';
+import { sintetizarTexto } from '../../../../utils/stringUtils.js';
 import { mostrarToast } from '../../../../utils/toast.js';
 
 const OPCOES_QUALIDADE = [
@@ -16,37 +21,11 @@ const OPCOES_QUALIDADE = [
   { valor: 'informante', rotulo: 'Informante' },
 ];
 
-function abrirModalTestemunha({ testemunha, onSalvar }) {
-  const campoNome = criarCampo({ rotulo: 'Nome completo', valor: testemunha?.nome });
-  const campoQualificacao = criarCampo({ rotulo: 'Qualificação (ex.: agente penitenciário, interno...)', valor: testemunha?.qualificacao });
-  const campoQualidade = criarCampoSelect({ rotulo: 'Qualidade', valor: testemunha?.qualidade ?? 'testemunha', opcoes: OPCOES_QUALIDADE });
-  const campoDepoimento = criarCampoComDitado({ rotulo: 'Depoimento', valor: testemunha?.depoimento });
-
-  const botaoSalvar = criarBotao({ texto: 'Salvar', icon: 'check' });
-  const fechar = abrirModal({
-    titulo: testemunha ? 'Editar testemunha' : 'Adicionar testemunha',
-    conteudo: [campoNome.elemento, campoQualificacao.elemento, campoQualidade.elemento, campoDepoimento.elemento],
-    rodape: [botaoSalvar],
-  });
-
-  botaoSalvar.addEventListener('click', () => {
-    if (!campoNome.input.value.trim()) return mostrarToast('Informe o nome.', 'aviso');
-    onSalvar({
-      id: testemunha?.id ?? crypto.randomUUID(),
-      nome: campoNome.input.value.trim(),
-      qualificacao: campoQualificacao.input.value.trim(),
-      qualidade: campoQualidade.input.value,
-      depoimento: campoDepoimento.input.value.trim(),
-    });
-    fechar();
-  });
-}
-
 export function renderTestemunhasTab(pad, configUnidade, { onAtualizar } = {}) {
   carregarCssUmaVez('src/pages/pad/detail/documentos/documentos.css');
 
   const testemunhas = (pad.testemunhas ?? []).map((t) => ({ ...t }));
-  const listaEl = criarElemento('ul', { class: 'documentos__lista-itens' });
+  const raiz = criarElemento('div');
 
   async function persistir() {
     await salvarSecaoDoPad(
@@ -57,28 +36,25 @@ export function renderTestemunhasTab(pad, configUnidade, { onAtualizar } = {}) {
     onAtualizar?.();
   }
 
-  function atualizarLista() {
+  function mostrarLista() {
+    const listaEl = criarElemento('ul', { class: 'documentos__lista-itens' });
     listaEl.replaceChildren(
       ...testemunhas.map((testemunha, indice) => {
         const botaoEditar = criarBotao({
           texto: 'Editar',
           icon: 'settings',
           variante: 'secondary',
-          onClick: () => abrirModalTestemunha({
-            testemunha,
-            onSalvar: (dados) => {
-              testemunhas[indice] = dados;
-              atualizarLista();
-            },
-          }),
+          onClick: () => mostrarFormulario(indice),
         });
         const botaoRemover = criarBotao({
           texto: 'Remover',
           icon: 'x',
           variante: 'danger',
-          onClick: () => {
+          onClick: async () => {
             testemunhas.splice(indice, 1);
-            atualizarLista();
+            await persistir();
+            mostrarToast('Testemunha removida.', 'sucesso');
+            mostrarLista();
           },
         });
         const botaoPdf = criarBotao({
@@ -99,32 +75,93 @@ export function renderTestemunhasTab(pad, configUnidade, { onAtualizar } = {}) {
         ]);
       }),
     );
+
+    const botaoAdicionar = criarBotao({ texto: 'Adicionar testemunha', icon: 'file-plus', onClick: () => mostrarFormulario(-1) });
+
+    const card = criarCard({
+      titulo: 'Oitiva de Testemunhas',
+      acoes: [criarBotaoConfirmar(pad, 'testemunhas', { onAtualizar })],
+      filhos: [
+        criarElemento('p', { class: 'text-muted' }, ['Cada testemunha/informante gera seu próprio Termo de Oitiva.']),
+        criarElemento('div', { class: 'documentos__acoes' }, [botaoAdicionar]),
+        listaEl,
+      ],
+    });
+
+    raiz.replaceChildren(card);
   }
-  atualizarLista();
 
-  const botaoAdicionar = criarBotao({
-    texto: 'Adicionar testemunha',
-    icon: 'file-plus',
-    onClick: () => abrirModalTestemunha({
-      onSalvar: (dados) => {
-        testemunhas.push(dados);
-        atualizarLista();
+  function mostrarFormulario(indice) {
+    const testemunhaAtual = indice === -1 ? null : testemunhas[indice];
+
+    const campoNome = criarCampo({ rotulo: 'Nome completo', valor: testemunhaAtual?.nome });
+    const campoQualificacao = criarCampo({ rotulo: 'Qualificação (ex.: agente penitenciário, interno...)', valor: testemunhaAtual?.qualificacao });
+    const campoQualidade = criarCampoSelect({ rotulo: 'Qualidade', valor: testemunhaAtual?.qualidade ?? 'testemunha', opcoes: OPCOES_QUALIDADE });
+    const campoDepoimento = criarCampoComDitado({ rotulo: 'Depoimento', valor: testemunhaAtual?.depoimento });
+    const campoSintese = criarCampoComDitado({
+      rotulo: 'Síntese do depoimento (é o que entra no Relatório da Decisão — pode ajustar à vontade)',
+      valor: testemunhaAtual?.sintese || sintetizarTexto(testemunhaAtual?.depoimento),
+    });
+
+    function lerFormulario() {
+      return {
+        id: testemunhaAtual?.id ?? crypto.randomUUID(),
+        nome: campoNome.input.value.trim(),
+        qualificacao: campoQualificacao.input.value.trim(),
+        qualidade: campoQualidade.input.value,
+        depoimento: campoDepoimento.input.value.trim(),
+        sintese: campoSintese.input.value.trim(),
+      };
+    }
+
+    const preview = criarAreaPreview(pad, () => renderizarOitiva(pad, lerFormulario(), configUnidade));
+    [campoNome, campoQualificacao, campoQualidade, campoDepoimento, campoSintese].forEach((campo) => {
+      campo.input.addEventListener('input', preview.atualizar);
+      campo.input.addEventListener('change', preview.atualizar);
+    });
+
+    const botaoCancelar = criarBotao({ texto: 'Cancelar', icon: 'x', variante: 'secondary', onClick: mostrarLista });
+    const botaoSalvar = criarBotao({
+      texto: 'Salvar',
+      icon: 'check',
+      onClick: async () => {
+        if (!campoNome.input.value.trim()) {
+          mostrarToast('Informe o nome.', 'aviso');
+          return;
+        }
+        botaoSalvar.disabled = true;
+        try {
+          const dados = lerFormulario();
+          if (indice === -1) testemunhas.push(dados);
+          else testemunhas[indice] = dados;
+          await persistir();
+          mostrarToast('Salvo com sucesso.', 'sucesso');
+          mostrarLista();
+        } catch (erro) {
+          console.error('Falha ao salvar testemunha:', erro);
+          mostrarToast('Não foi possível salvar.', 'erro');
+        } finally {
+          botaoSalvar.disabled = false;
+        }
       },
-    }),
-  });
+    });
 
-  const secao = criarCardEditavel({
-    titulo: 'Oitiva de Testemunhas',
-    corpo: [
-      criarElemento('p', { class: 'text-muted' }, ['Cada testemunha/informante gera seu próprio Termo de Oitiva.']),
-      criarElemento('div', { class: 'documentos__acoes' }, [botaoAdicionar]),
-      listaEl,
-    ],
-  });
-  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'testemunhas', { onAtualizar }));
+    const formulario = criarCard({
+      titulo: indice === -1 ? 'Adicionar testemunha' : 'Editar testemunha',
+      acoes: [botaoCancelar],
+      filhos: [
+        campoNome.elemento,
+        campoQualificacao.elemento,
+        campoQualidade.elemento,
+        campoDepoimento.elemento,
+        campoSintese.elemento,
+        criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]),
+      ],
+    });
 
-  const botaoSalvar = criarBotaoSalvar(persistir, { aposSalvar: secao.esconder });
-  secao.areaCorpo.append(criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]));
+    raiz.replaceChildren(criarElemento('div', { class: 'documentos__aba' }, [formulario, preview.elemento]));
+  }
 
-  return criarElemento('div', { class: 'documentos__aba' }, [secao.elemento]);
+  mostrarLista();
+  return raiz;
 }
