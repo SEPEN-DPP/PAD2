@@ -15,6 +15,7 @@ import { criarBotao } from '../../../components/button/button.js';
 import { mostrarToast } from '../../../utils/toast.js';
 import { extrairTexto } from '../../../parser/pdfParserService.js';
 import { extrairCamposRegistroInfracao } from '../../../parser/registroInfracaoParser.js';
+import { converterParaAnexoPersistido } from '../detail/documentos/_shared.js';
 import { ARTIGOS_LEP } from '../../../config/baseLegal.js';
 import { UNIDADES_PRISIONAIS, obterUnidadePorNome } from '../../../config/unidadesPrisionais.js';
 import { usuarioAtual, obterPerfilDoUsuario } from '../../../services/auth/authService.js';
@@ -88,7 +89,8 @@ function criarCampoUnidade(perfilUsuario) {
   };
 }
 
-function criarFormularioRevisao(campos, perfilUsuario) {
+/** @param {File|null} arquivoPdf o PDF do Registro de Infração, quando o PAD nasce desse fluxo (null no fluxo manual) — anexado automaticamente à Documentação Inicial ao criar o PAD */
+function criarFormularioRevisao(campos, perfilUsuario, arquivoPdf) {
   const campoNumero = criarCampo({ rotulo: 'Número do PAD' });
   const campoUnidade = criarCampoUnidade(perfilUsuario);
   const campoNome = criarCampo({ rotulo: 'Nome completo', valor: campos.nomeCompleto });
@@ -98,11 +100,11 @@ function criarFormularioRevisao(campos, perfilUsuario) {
   const campoArtigoLep = criarCampoArtigoLep(campos.artigoLep);
   const campoDetentos = criarCampo({ rotulo: 'Detentos envolvidos (separados por vírgula)', valor: campos.detentosEnvolvidos.join(', ') });
   const campoAgentes = criarCampo({ rotulo: 'Agentes envolvidos (separados por vírgula)', valor: campos.agentesEnvolvidos.join(', ') });
-  const campoObs = criarCampo({ rotulo: 'Observações', valor: campos.observacoes, multilinha: true });
+  const campoDescricao = criarCampo({ rotulo: 'Descrição', valor: campos.descricao, multilinha: true });
 
   const linhas = [
     campoNumero, campoUnidade, campoNome, campoIpen, campoData,
-    campoInfracao, campoArtigoLep, campoDetentos, campoAgentes, campoObs,
+    campoInfracao, campoArtigoLep, campoDetentos, campoAgentes, campoDescricao,
   ];
 
   const botaoCriarPad = criarBotao({
@@ -119,6 +121,16 @@ function criarFormularioRevisao(campos, perfilUsuario) {
 
       botaoCriarPad.disabled = true;
       try {
+        let docInicial;
+        if (arquivoPdf) {
+          const anexo = await converterParaAnexoPersistido(arquivoPdf);
+          if (anexo) {
+            docInicial = { itens: [{ titulo: 'Registro de Infração/Punição (i-PEN)', anexo }] };
+          } else {
+            mostrarToast('O PDF do Registro de Infração é grande demais para anexar automaticamente — anexe manualmente na aba "Doc. Inicial" depois de criar o PAD.', 'aviso');
+          }
+        }
+
         const artigoSelecionado = ARTIGOS_LEP.find((a) => a.cod === campoArtigoLep.input.value);
         const padId = await criarPad({
           numero,
@@ -130,8 +142,9 @@ function criarFormularioRevisao(campos, perfilUsuario) {
             artigoLep: artigoSelecionado ? { codigo: artigoSelecionado.cod, rotulo: artigoSelecionado.label } : null,
             detentosEnvolvidos: campoDetentos.input.value.split(',').map((s) => s.trim()).filter(Boolean),
             agentesEnvolvidos: campoAgentes.input.value.split(',').map((s) => s.trim()).filter(Boolean),
-            observacoes: campoObs.input.value.trim(),
+            descricao: campoDescricao.input.value.trim(),
           },
+          docInicial,
         });
 
         const nomeResponsavel = perfilUsuario?.nome ?? usuarioAtual()?.email ?? '—';
@@ -141,7 +154,7 @@ function criarFormularioRevisao(campos, perfilUsuario) {
           responsavel: nomeResponsavel,
           data: dataBrParaDate(dataInfracao),
           status: 'CONCLUIDO',
-          observacoes: campoObs.input.value.trim(),
+          observacoes: campoDescricao.input.value.trim(),
           unidade,
           superintendencia: obterUnidadePorNome(unidade)?.superintendencia ?? null,
         });
@@ -174,7 +187,7 @@ const CAMPOS_VAZIOS = Object.freeze({
   artigoLep: null,
   detentosEnvolvidos: [],
   agentesEnvolvidos: [],
-  observacoes: '',
+  descricao: '',
 });
 
 export async function render(container) {
@@ -202,7 +215,7 @@ export async function render(container) {
         const textoExtraido = await extrairTexto(arquivoSelecionado);
         const campos = await extrairCamposRegistroInfracao(textoExtraido);
         limparContainer(areaRevisao);
-        areaRevisao.append(criarCard({ titulo: 'Dados extraídos', filhos: [criarFormularioRevisao(campos, perfilUsuario)] }));
+        areaRevisao.append(criarCard({ titulo: 'Dados extraídos', filhos: [criarFormularioRevisao(campos, perfilUsuario, arquivoSelecionado)] }));
       } catch (erro) {
         console.error('Falha ao analisar o Registro de Infração:', erro);
         mostrarToast('Não foi possível ler os dados deste PDF. Tente novamente.', 'erro');
@@ -226,7 +239,7 @@ export async function render(container) {
     variante: 'secondary',
     onClick: () => {
       limparContainer(areaRevisao);
-      areaRevisao.append(criarCard({ titulo: 'Dados do PAD', filhos: [criarFormularioRevisao(CAMPOS_VAZIOS, perfilUsuario)] }));
+      areaRevisao.append(criarCard({ titulo: 'Dados do PAD', filhos: [criarFormularioRevisao(CAMPOS_VAZIOS, perfilUsuario, null)] }));
     },
   });
 

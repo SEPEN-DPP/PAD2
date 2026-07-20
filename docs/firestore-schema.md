@@ -10,9 +10,9 @@ estrangeira). Ver [ARCHITECTURE.md](../ARCHITECTURE.md) §4 para o racional.
   dadosGerais: { numero, unidade, dataAbertura },
   superintendencia, // SR da unidade (ex.: "SR04") — denormalizado, mesma razão que em `usuarios`
   incidentados: [{ id, nomeCompleto, ipen }], // normalmente 1, mas pode ter mais de um (mesma infração, vários envolvidos) — ver §"Múltiplos incidentados" abaixo
-  infracao: { data, tipificacao, artigoLep: { codigo, rotulo } | null, detentosEnvolvidos: [], agentesEnvolvidos: [], observacoes, descricaoFatos },
+  infracao: { data, tipificacao, artigoLep: { codigo, rotulo } | null, detentosEnvolvidos: [], agentesEnvolvidos: [], descricao, descricaoFatos },
   portaria: { dataAssinatura, autoridadeSignataria: { nome, cargo } },
-  docInicial: { itens: [{ titulo }] }, // sem anexo — ver "Documentação Inicial" abaixo
+  docInicial: { itens: [{ titulo, anexo: { dataUrls: [], nomeArquivo } | undefined }] }, // anexo normalmente ausente — ver "Documentação Inicial" abaixo
   termoCientificacao: { observacoes },
   testemunhas: [{ id, nome, qualificacao, qualidade: 'testemunha'|'informante', depoimento }],
   declaracoesApenado: [{ incidentadoId, silencio: boolean, versaoIncidentado }], // um item por incidentado, casado por incidentadoId
@@ -143,13 +143,24 @@ dividem responsabilidade: a aba "Portaria" grava `portaria.*` **e** `conselho.in
 juntos (é ali que o Conselho é designado), sempre preservando `conselho.conclusao`/
 `fundamento` se já tiverem sido preenchidos pela aba "Conselho" depois.
 
-**Documentação Inicial não tem upload real** — `docInicial.itens[].titulo` é o único campo
-persistido. Um anexo (PDF/imagem) opcional é convertido em imagem via
-`src/templates/shared/anexoEmbutido.js` (PDF.js + `<canvas>`) e fica **só na memória do
-navegador durante a sessão**, usado para embutir a imagem no PDF/.doc exportado — nunca é
-gravado no Firestore nem enviado a um servidor (não há Firebase Storage disponível nesta
-fase — Spark/Blaze, ver ROADMAP.md). Ao recarregar a página, o anexo se perde (o título
-permanece).
+**Documentação Inicial não tem upload real de propósito geral** — por padrão só
+`docInicial.itens[].titulo` é persistido. Um anexo (PDF/imagem) adicionado manualmente pelo
+botão "Anexar arquivo" é convertido em imagem via `src/templates/shared/anexoEmbutido.js`
+(PDF.js + `<canvas>`) e fica **só na memória do navegador durante a sessão**, usado para
+embutir a imagem no PDF/.doc exportado — nunca é gravado no Firestore (não há Firebase
+Storage disponível nesta fase — Spark/Blaze, ver ROADMAP.md). Ao recarregar a página, esse
+anexo se perde (o título permanece).
+
+**Exceção: o Registro de Infração anexado automaticamente (2026-07-20).** Ao criar o PAD
+(`src/pages/pad/new/padNewPage.js`), o PDF do Registro de Infração usado na extração de
+campos é convertido para anexo persistido (`converterParaAnexoPersistido`, mesmo limite de
+~700.000 caracteres de `criarAnexoSubstitutoPersistido`, ver §Portal da Defesa) e gravado
+como o primeiro item de `docInicial.itens` desde a criação — sobrevive a recarregamentos e
+aparece no Portal da Defesa assim que a Unidade confirmar o documento. `docInicialTab.js`
+distingue os dois casos por um marcador só-em-memória (`_anexoPersistido`, nunca gravado):
+ao salvar, mantém o anexo dos itens que já vieram persistidos do Firestore e descarta o de
+qualquer anexo recém-selecionado nesta sessão, preservando o comportamento efêmero acima
+para uploads manuais.
 
 **`termoCientificacao` só grava observações** — o tipo de defesa (advogado/defensoria) é
 gravado direto em `defesa.tipo`/`advogadoNome`/`advogadoOab` pela mesma aba, já que é ali
@@ -337,18 +348,24 @@ advogadosCadastro/{oab}   // oab = número da OAB (sanitizado: "/" vira "-" no I
 ```
 
 Diretório de contato institucional — **independente** do Portal da Defesa (`defensores`):
-existe para qualquer advogado conhecido, tenha ele vínculo ativo a algum PAD ou não, e ainda
-não está integrado ao fluxo de vínculo de defensor do Termo de Cientificação (que continua
-com campos digitados à parte).
+existe para qualquer advogado conhecido, tenha ele vínculo ativo a algum PAD ou não.
 
 - **Origem dos dados**: pré-importado de uma planilha real do i-PEN (~12.768 registros),
   nascendo com `completo: false` (a planilha não tem e-mail). Importação é um script único,
   fora do repo (não versionado), rodado manualmente uma vez.
-- **Busca sem gastar cota do Firestore**: a tela (`src/pages/advogados/advogadosPage.js`)
+- **Busca sem gastar cota do Firestore**: a busca (`src/services/advogados/advogadoBuscaService.js`)
   carrega um arquivo estático (`public/dados/advogados-busca.json` — só `nome`/`oab`/`cidade`/
   `estado`, gerado pelo mesmo script de importação) e filtra por substring 100% no navegador.
-  Só ao abrir um resultado (Visualizar/Editar) é que o documento completo é lido do
-  Firestore — garante dado sempre atual sem custo de leitura na busca em si.
+  Só ao abrir um resultado é que o documento completo é lido do Firestore — garante dado
+  sempre atual sem custo de leitura na busca em si.
+- **Integrado à seleção de advogado no Termo de Cientificação (2026-07-20).** A aba "Termo
+  de Cientificação" (`src/pages/pad/detail/documentos/termoCientificacaoTab.js`) usa o mesmo
+  índice de busca e o mesmo modal de completude/edição
+  (`src/pages/advogados/advogadoCadastroModal.js`, extraído de `advogadosPage.js` para
+  reuso): ao escolher um advogado com `completo !== true`, exige preencher todos os campos
+  (inclusive e-mail) e confirmar antes de aplicar os dados ao PAD; se já `completo`, aplica
+  direto, sem pedir nada de novo. Continua possível digitar nome/OAB/e-mail manualmente sem
+  passar pela busca.
 - **OAB como chave**: identificador mais estável da fonte original (e-mail não existe, nomes
   têm homônimos reais). Como pode conter "/" (sufixo de seccional, ex. "27249/SC") e Firestore
   não aceita "/" dentro de um único segmento de ID, o ID do documento é sanitizado

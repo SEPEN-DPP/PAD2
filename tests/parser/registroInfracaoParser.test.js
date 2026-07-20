@@ -62,13 +62,16 @@ test('extrai os 8 campos do Registro de Infração a partir do modelo real', asy
   assert.deepEqual(resultado.artigoLep, { codigo: 'art50_vii', rotulo: 'Art. 50, VII — LEP' });
   assert.deepEqual(resultado.detentosEnvolvidos, []);
   assert.deepEqual(resultado.agentesEnvolvidos, ['MARCELO FAUTH PIANA', 'RAFAÉL COELHO', 'DANIEL LIMA']);
-  assert.equal(resultado.observacoes, null);
+  assert.equal(
+    resultado.descricao,
+    'INFORMAMOS QUE NA PRESENTE DATA, POR VOLTA DAS 11:00 H, POR OCASIÃO DO ENCERRAMENTO DA VISITA CONJUGAL. É O RELATO.',
+  );
 });
 
-test('normaliza "NÃO INFORMADO" para null em observações', async () => {
-  const texto = 'Nome: FULANO DE TAL\nOBSERVAÇÃO:\nNÃO INFORMADO\nDETENTOS ENVOLVIDOS:';
+test('normaliza "NÃO INFORMADO" para null em descrição', async () => {
+  const texto = 'Nome: FULANO DE TAL\nDESCRIÇÃO:\nNÃO INFORMADO\nOBSERVAÇÃO:\nNÃO INFORMADA\nDETENTOS ENVOLVIDOS:';
   const resultado = await extrairCamposRegistroInfracao({ paginas: [texto], textoCompleto: texto });
-  assert.equal(resultado.observacoes, null);
+  assert.equal(resultado.descricao, null);
 });
 
 test('divide listas de nomes separadas por vírgula e ignora campos vazios', async () => {

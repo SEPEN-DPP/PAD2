@@ -84,7 +84,7 @@ function secaoDadosGerais(pad) {
     ['Artigo da LEP', infracao.artigoLep?.rotulo],
     ['Detentos envolvidos', infracao.detentosEnvolvidos?.join(', ')],
     ['Agentes envolvidos', infracao.agentesEnvolvidos?.join(', ')],
-    ['Observações', infracao.observacoes],
+    ['Descrição', infracao.descricao],
   ].filter(([, valor]) => valor);
 
   if (!linhasInfracao.length) return listaDados;

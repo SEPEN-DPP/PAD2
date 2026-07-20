@@ -42,6 +42,9 @@ const ROTULOS = [
   { chave: 'grau', padrao: /\bGRAU\s*:/i },
   { chave: 'situacaoInfracao', padrao: /\bSITUA[CÇ][AÃ]O\s*:/i },
   { chave: 'descricaoNarrativa', padrao: /DESCRI[CÇ][AÃ]O\s*:/i },
+  // OBSERVAÇÃO não é mais um campo extraído (substituído por `descricao`, ver
+  // abaixo) — mantido na lista só para delimitar corretamente o fim do valor
+  // de `descricaoNarrativa`, mesma técnica usada em `artigosProcessoPenal`.
   { chave: 'observacoes', padrao: /OBSERVA[CÇ][AÃ]O\s*:/i },
   { chave: 'detentosEnvolvidos', padrao: /DETENTOS\s+ENVOLVIDOS\s*:/i },
   { chave: 'agentesEnvolvidos', padrao: /AGENTES\s+ENVOLVIDOS\s*:/i },
@@ -130,7 +133,7 @@ function identificarArtigoLep(textoInfracao) {
  *   artigoLep: { codigo: string, rotulo: string } | null,
  *   detentosEnvolvidos: string[],
  *   agentesEnvolvidos: string[],
- *   observacoes: string | null,
+ *   descricao: string | null,
  * }>}
  */
 export async function extrairCamposRegistroInfracao(textoExtraido) {
@@ -152,6 +155,6 @@ export async function extrairCamposRegistroInfracao(textoExtraido) {
     artigoLep: identificarArtigoLep(infracaoTexto),
     detentosEnvolvidos: paraListaDeNomes(capturarValor(ocorrencias, texto, 'detentosEnvolvidos')),
     agentesEnvolvidos: paraListaDeNomes(capturarValor(ocorrencias, texto, 'agentesEnvolvidos')),
-    observacoes: normalizarCampoVazio(capturarValor(ocorrencias, texto, 'observacoes')),
+    descricao: normalizarCampoVazio(capturarValor(ocorrencias, texto, 'descricaoNarrativa')),
   };
 }

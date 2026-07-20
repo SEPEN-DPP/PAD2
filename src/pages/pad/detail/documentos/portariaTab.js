@@ -10,7 +10,7 @@ import { renderizar as renderizarPortaria } from '../../../../templates/portaria
 /**
  * Rascunho de "Descrição dos fatos" a partir do que já foi extraído do PDF
  * do Registro de Infração na criação do PAD (tipificação, detentos/agentes
- * envolvidos, observações) — o formulário de criação não pede uma narrativa
+ * envolvidos, descrição) — o formulário de criação não pede uma narrativa
  * livre (só os 8 campos objetivos, ver src/parser/README.md), então sem
  * isto o campo nasceria em branco mesmo já havendo dado extraído
  * aproveitável. Sempre editável; só é usado quando ainda não há
@@ -23,7 +23,7 @@ function sugerirDescricaoFatos(pad) {
   const partes = [`Consta que o(a) interno(a) praticou a seguinte conduta: ${infracao.tipificacao}.`];
   if (infracao.detentosEnvolvidos?.length) partes.push(`Detento(s) envolvido(s): ${infracao.detentosEnvolvidos.join(', ')}.`);
   if (infracao.agentesEnvolvidos?.length) partes.push(`Agente(s) envolvido(s): ${infracao.agentesEnvolvidos.join(', ')}.`);
-  if (infracao.observacoes) partes.push(`Observações do registro: ${infracao.observacoes}`);
+  if (infracao.descricao) partes.push(infracao.descricao);
   return partes.join(' ');
 }
 

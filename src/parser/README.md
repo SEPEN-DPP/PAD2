@@ -15,7 +15,7 @@ ambas **sem custo** (sem dependência de IA paga — ver [src/ai/README.md](../a
    - Artigo da LEP correspondente à falta
    - Detentos envolvidos
    - Agentes (Policiais Penais) envolvidos
-   - Observações
+   - Descrição (relato narrativo do campo `DESCRIÇÃO:` do formulário)
 
 Implementado na Fase 3 (ver [ROADMAP.md](../../ROADMAP.md)).
 
@@ -34,7 +34,7 @@ documento, na ordem em que aparecem:
 | `artigoLep`            | *(derivado de `infracao`, não de um rótulo)* | `{ codigo: 'art50_vii', rotulo: 'Art. 50, VII — LEP' }` |
 | `detentosEnvolvidos`   | `DETENTOS ENVOLVIDOS:`        | (pode vir vazio) → `[]` |
 | `agentesEnvolvidos`    | `AGENTES ENVOLVIDOS:`         | `MARCELO FAUTH PIANA, RAFAÉL COELHO, DANIEL LIMA` → array de 3 nomes |
-| `observacoes`          | `OBSERVAÇÃO:`                 | `NÃO INFORMADA` → normalizado para `null` (convenção do i-PEN para campo vazio) |
+| `descricao`            | `DESCRIÇÃO:`                  | `INFORMAMOS QUE NA PRESENTE DATA...` → `NÃO INFORMADA` normaliza para `null` (convenção do i-PEN para campo vazio) |
 
 **Resolvido com o usuário (2026-07-14) — "IPEN" = `Prontuário:`, não `RG i-PEN:`.** O
 formulário tem duas numerações diferentes: `Prontuário:` (ex. `750126`) e `RG i-PEN:` (ex.
@@ -63,14 +63,24 @@ artigos do catálogo (nunca aplica uma classificação sem confirmação humana)
 Quando os campos extraídos são incorporados ao objeto PAD (ver
 [docs/firestore-schema.md](../../docs/firestore-schema.md)), `infracao` vira
 `pad.infracao.tipificacao` (nome escolhido para não colidir com o campo `DESCRIÇÃO:` do
-formulário, que é o relato narrativo do incidente e **não faz parte do escopo de
-extração atual** — só o texto curto de enquadramento em `UNIDADE / INFRAÇÃO:`).
+formulário — o relato narrativo do incidente, extraído à parte como `pad.infracao.descricao`,
+ver decisão abaixo — `tipificacao` é só o texto curto de enquadramento em
+`UNIDADE / INFRAÇÃO:`).
+
+**`DESCRIÇÃO:` passou a ser extraída como `descricao`, substituindo `OBSERVAÇÃO:`
+(decisão do usuário, 2026-07-20).** Até então `OBSERVAÇÃO:` era o único dos dois campos
+extraído (como `observacoes`) e `DESCRIÇÃO:` ficava fora do escopo (ver decisão de
+2026-07-14 abaixo, revertida nesta data). O relato narrativo de `DESCRIÇÃO:` é o que
+alimenta a "Descrição dos fatos" da Portaria, da Manifestação do Conselho e da Decisão
+(ver `descricaoDosFatos` em [src/templates/shared/condicionais.js](../templates/shared/condicionais.js)).
+`OBSERVAÇÃO:` continua no rótulo de delimitação (`ROTULOS`) só para fatiar corretamente o
+fim do valor de `DESCRIÇÃO:`, mas seu conteúdo não é mais retornado.
 
 Campos que existem no formulário mas **não fazem parte do escopo de extração** (por
-decisão do usuário, 2026-07-14): RG i-PEN, Situação penal, Cartão SUS, Unidade prisional,
-Naturalidade, Mãe, Nascimento, Processo(s), Ingresso, Regime, Comportamento, Residência
-(Ala/Galeria/Bloco/Piso/Cela), GRAU, SITUAÇÃO, DESCRIÇÃO (relato narrativo), Volume da
-pasta/Folha início/Folha fim.
+decisão do usuário, 2026-07-14, atualizada em 2026-07-20): RG i-PEN, Situação penal,
+Cartão SUS, Unidade prisional, Naturalidade, Mãe, Nascimento, Processo(s), Ingresso,
+Regime, Comportamento, Residência (Ala/Galeria/Bloco/Piso/Cela), GRAU, SITUAÇÃO,
+OBSERVAÇÃO, Volume da pasta/Folha início/Folha fim.
 
 ## Por que regras e não IA?
 
@@ -95,7 +105,7 @@ export async function extrairTexto(arquivoPdf) { /* ... */ }
  *   nomeCompleto: string, ipen: string, dataInfracao: string, infracao: string,
  *   artigoLep: { codigo: string, rotulo: string } | null,
  *   detentosEnvolvidos: string[], agentesEnvolvidos: string[],
- *   observacoes: string | null,
+ *   descricao: string | null,
  * }>}
  */
 export async function extrairCamposRegistroInfracao(textoExtraido) { /* ... */ }

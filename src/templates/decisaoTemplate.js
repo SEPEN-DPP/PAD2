@@ -9,6 +9,7 @@ import {
   dataInfracaoFormatada,
   artigoTextoCompleto,
   artigoRotulo,
+  descricaoDosFatos,
   textoDefensor,
   diretorDaUnidade,
   artigoDesclassificacao,
@@ -119,6 +120,7 @@ export function renderizar(pad) {
 
   const relatorio = [
     `Trata-se de Procedimento Administrativo Disciplinar instaurado pela Portaria nº ${numero}, em ${dataInst}, em desfavor do(a) apenado(a) ${nomeIpenIncidentado(pad)}, decorrente do suposto cometimento de infração disciplinar de natureza grave, prevista no ${artigoTextoCompleto(pad)}, cujos fatos supostamente ocorreram em ${dataInfracaoFormatada(pad)}.`,
+    `Descrição dos fatos: "${descricaoDosFatos(pad)}"`,
     ...[].concat(relatorioTestemunhas(pad)),
     relatorioIncidentado(pad),
     relatorioConselho(pad),

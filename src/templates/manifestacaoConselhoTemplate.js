@@ -9,6 +9,7 @@ import {
   artigoRotulo,
   artigoTextoCompleto,
   dataInfracaoFormatada,
+  descricaoDosFatos,
   integrantesConselho,
   artigoDesclassificacao,
   textoIncisosDesclassificacao,
@@ -82,6 +83,7 @@ export function renderizar(pad, configUnidade) {
     secoes: [
       { conteudo: `Apenado(a): ${nomeIpenIncidentado(pad)}` },
       { conteudo: `Infração: ${artigoRotulo(pad)} — Data: ${dataInfracaoFormatada(pad)}` },
+      { conteudo: `Descrição dos fatos: "${descricaoDosFatos(pad)}"` },
       { conteudo: fundamentoAuto },
       { conteudo: `${cidadeDaUnidade(pad)}, ${dataInst}.` },
     ],
