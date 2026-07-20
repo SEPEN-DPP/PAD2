@@ -12,10 +12,11 @@
  * Sem sub-rotas via hash — troca o conteúdo do próprio outlet entre lista e
  * detalhe (sem back-button/deep-link nesta primeira versão).
  *
- * `montarDocumentosConfirmados` (abaixo) é exportada para reuso pela aba
- * "Portal da Defesa" do painel institucional (2026-07-20) — qualquer usuário
- * logado vê exatamente a mesma visão que o defensor vê para aquele PAD, ver
- * src/pages/pad/detail/documentos/portalDefesaTab.js.
+ * `montarDocumentosConfirmados` (abaixo) é exportada para reuso pela página
+ * "Portal da Defesa" do painel institucional (2026-07-20, item próprio do
+ * menu lateral) — qualquer usuário logado vê a mesma visão somente-leitura
+ * que o defensor vê para aquele PAD, ver
+ * src/pages/portal-defesa-preview/portalDefesaPreviewPage.js.
  */
 import { criarElemento, carregarCssUmaVez, limparContainer } from '../../utils/domUtils.js';
 import { criarCard } from '../../components/card/card.js';
@@ -36,8 +37,6 @@ import { renderizar as renderizarDeclaracao } from '../../templates/declaracaoAp
 import { renderizar as renderizarConselho } from '../../templates/manifestacaoConselhoTemplate.js';
 import { renderizar as renderizarDefesa } from '../../templates/manifestacaoDefesaTemplate.js';
 import { renderizar as renderizarDecisao } from '../../templates/decisaoTemplate.js';
-import { renderizar as renderizarOficioJuizo } from '../../templates/oficioJuizoTemplate.js';
-import { renderizar as renderizarOficioVep } from '../../templates/oficioVepTemplate.js';
 
 function estaConfirmado(pad, chave) {
   return Boolean(pad.confirmacoes?.[chave]?.confirmado);
@@ -72,16 +71,26 @@ function criarWidgetManifestacaoDefesa(pad, { onEnviado }) {
   });
 }
 
+/** Card informativo (sem widget de envio) — usado no lugar de `criarWidgetManifestacaoDefesa` quando `somenteLeitura` é true. */
+function criarAvisoDefesaPendente() {
+  return criarCard({
+    titulo: 'Manifestação da Defesa',
+    filhos: [criarElemento('p', { class: 'text-muted' }, ['Aguardando o(a) defensor(a) enviar a manifestação pelo Portal da Defesa.'])],
+  });
+}
+
 /**
  * Monta os cards de documento (somente leitura) já CONFIRMADOS pela Unidade,
  * mais o widget de envio da Manifestação da Defesa enquanto ela ainda não
  * estiver confirmada. Reaproveitado pelo Portal da Defesa do próprio
- * defensor e pela aba "Portal da Defesa" do painel institucional (mesma
+ * defensor e pela página "Portal da Defesa" do painel institucional (mesma
  * visão para qualquer usuário logado — ver
- * src/pages/pad/detail/documentos/portalDefesaTab.js).
- * @param {{ onAtualizar?: () => void }} [params] chamado depois que a Manifestação da Defesa é enviada pelo widget, para o chamador re-renderizar
+ * src/pages/portal-defesa-preview/portalDefesaPreviewPage.js) — nesse
+ * segundo caso, `somenteLeitura: true` troca o widget de envio (exclusivo do
+ * defensor, que só ele acessa pelo próprio login) por um aviso informativo.
+ * @param {{ onAtualizar?: () => void, somenteLeitura?: boolean }} [params] `onAtualizar` é chamado depois que a Manifestação da Defesa é enviada pelo widget, para o chamador re-renderizar
  */
-export function montarDocumentosConfirmados(pad, { onAtualizar } = {}) {
+export function montarDocumentosConfirmados(pad, { onAtualizar, somenteLeitura = false } = {}) {
   const documentos = [];
 
   if (estaConfirmado(pad, 'portaria')) documentos.push(criarPreviewSomenteLeitura(pad, 'Portaria de Instauração', renderizarPortaria(pad)));
@@ -116,7 +125,7 @@ export function montarDocumentosConfirmados(pad, { onAtualizar } = {}) {
       aplicarAnexoSubstituto(renderizarDefesa(pad), pad.defesa?.anexoPersistido),
     ));
   } else {
-    documentos.push(criarWidgetManifestacaoDefesa(pad, { onEnviado: () => onAtualizar?.() }));
+    documentos.push(somenteLeitura ? criarAvisoDefesaPendente() : criarWidgetManifestacaoDefesa(pad, { onEnviado: () => onAtualizar?.() }));
   }
 
   if (estaConfirmado(pad, 'decisao')) {
@@ -126,9 +135,6 @@ export function montarDocumentosConfirmados(pad, { onAtualizar } = {}) {
       aplicarAnexoSubstituto(renderizarDecisao(pad), pad.decisao?.anexoPersistido),
     ));
   }
-  if (estaConfirmado(pad, 'oficioJuizo')) documentos.push(criarPreviewSomenteLeitura(pad, 'Ofício ao Juiz', renderizarOficioJuizo(pad)));
-  if (estaConfirmado(pad, 'oficioVep')) documentos.push(criarPreviewSomenteLeitura(pad, 'Ofício de Encaminhamento à VEP', renderizarOficioVep(pad)));
-
   return documentos;
 }
 

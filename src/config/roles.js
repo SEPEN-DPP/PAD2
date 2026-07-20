@@ -44,7 +44,7 @@ export const ROUTE_PERMISSIONS = Object.freeze({
   '/dashboard': PAINEL_INSTITUCIONAL,
   '/pad': PAINEL_INSTITUCIONAL,
   '/pad/novo': [ROLES.ADMINISTRADOR, ROLES.DIRETOR, ROLES.SUBDIRETOR, ROLES.SERVIDOR],
-  '/eventos': PAINEL_INSTITUCIONAL,
+  '/portal-defesa': PAINEL_INSTITUCIONAL,
   '/usuarios': [ROLES.ADMINISTRADOR, ROLES.DIRETOR],
   // Aberta a todo o painel institucional porque "Alterar Senha" é universal
   // (ver src/pages/configuracoes/configuracoesPage.js); os parâmetros
@@ -52,8 +52,6 @@ export const ROUTE_PERMISSIONS = Object.freeze({
   // restrição própria por ação quando existirem de verdade (Fase 2+).
   '/configuracoes': PAINEL_INSTITUCIONAL,
   '/relatorios': [ROLES.ADMINISTRADOR, ROLES.DIRETOR, ROLES.SUBDIRETOR],
-  '/ia': [ROLES.ADMINISTRADOR],
-  '/exportacao': PAINEL_INSTITUCIONAL,
   '/advogados': PAINEL_INSTITUCIONAL,
 });
 

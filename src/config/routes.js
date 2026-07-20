@@ -35,13 +35,6 @@ export const ROUTES = Object.freeze([
     nav: false,
   },
   {
-    path: '/eventos',
-    title: 'Eventos',
-    icon: 'list-checks',
-    load: () => import('../pages/eventos/eventosPage.js'),
-    nav: true,
-  },
-  {
     path: '/usuarios',
     title: 'Usuários',
     icon: 'users',
@@ -56,17 +49,10 @@ export const ROUTES = Object.freeze([
     nav: true,
   },
   {
-    path: '/exportacao',
-    title: 'Exportação',
-    icon: 'download',
-    load: () => import('../pages/exportacao/exportacaoPage.js'),
-    nav: true,
-  },
-  {
-    path: '/ia',
-    title: 'IA',
-    icon: 'sparkles',
-    load: () => import('../pages/ia/iaPage.js'),
+    path: '/portal-defesa',
+    title: 'Portal da Defesa',
+    icon: 'eye',
+    load: () => import('../pages/portal-defesa-preview/portalDefesaPreviewPage.js'),
     nav: true,
   },
   {

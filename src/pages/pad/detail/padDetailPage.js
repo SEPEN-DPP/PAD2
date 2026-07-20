@@ -23,8 +23,6 @@ import { renderDepoimentoIncidentadoTab } from './documentos/depoimentoIncidenta
 import { renderConselhoTab } from './documentos/conselhoTab.js';
 import { renderDefesaTab } from './documentos/defesaTab.js';
 import { renderDecisaoTab } from './documentos/decisaoTab.js';
-import { renderOficiosTab } from './documentos/oficiosTab.js';
-import { renderPortalDefesaTab } from './documentos/portalDefesaTab.js';
 import { aplicarAnexoSubstituto } from './documentos/_shared.js';
 import { baixarTodosComoPdf } from '../../../templates/shared/pdfExporter.js';
 import { renderizar as renderizarPortaria } from '../../../templates/portariaAberturaTemplate.js';
@@ -39,10 +37,13 @@ import { renderizar as renderizarDecisao } from '../../../templates/decisaoTempl
  * Monta o PDF do PAD completo — Portaria, Documentação Inicial, Depoimento(s)
  * de Testemunha(s) (se houver), Depoimento Incidentado, Manifestação do
  * Conselho, Manifestação da Defesa e Decisão, nessa ordem. Termo de
- * Cientificação e Ofícios ficam de fora (decisão do usuário — são
- * correspondência/formalidade à parte, não "o processo" em si).
+ * Cientificação fica de fora (decisão do usuário — é
+ * correspondência/formalidade à parte, não "o processo" em si). Exportada
+ * para reuso pela página "Portal da Defesa" institucional (2026-07-20, ver
+ * src/pages/portal-defesa-preview/portalDefesaPreviewPage.js), que também
+ * oferece esse download a partir da visão somente-leitura de cada PAD.
  */
-function montarDocumentosCompletos(pad, configUnidade) {
+export function montarDocumentosCompletos(pad, configUnidade) {
   const documentos = [renderizarPortaria(pad, configUnidade), renderizarDocInicial(pad)];
 
   for (const testemunha of pad.testemunhas ?? []) {
@@ -169,8 +170,6 @@ export async function render(container, params) {
     { id: 'conselho', titulo: 'Manifestação do Conselho Disciplinar', render: () => renderConselhoTab(pad, configUnidade, { onAtualizar }) },
     { id: 'defesa', titulo: 'Manifestação da Defesa', render: () => renderDefesaTab(pad, configUnidade, { onAtualizar }) },
     { id: 'decisao', titulo: 'Decisão', render: () => renderDecisaoTab(pad, configUnidade, { onAtualizar }) },
-    { id: 'oficios', titulo: 'Ofícios', render: () => renderOficiosTab(pad, configUnidade, { onAtualizar }) },
-    { id: 'portal-defesa', titulo: 'Portal da Defesa', render: () => renderPortalDefesaTab(pad, configUnidade, { onAtualizar }) },
   ]);
 
   container.append(criarCard({ filhos: [tabs] }));
