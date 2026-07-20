@@ -1,9 +1,15 @@
 /**
  * Aba "Documentação Inicial" — relação de provas/documentos juntados logo
- * após a Portaria. O anexo (PDF/imagem) de cada item é efêmero: só existe em
- * memória durante esta sessão do navegador (usado para embutir a imagem no
- * PDF/.doc exportado) e NUNCA é gravado no Firestore — só o título do item é
- * persistido (ver docs/firestore-schema.md e
+ * após a Portaria. Por padrão, o anexo (PDF/imagem) de cada item é efêmero:
+ * só existe em memória durante esta sessão do navegador (usado para embutir
+ * a imagem no PDF/.doc exportado) e não é gravado no Firestore — só o título
+ * do item é persistido. Exceção: o item do Registro de Infração, anexado
+ * automaticamente na criação do PAD (ver src/pages/pad/new/padNewPage.js),
+ * já chega com anexo PERSISTIDO (`item.anexo` vindo do próprio
+ * `pad.docInicial.itens` do Firestore) — este continua sendo gravado a cada
+ * "Salvar" (marcado via `_anexoPersistido`, ver abaixo), diferente de um
+ * anexo recém-selecionado nesta sessão pelo botão "Anexar arquivo", que
+ * permanece efêmero (ver docs/firestore-schema.md e
  * src/templates/shared/anexoEmbutido.js).
  */
 import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad, criarBotao, criarBotaoConfirmar } from './_shared.js';
@@ -14,9 +20,13 @@ import { mostrarToast } from '../../../../utils/toast.js';
 export function renderDocInicialTab(pad, _configUnidade, { onAtualizar } = {}) {
   carregarCssUmaVez('src/pages/pad/detail/documentos/documentos.css');
 
-  // Cópia local: cada item pode ter `anexo.dataUrls` (só em memória) além do
-  // `titulo` (o único campo que é gravado no Firestore).
-  const itens = (pad.docInicial?.itens ?? []).map((item) => ({ ...item }));
+  // Cópia local: cada item pode ter `anexo.dataUrls` além do `titulo`.
+  // `_anexoPersistido` marca os itens cujo anexo já veio gravado do
+  // Firestore (ex.: o Registro de Infração anexado na criação do PAD) — só
+  // esses continuam sendo gravados a cada "Salvar"; um anexo adicionado
+  // nesta sessão via "Anexar arquivo" nasce sem essa marca e continua
+  // efêmero, como sempre foi.
+  const itens = (pad.docInicial?.itens ?? []).map((item) => ({ ...item, _anexoPersistido: Boolean(item.anexo) }));
 
   const listaEl = criarElemento('ul', { class: 'documentos__lista-itens' });
   const campoTitulo = criarCampo({ rotulo: 'Título do documento' });
@@ -49,8 +59,10 @@ export function renderDocInicialTab(pad, _configUnidade, { onAtualizar } = {}) {
             preview.atualizar();
           },
         });
+        let rotulo = item.titulo;
+        if (item.anexo) rotulo += item._anexoPersistido ? ' (com anexo salvo)' : ' (com anexo — só nesta sessão)';
         return criarElemento('li', { class: 'documentos__item-lista' }, [
-          criarElemento('span', {}, [item.anexo ? `${item.titulo} (com anexo)` : item.titulo]),
+          criarElemento('span', {}, [rotulo]),
           botaoRemover,
         ]);
       }),
@@ -86,10 +98,13 @@ export function renderDocInicialTab(pad, _configUnidade, { onAtualizar } = {}) {
   });
 
   const botaoSalvar = criarBotaoSalvar(async () => {
-    // Só o título de cada item é persistido — o anexo é efêmero (ver cabeçalho deste arquivo).
+    // Preserva o anexo só dos itens que já vieram persistidos do Firestore
+    // (ex.: o Registro de Infração anexado automaticamente na criação do
+    // PAD) — um anexo adicionado nesta sessão via "Anexar arquivo" continua
+    // efêmero (ver cabeçalho deste arquivo).
     await salvarSecaoDoPad(
       pad,
-      { docInicial: { itens: itens.map(({ titulo }) => ({ titulo })) } },
+      { docInicial: { itens: itens.map(({ titulo, anexo, _anexoPersistido }) => (_anexoPersistido && anexo ? { titulo, anexo } : { titulo })) } },
       { etapa: null, jaTinhaEtapa: true, chaveConfirmacao: 'docInicial' },
     );
     onAtualizar?.();
@@ -99,7 +114,7 @@ export function renderDocInicialTab(pad, _configUnidade, { onAtualizar } = {}) {
     titulo: 'Documentação Inicial',
     acoes: [criarBotaoConfirmar(pad, 'docInicial', { onAtualizar })],
     filhos: [
-      criarElemento('p', { class: 'text-muted' }, ['Anexos (PDF/imagem) ficam só nesta sessão do navegador — use "Baixar PDF"/"Baixar .doc" antes de sair da página para não perdê-los.']),
+      criarElemento('p', { class: 'text-muted' }, ['Um anexo adicionado agora pelo botão "Anexar arquivo" fica só nesta sessão do navegador — use "Baixar PDF"/"Baixar .doc" antes de sair da página para não perdê-lo. O anexo do Registro de Infração (quando vem automaticamente da criação do PAD) já fica salvo.']),
       criarElemento('div', { class: 'documentos__campos' }, [campoTitulo.elemento]),
       criarElemento('div', { class: 'documentos__acoes' }, [botaoAnexar, legendaArquivo, inputArquivo]),
       criarElemento('div', { class: 'documentos__acoes' }, [botaoAdicionar]),

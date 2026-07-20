@@ -318,6 +318,23 @@ export function criarAnexoSubstituto({ onMudar }) {
 const LIMITE_ANEXO_PERSISTIDO_CARACTERES = 700_000;
 
 /**
+ * Converte um arquivo (PDF ou imagem) em anexo persistível no PAD
+ * (`{ dataUrls, nomeArquivo }`), ou `null` se o resultado ultrapassar
+ * `LIMITE_ANEXO_PERSISTIDO_CARACTERES` — quem chama decide como avisar o
+ * usuário nesse caso (ver uso em `criarAnexoSubstitutoPersistido` abaixo e em
+ * src/pages/pad/new/padNewPage.js, que anexa automaticamente o PDF do
+ * Registro de Infração à Documentação Inicial na criação do PAD).
+ * @param {File} arquivo
+ * @returns {Promise<{ dataUrls: string[], nomeArquivo: string } | null>}
+ */
+export async function converterParaAnexoPersistido(arquivo) {
+  const dataUrls = await converterParaImagensEmbutidas(arquivo);
+  const tamanho = dataUrls.reduce((soma, url) => soma + url.length, 0);
+  if (tamanho > LIMITE_ANEXO_PERSISTIDO_CARACTERES) return null;
+  return { dataUrls, nomeArquivo: arquivo.name };
+}
+
+/**
  * Igual a `criarAnexoSubstituto`, mas o anexo passa a ser PERSISTIDO no PAD
  * (via `salvarSecaoDoPad`/`atualizarPad` de quem chama este widget) em vez
  * de só durar a sessão do navegador — usado onde o anexo precisa sobreviver
@@ -357,14 +374,13 @@ export function criarAnexoSubstitutoPersistido({ valorInicial = null, onMudar })
     const arquivo = input.files?.[0];
     if (!arquivo) return;
     try {
-      const dataUrls = await converterParaImagensEmbutidas(arquivo);
-      const tamanho = dataUrls.reduce((soma, url) => soma + url.length, 0);
-      if (tamanho > LIMITE_ANEXO_PERSISTIDO_CARACTERES) {
+      const anexoConvertido = await converterParaAnexoPersistido(arquivo);
+      if (!anexoConvertido) {
         input.value = '';
         mostrarToast('Documento muito grande para anexar — cole o texto no campo acima ou envie um arquivo menor.', 'aviso');
         return;
       }
-      anexo = { dataUrls, nomeArquivo: arquivo.name };
+      anexo = anexoConvertido;
       legenda.textContent = `Anexado: ${arquivo.name} (substitui o texto gerado nesta exportação)`;
       botaoRemover.style.display = '';
       onMudar();

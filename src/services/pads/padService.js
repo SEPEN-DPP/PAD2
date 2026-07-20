@@ -58,7 +58,10 @@ export async function contarTodosPads(unidades) {
  * única de verdade usada em src/services/auth/authService.js) para que as
  * firestore.rules consigam autorizar contas de Superintendência Regional
  * sem embutir o mapa de 55 unidades no texto das regras.
- * @param {{ numero: string, unidade: string, incidentados: Array, infracao: object }} dados
+ * @param {{ numero: string, unidade: string, incidentados: Array, infracao: object, docInicial?: object }} dados
+ *   `docInicial` é opcional — quando presente, anexa o PDF do Registro de
+ *   Infração à Documentação Inicial automaticamente (ver
+ *   src/pages/pad/new/padNewPage.js).
  * @returns {Promise<string>} id do PAD criado
  */
 /**
@@ -80,7 +83,7 @@ export async function excluirPad(id) {
   await repo.remover(id);
 }
 
-export async function criarPad({ numero, unidade, incidentados, infracao }) {
+export async function criarPad({ numero, unidade, incidentados, infracao, docInicial }) {
   if (!numero?.trim()) throw new Error('O número do PAD é obrigatório.');
   if (!unidade?.trim()) throw new Error('A unidade do PAD é obrigatória.');
 
@@ -93,6 +96,7 @@ export async function criarPad({ numero, unidade, incidentados, infracao }) {
     superintendencia: obterUnidadePorNome(unidade)?.superintendencia ?? null,
     incidentados,
     infracao,
+    ...(docInicial ? { docInicial } : {}),
     status: STATUS_PAD.EM_ANDAMENTO,
   });
 }
