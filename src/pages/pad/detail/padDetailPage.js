@@ -24,6 +24,7 @@ import { renderConselhoTab } from './documentos/conselhoTab.js';
 import { renderDefesaTab } from './documentos/defesaTab.js';
 import { renderDecisaoTab } from './documentos/decisaoTab.js';
 import { renderOficiosTab } from './documentos/oficiosTab.js';
+import { renderPortalDefesaTab } from './documentos/portalDefesaTab.js';
 import { aplicarAnexoSubstituto } from './documentos/_shared.js';
 import { baixarTodosComoPdf } from '../../../templates/shared/pdfExporter.js';
 import { renderizar as renderizarPortaria } from '../../../templates/portariaAberturaTemplate.js';
@@ -169,6 +170,7 @@ export async function render(container, params) {
     { id: 'defesa', titulo: 'Manifestação da Defesa', render: () => renderDefesaTab(pad, configUnidade, { onAtualizar }) },
     { id: 'decisao', titulo: 'Decisão', render: () => renderDecisaoTab(pad, configUnidade, { onAtualizar }) },
     { id: 'oficios', titulo: 'Ofícios', render: () => renderOficiosTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'portal-defesa', titulo: 'Portal da Defesa', render: () => renderPortalDefesaTab(pad, configUnidade, { onAtualizar }) },
   ]);
 
   container.append(criarCard({ filhos: [tabs] }));

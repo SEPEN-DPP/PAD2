@@ -11,6 +11,11 @@
  *
  * Sem sub-rotas via hash — troca o conteúdo do próprio outlet entre lista e
  * detalhe (sem back-button/deep-link nesta primeira versão).
+ *
+ * `montarDocumentosConfirmados` (abaixo) é exportada para reuso pela aba
+ * "Portal da Defesa" do painel institucional (2026-07-20) — qualquer usuário
+ * logado vê exatamente a mesma visão que o defensor vê para aquele PAD, ver
+ * src/pages/pad/detail/documentos/portalDefesaTab.js.
  */
 import { criarElemento, carregarCssUmaVez, limparContainer } from '../../utils/domUtils.js';
 import { criarCard } from '../../components/card/card.js';
@@ -67,15 +72,16 @@ function criarWidgetManifestacaoDefesa(pad, { onEnviado }) {
   });
 }
 
-function renderizarDetalhePad(container, pad, { onVoltar }) {
-  limparContainer(container);
-
-  const botaoVoltar = criarBotao({ texto: 'Voltar', icon: 'chevron-left', variante: 'secondary', onClick: onVoltar });
-  const cabecalho = criarElemento('div', { class: 'documentos__acoes' }, [
-    botaoVoltar,
-    criarElemento('h2', {}, [`PAD ${pad.dadosGerais?.numero ?? pad.id}`]),
-  ]);
-
+/**
+ * Monta os cards de documento (somente leitura) já CONFIRMADOS pela Unidade,
+ * mais o widget de envio da Manifestação da Defesa enquanto ela ainda não
+ * estiver confirmada. Reaproveitado pelo Portal da Defesa do próprio
+ * defensor e pela aba "Portal da Defesa" do painel institucional (mesma
+ * visão para qualquer usuário logado — ver
+ * src/pages/pad/detail/documentos/portalDefesaTab.js).
+ * @param {{ onAtualizar?: () => void }} [params] chamado depois que a Manifestação da Defesa é enviada pelo widget, para o chamador re-renderizar
+ */
+export function montarDocumentosConfirmados(pad, { onAtualizar } = {}) {
   const documentos = [];
 
   if (estaConfirmado(pad, 'portaria')) documentos.push(criarPreviewSomenteLeitura(pad, 'Portaria de Instauração', renderizarPortaria(pad)));
@@ -110,7 +116,7 @@ function renderizarDetalhePad(container, pad, { onVoltar }) {
       aplicarAnexoSubstituto(renderizarDefesa(pad), pad.defesa?.anexoPersistido),
     ));
   } else {
-    documentos.push(criarWidgetManifestacaoDefesa(pad, { onEnviado: () => renderizarDetalhePad(container, pad, { onVoltar }) }));
+    documentos.push(criarWidgetManifestacaoDefesa(pad, { onEnviado: () => onAtualizar?.() }));
   }
 
   if (estaConfirmado(pad, 'decisao')) {
@@ -122,6 +128,20 @@ function renderizarDetalhePad(container, pad, { onVoltar }) {
   }
   if (estaConfirmado(pad, 'oficioJuizo')) documentos.push(criarPreviewSomenteLeitura(pad, 'Ofício ao Juiz', renderizarOficioJuizo(pad)));
   if (estaConfirmado(pad, 'oficioVep')) documentos.push(criarPreviewSomenteLeitura(pad, 'Ofício de Encaminhamento à VEP', renderizarOficioVep(pad)));
+
+  return documentos;
+}
+
+function renderizarDetalhePad(container, pad, { onVoltar }) {
+  limparContainer(container);
+
+  const botaoVoltar = criarBotao({ texto: 'Voltar', icon: 'chevron-left', variante: 'secondary', onClick: onVoltar });
+  const cabecalho = criarElemento('div', { class: 'documentos__acoes' }, [
+    botaoVoltar,
+    criarElemento('h2', {}, [`PAD ${pad.dadosGerais?.numero ?? pad.id}`]),
+  ]);
+
+  const documentos = montarDocumentosConfirmados(pad, { onAtualizar: () => renderizarDetalhePad(container, pad, { onVoltar }) });
 
   container.append(
     cabecalho,
