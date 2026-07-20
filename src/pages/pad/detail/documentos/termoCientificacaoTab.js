@@ -6,6 +6,15 @@
  * (ver src/templates/shared/condicionais.js:textoDefensor). É também aqui
  * que nasce o vínculo do defensor ao Portal da Defesa (Fase 6, 2026-07-19),
  * já que é onde o e-mail dele é coletado pela primeira vez.
+ *
+ * Seleção de advogado da Relação (2026-07-20) — `criarBuscaAdvogado` busca
+ * no mesmo índice estático de src/pages/advogados/advogadosPage.js. Ao
+ * escolher um resultado, `selecionarAdvogado` aplica os dados direto se o
+ * cadastro já estiver `completo`; senão abre o mesmo modal de completude
+ * (`src/pages/advogados/advogadoCadastroModal.js`, com a mesma exigência de
+ * preencher tudo — inclusive e-mail — e confirmar explicitamente) antes de
+ * aplicar. Continua possível digitar nome/OAB/e-mail manualmente sem passar
+ * pela busca, como sempre foi.
  */
 import {
   criarElemento, carregarCssUmaVez, criarCampo, criarCampoSelect, criarAreaPreview, criarBotao, criarBotaoSalvar,
@@ -14,7 +23,72 @@ import {
 import { renderizar as renderizarTermo } from '../../../../templates/termoCientificacaoTemplate.js';
 import { vincularDefensorAoPad, desvincularDefensorDoPad, notificarDefensorPorEmail, obterDefensor } from '../../../../services/defensores/defensorService.js';
 import { usuarioAtual, obterPerfilDoUsuario } from '../../../../services/auth/authService.js';
+import { buscarPorOab } from '../../../../services/advogados/advogadoCadastroService.js';
+import { carregarIndiceAdvogados, filtrarIndiceAdvogados } from '../../../../services/advogados/advogadoBuscaService.js';
+import { abrirModalEdicao } from '../../../advogados/advogadoCadastroModal.js';
 import { mostrarToast } from '../../../../utils/toast.js';
+
+const LIMITE_RESULTADOS_BUSCA_ADVOGADO = 8;
+
+/**
+ * Busca de advogado da Relação (2026-07-20) — mesmo índice estático usado em
+ * src/pages/advogados/advogadosPage.js. Selecionar um resultado aplica os
+ * dados direto nos campos do formulário (`onSelecionar`); quem chama decide
+ * o que fazer com um cadastro ainda incompleto (ver uso abaixo).
+ */
+function criarBuscaAdvogado({ onSelecionar }) {
+  const campoBusca = criarElemento('input', {
+    class: 'campo__input',
+    type: 'search',
+    placeholder: 'Buscar advogado da Relação por nome ou OAB…',
+  });
+  const areaResultados = criarElemento('div');
+
+  let indice = [];
+  carregarIndiceAdvogados().then((carregado) => {
+    indice = carregado;
+  });
+
+  function renderizarResultados(termo) {
+    areaResultados.replaceChildren();
+    if (!termo.trim()) return;
+
+    const encontrados = filtrarIndiceAdvogados(indice, termo).slice(0, LIMITE_RESULTADOS_BUSCA_ADVOGADO);
+    if (!encontrados.length) {
+      areaResultados.append(criarElemento('p', { class: 'text-muted' }, ['Nenhum advogado encontrado na Relação — pode digitar os dados manualmente abaixo.']));
+      return;
+    }
+
+    const lista = criarElemento('ul', { class: 'documentos__lista-itens' });
+    lista.replaceChildren(
+      ...encontrados.map((item) => {
+        const localizacao = [item.cidade, item.estado].filter(Boolean).join('/');
+        const botaoEscolher = criarBotao({
+          texto: `${item.nome} — OAB nº ${item.oab}${localizacao ? ` — ${localizacao}` : ''}`,
+          icon: 'users',
+          variante: 'secondary',
+          onClick: () => {
+            campoBusca.value = '';
+            areaResultados.replaceChildren();
+            onSelecionar(item.oab);
+          },
+        });
+        return criarElemento('li', { class: 'documentos__item-lista' }, [botaoEscolher]);
+      }),
+    );
+    areaResultados.append(lista);
+  }
+
+  campoBusca.addEventListener('input', () => renderizarResultados(campoBusca.value));
+
+  return criarElemento('div', { class: 'documentos__campos' }, [
+    criarElemento('label', { class: 'campo' }, [
+      criarElemento('span', { class: 'campo__rotulo' }, ['Buscar na Relação de Advogados (opcional)']),
+      campoBusca,
+    ]),
+    areaResultados,
+  ]);
+}
 
 const OPCOES_DEFESA = [
   { valor: '', rotulo: 'Ainda não indicado' },
@@ -189,12 +263,52 @@ export function renderTermoCientificacaoTab(pad, _configUnidade, { onAtualizar }
     onAtualizar,
   });
 
+  /** Aplica os dados de um advogado da Relação nos campos do formulário — usado tanto na seleção direta (cadastro já completo) quanto depois de completar o cadastro no modal. */
+  function aplicarDadosAdvogado(dados) {
+    campoAdvogadoNome.input.value = dados.nome ?? '';
+    campoAdvogadoOab.input.value = dados.oab ?? '';
+    campoEmailDefensor.input.value = dados.email ?? '';
+    preview.atualizar();
+    blocoVinculo.atualizar();
+  }
+
+  /**
+   * Ao escolher um advogado da Relação: se o cadastro já está `completo`
+   * (confirmado alguma vez, para qualquer PAD — ver
+   * src/pages/advogados/advogadoCadastroModal.js), aplica os dados direto,
+   * sem pedir nada de novo. Senão, exige completar todos os campos (inclusive
+   * e-mail, que a planilha original de importação não tinha) com confirmação
+   * explícita antes de aplicar — e só nesse primeiro acesso incompleto.
+   */
+  async function selecionarAdvogado(oab) {
+    const dados = await buscarPorOab(oab);
+    if (!dados) {
+      mostrarToast('Não foi possível carregar os dados deste advogado.', 'erro');
+      return;
+    }
+    aplicarDadosAdvogado(dados);
+    if (dados.completo === true) return;
+
+    const perfilUsuario = await obterPerfilDoUsuario(usuarioAtual()?.uid);
+    abrirModalEdicao({
+      oabOriginal: oab,
+      dadosIniciais: dados,
+      perfilUsuario,
+      onSalvo: async (oabFinal) => {
+        const atualizado = await buscarPorOab(oabFinal);
+        if (atualizado) aplicarDadosAdvogado(atualizado);
+      },
+    });
+  }
+
+  const buscaAdvogado = criarBuscaAdvogado({ onSelecionar: selecionarAdvogado });
+  const blocoCamposAdvogado = criarElemento('div', {}, [buscaAdvogado, camposAdvogado]);
+
   function atualizarVisibilidade() {
-    camposAdvogado.style.display = campoTipo.input.value === 'advogado' ? '' : 'none';
+    blocoCamposAdvogado.style.display = campoTipo.input.value === 'advogado' ? '' : 'none';
     campoEmailDefensor.elemento.style.display = campoTipo.input.value ? '' : 'none';
     blocoVinculo.atualizar();
   }
-  atualizarVisibilidade();
   campoTipo.input.addEventListener('change', atualizarVisibilidade);
   campoEmailDefensor.input.addEventListener('change', () => blocoVinculo.atualizar());
 
@@ -213,11 +327,13 @@ export function renderTermoCientificacaoTab(pad, _configUnidade, { onAtualizar }
     campo.input.addEventListener('change', preview.atualizar);
   });
 
+  atualizarVisibilidade();
+
   const secao = criarCardEditavel({
     titulo: 'Termo de Cientificação',
     corpo: [
       criarElemento('div', { class: 'documentos__campos' }, [campoTipo.elemento]),
-      camposAdvogado,
+      blocoCamposAdvogado,
       criarElemento('div', { class: 'documentos__campos' }, [campoEmailDefensor.elemento]),
       blocoVinculo.elemento,
       campoObservacoes.elemento,

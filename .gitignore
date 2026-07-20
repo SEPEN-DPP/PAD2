@@ -18,3 +18,7 @@ public/dados/
 
 functions/node_modules/
 functions/.env
+
+# Configuração local do Claude Code (permissões da máquina de quem está
+# desenvolvendo) — não é do projeto, não commitar.
+.claude/
