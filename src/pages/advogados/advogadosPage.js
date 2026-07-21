@@ -1,8 +1,10 @@
 /**
- * Relação de Advogados (Fase 6+, 2026-07-19) — diretório de contato
- * institucional, pré-importado de uma planilha real do i-PEN (ver
+ * Relação de Advogados e Defensores Públicos (Fase 6+, 2026-07-19; passa a
+ * cadastrar defensor público também em 2026-07-20, ver `categoria` em
+ * advogadoCadastroModal.js) — diretório de contato institucional, com um
+ * núcleo pré-importado de uma planilha real do i-PEN (ver
  * docs/firestore-schema.md e src/services/advogados/advogadoCadastroService.js).
- * Independente do Portal da Defesa: existe para qualquer advogado conhecido,
+ * Independente do Portal da Defesa: existe para qualquer defensor conhecido,
  * tenha ele vínculo ativo a algum PAD ou não.
  *
  * A busca por nome/OAB (`src/services/advogados/advogadoBuscaService.js`)
@@ -30,7 +32,7 @@ import { criarBotao } from '../../components/button/button.js';
 import { criarEmptyState } from '../../components/emptyState/emptyState.js';
 import { abrirModal } from '../../components/modal/modal.js';
 import { buscarPorOab } from '../../services/advogados/advogadoCadastroService.js';
-import { carregarIndiceAdvogados, filtrarIndiceAdvogados } from '../../services/advogados/advogadoBuscaService.js';
+import { carregarIndiceAdvogados, buscarAdvogados } from '../../services/advogados/advogadoBuscaService.js';
 import { abrirModalEdicao } from './advogadoCadastroModal.js';
 import { usuarioAtual, obterPerfilDoUsuario } from '../../services/auth/authService.js';
 
@@ -48,6 +50,7 @@ function abrirModalVisualizacao(dados) {
   abrirModal({
     titulo: `${dados?.nome || 'Advogado'} — OAB ${dados?.oab ?? '—'}`,
     conteudo: [
+      criarLinhaLeitura('Categoria', dados?.categoria === 'DEFENSOR_PUBLICO' ? 'Defensor Público' : 'Advogado'),
       criarLinhaLeitura('Nome', dados?.nome),
       criarLinhaLeitura('OAB', dados?.oab),
       criarLinhaLeitura('Rua', dados?.endereco?.rua),
@@ -65,12 +68,15 @@ function abrirModalVisualizacao(dados) {
   });
 }
 
-function criarResultado({ nome, oab, cidade, estado, onVisualizar, onEditar }) {
+const ROTULO_CATEGORIA = { DEFENSOR_PUBLICO: 'Defensor Público', ADVOGADO: 'Advogado' };
+
+function criarResultado({ nome, oab, cidade, estado, categoria, onVisualizar, onEditar }) {
   const localizacao = [cidade, estado].filter(Boolean).join('/');
+  const rotuloCategoria = ROTULO_CATEGORIA[categoria] ?? 'Advogado';
   const botaoVisualizar = criarBotao({ texto: 'Visualizar', icon: 'eye', variante: 'secondary', onClick: onVisualizar });
   const botaoEditar = criarBotao({ texto: 'Editar', icon: 'settings', variante: 'secondary', onClick: onEditar });
   return criarElemento('li', { class: 'documentos__item-lista' }, [
-    criarElemento('span', {}, [`${nome} — OAB nº ${oab}${localizacao ? ` — ${localizacao}` : ''}`]),
+    criarElemento('span', {}, [`${nome} — OAB nº ${oab}${localizacao ? ` — ${localizacao}` : ''} — ${rotuloCategoria}`]),
     criarElemento('div', { class: 'advogados__acoes-linha' }, [botaoVisualizar, botaoEditar]),
   ]);
 }
@@ -82,7 +88,7 @@ export async function render(container) {
   const perfilUsuario = await obterPerfilDoUsuario(usuarioAtual()?.uid);
 
   const botaoAdicionar = criarBotao({
-    texto: 'Adicionar advogado',
+    texto: 'Adicionar advogado ou defensor público',
     icon: 'users',
     variante: 'secondary',
     onClick: () => {
@@ -92,7 +98,7 @@ export async function render(container) {
 
   container.append(
     criarPageHeader({
-      titulo: 'Relação de Advogados',
+      titulo: 'Advogados e Defensores Públicos',
       descricao: 'Busque por nome ou número da OAB para ver ou completar o cadastro de contato.',
       acoes: [botaoAdicionar],
     }),
@@ -119,7 +125,9 @@ export async function render(container) {
     abrirModalEdicao({ oabOriginal: oab, dadosIniciais: dados, perfilUsuario, onSalvo: () => {} });
   }
 
+  let temporizadorBusca = null;
   function renderizarResultados(termo) {
+    clearTimeout(temporizadorBusca);
     limparContainer(areaResultados);
 
     if (!termo.trim()) {
@@ -129,36 +137,44 @@ export async function render(container) {
       return;
     }
 
-    const encontrados = filtrarIndiceAdvogados(indice, termo);
+    // Debounced (2026-07-20): parte da busca agora consulta o Firestore ao
+    // vivo (ver advogadoBuscaService.js:buscarAdvogados), não só o índice
+    // estático — esperar uma pausa na digitação evita uma leitura por tecla.
+    temporizadorBusca = setTimeout(async () => {
+      const encontrados = await buscarAdvogados(indice, termo);
+      if (campoBusca.value !== termo) return;
+      limparContainer(areaResultados);
 
-    if (!encontrados.length) {
-      areaResultados.append(
-        criarEmptyState({ titulo: 'Nenhum advogado encontrado', descricao: 'Confira a grafia ou use "Adicionar advogado" para cadastrar.', icon: 'scale' }),
+      if (!encontrados.length) {
+        areaResultados.append(
+          criarEmptyState({ titulo: 'Nenhum advogado encontrado', descricao: 'Confira a grafia ou use "Adicionar advogado ou defensor público" para cadastrar.', icon: 'scale' }),
+        );
+        return;
+      }
+
+      const exibidos = encontrados.slice(0, LIMITE_RESULTADOS_EXIBIDOS);
+      const lista = criarElemento('ul', { class: 'documentos__lista-itens' });
+      lista.replaceChildren(
+        ...exibidos.map((item) =>
+          criarResultado({
+            nome: item.nome,
+            oab: item.oab,
+            cidade: item.cidade,
+            estado: item.estado,
+            categoria: item.categoria,
+            onVisualizar: () => abrirVisualizacao({ oab: item.oab, nome: item.nome }),
+            onEditar: () => abrirEdicao({ oab: item.oab, nome: item.nome }),
+          }),
+        ),
       );
-      return;
-    }
 
-    const exibidos = encontrados.slice(0, LIMITE_RESULTADOS_EXIBIDOS);
-    const lista = criarElemento('ul', { class: 'documentos__lista-itens' });
-    lista.replaceChildren(
-      ...exibidos.map((item) =>
-        criarResultado({
-          nome: item.nome,
-          oab: item.oab,
-          cidade: item.cidade,
-          estado: item.estado,
-          onVisualizar: () => abrirVisualizacao({ oab: item.oab, nome: item.nome }),
-          onEditar: () => abrirEdicao({ oab: item.oab, nome: item.nome }),
-        }),
-      ),
-    );
-
-    areaResultados.append(lista);
-    if (encontrados.length > exibidos.length) {
-      areaResultados.append(
-        criarElemento('p', { class: 'text-muted' }, [`Mostrando ${exibidos.length} de ${encontrados.length} resultados — refine sua busca.`]),
-      );
-    }
+      areaResultados.append(lista);
+      if (encontrados.length > exibidos.length) {
+        areaResultados.append(
+          criarElemento('p', { class: 'text-muted' }, [`Mostrando ${exibidos.length} de ${encontrados.length} resultados — refine sua busca.`]),
+        );
+      }
+    }, 350);
   }
 
   campoBusca.addEventListener('input', () => renderizarResultados(campoBusca.value));

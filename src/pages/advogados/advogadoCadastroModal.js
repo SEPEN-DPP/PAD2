@@ -12,11 +12,16 @@
 import { criarElemento } from '../../utils/domUtils.js';
 import { criarBotao } from '../../components/button/button.js';
 import { abrirModal } from '../../components/modal/modal.js';
-import { criarCampo } from '../pad/detail/documentos/_shared.js';
+import { criarCampo, criarCampoSelect } from '../pad/detail/documentos/_shared.js';
 import { criarOuAtualizar } from '../../services/advogados/advogadoCadastroService.js';
 import { usuarioAtual } from '../../services/auth/authService.js';
 import { ehCampoObrigatorio } from '../../utils/validationUtils.js';
 import { mostrarToast } from '../../utils/toast.js';
+
+const OPCOES_CATEGORIA = [
+  { valor: 'ADVOGADO', rotulo: 'Advogado' },
+  { valor: 'DEFENSOR_PUBLICO', rotulo: 'Defensor Público' },
+];
 
 const CAMPOS_ENDERECO = [
   { chave: 'rua', rotulo: 'Rua' },
@@ -29,6 +34,7 @@ const CAMPOS_ENDERECO = [
 
 /** Monta os campos editáveis do cadastro — reaproveitado pelo modal de edição/completude. */
 function criarCamposCadastro(dados, { oabEditavel }) {
+  const campoCategoria = criarCampoSelect({ rotulo: 'Categoria', valor: dados?.categoria || 'ADVOGADO', opcoes: OPCOES_CATEGORIA });
   const campoNome = criarCampo({ rotulo: 'Nome completo', valor: dados?.nome });
   const campoOab = criarCampo({ rotulo: 'OAB', valor: dados?.oab });
   if (!oabEditavel) campoOab.input.disabled = true;
@@ -40,6 +46,7 @@ function criarCamposCadastro(dados, { oabEditavel }) {
   const campoEmail = criarCampo({ rotulo: 'E-mail', valor: dados?.email, tipo: 'email' });
 
   const corpo = [
+    campoCategoria.elemento,
     campoNome.elemento,
     campoOab.elemento,
     ...camposEndereco.map((c) => c.campo.elemento),
@@ -49,6 +56,7 @@ function criarCamposCadastro(dados, { oabEditavel }) {
 
   function lerDados() {
     return {
+      categoria: campoCategoria.input.value,
       nome: campoNome.input.value.trim(),
       oab: campoOab.input.value.trim(),
       endereco: Object.fromEntries(camposEndereco.map((c) => [c.chave, c.campo.input.value.trim()])),
@@ -63,6 +71,7 @@ function criarCamposCadastro(dados, { oabEditavel }) {
 /** Completo = tudo preenchido, exceto complemento (muitos endereços reais legitimamente não têm). */
 export function estaCompleto(dados) {
   return (
+    ehCampoObrigatorio(dados.categoria) &&
     ehCampoObrigatorio(dados.nome) &&
     ehCampoObrigatorio(dados.oab) &&
     ehCampoObrigatorio(dados.telefone) &&
@@ -96,7 +105,7 @@ export function abrirModalEdicao({ oabOriginal, dadosIniciais, perfilUsuario, on
   let aguardandoConfirmacao = false;
 
   const fechar = abrirModal({
-    titulo: oabOriginal ? `Editar cadastro — ${dadosIniciais?.nome ?? oabOriginal}` : 'Adicionar advogado',
+    titulo: oabOriginal ? `Editar cadastro — ${dadosIniciais?.nome ?? oabOriginal}` : 'Adicionar advogado ou defensor público',
     conteudo: [
       criarElemento('p', { class: 'text-muted' }, [
         'Todos os campos são obrigatórios, exceto complemento.',

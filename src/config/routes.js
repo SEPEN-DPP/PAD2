@@ -57,7 +57,7 @@ export const ROUTES = Object.freeze([
   },
   {
     path: '/advogados',
-    title: 'Relação de Advogados',
+    title: 'Advogados e Defensores',
     icon: 'scale',
     load: () => import('../pages/advogados/advogadosPage.js'),
     nav: true,

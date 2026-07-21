@@ -9,6 +9,7 @@
  */
 import { criarRepositorio } from '../firestoreRepository.js';
 import { COLLECTIONS } from '../../config/constants.js';
+import { normalizarTexto } from './advogadoBuscaService.js';
 
 const repo = criarRepositorio(COLLECTIONS.ADVOGADOS_CADASTRO);
 
@@ -32,13 +33,23 @@ export async function buscarPorOab(oab) {
  * completar um cadastro pré-importado incompleto quanto para cadastrar um
  * advogado que não estava na lista original. `dados` deve conter o objeto
  * inteiro (nome, oab, endereco, telefone, email, completo).
+ *
+ * Sempre grava `nomeNormalizado`/`oabNormalizada` junto (2026-07-20) — é o
+ * que permite a busca ao vivo em src/services/advogados/advogadoBuscaService.js
+ * encontrar este registro antes de alguém reexportar o índice estático
+ * (que é gerado por um script externo manual, não automático).
  */
 export async function criarOuAtualizar(oab, dados) {
   const id = idParaOab(oab);
+  const payload = {
+    ...dados,
+    nomeNormalizado: normalizarTexto(dados.nome),
+    oabNormalizada: normalizarTexto(oab),
+  };
   const existente = await repo.obterPorId(id);
   if (existente) {
-    await repo.atualizar(id, dados);
+    await repo.atualizar(id, payload);
   } else {
-    await repo.criar({ ...dados, oab }, id);
+    await repo.criar({ ...payload, oab }, id);
   }
 }

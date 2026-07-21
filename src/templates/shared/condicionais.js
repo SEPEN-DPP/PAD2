@@ -63,9 +63,19 @@ export function integrantesConselho(pad, configUnidade) {
   };
 }
 
-/** @param {{ tipo: 'advogado'|'defensoria'|null, advogadoNome?: string, advogadoOab?: string }} defesa */
+/**
+ * Defensor público (2026-07-20) agora também é selecionado nominalmente da
+ * Relação de Advogados e Defensores Públicos (ver termoCientificacaoTab.js),
+ * então mostra o nome da pessoa quando disponível — cai para o texto
+ * institucional genérico só em PADs antigos, de antes dessa mudança, onde
+ * só o tipo "defensoria" foi indicado, sem defensor nominal.
+ * @param {{ tipo: 'advogado'|'defensoria'|null, advogadoNome?: string, advogadoOab?: string }} defesa
+ */
 export function textoDefensor(defesa) {
-  if (defesa?.tipo === 'defensoria') return 'Defensoria Pública do Estado de Santa Catarina';
+  if (defesa?.tipo === 'defensoria') {
+    if (!defesa.advogadoNome) return 'Defensoria Pública do Estado de Santa Catarina';
+    return defesa.advogadoOab ? `${defesa.advogadoNome}, Defensor(a) Público(a), OAB nº ${defesa.advogadoOab}` : `${defesa.advogadoNome}, Defensor(a) Público(a)`;
+  }
   if (defesa?.tipo === 'advogado') {
     const nome = defesa.advogadoNome || ph('ADVOGADO');
     return defesa.advogadoOab ? `${nome}, OAB nº ${defesa.advogadoOab}` : nome;
