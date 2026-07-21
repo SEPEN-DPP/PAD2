@@ -46,7 +46,7 @@ export function renderizar(pad, testemunha, configUnidade) {
     assinaturas: [
       { nome: `${ehInformante ? 'Informante' : 'Testemunha'}: ${testemunha?.nome || placeholder('NOME')}` },
       assinaturaDefensor,
-      { nome: conselho.presidente, cargo: 'Presidente do Conselho Disciplinar' },
+      { nome: conselho.presidente.nome, matricula: conselho.presidente.matricula, cargo: 'Presidente do Conselho Disciplinar' },
     ],
   };
 }

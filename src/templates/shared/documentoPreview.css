@@ -24,7 +24,6 @@
   font-weight: 700;
   text-transform: uppercase;
   margin-bottom: var(--space-5);
-  border-bottom: 1px solid #ccc;
   padding-bottom: var(--space-4);
 }
 
@@ -136,6 +135,5 @@
   text-align: center;
   color: #555;
   margin-top: var(--space-6);
-  border-top: 1px solid #ccc;
   padding-top: var(--space-3);
 }

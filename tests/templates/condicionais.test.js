@@ -8,6 +8,7 @@ import {
   textoIncisosDesclassificacao,
   listaSancoes,
   integrantesConselho,
+  nomeMatriculaTexto,
 } from '../../src/templates/shared/condicionais.js';
 
 const PAD_BASE = {
@@ -95,8 +96,13 @@ test('listaSancoes: sem nenhuma marcada retorna lista vazia', () => {
 
 test('integrantesConselho: usa os dados do PAD quando existem, senão cai para a config da unidade', () => {
   const doPad = integrantesConselho({ conselho: { integrantes: { presidente: { nome: 'A', matricula: '1' } } } }, { conselho: { presidente: { nome: 'B' } } });
-  assert.equal(doPad.presidente, 'A – Mat. 1');
+  assert.deepEqual(doPad.presidente, { nome: 'A', matricula: '1' });
 
   const daConfig = integrantesConselho({}, { conselho: { presidente: { nome: 'B' } } });
-  assert.equal(daConfig.presidente, 'B');
+  assert.deepEqual(daConfig.presidente, { nome: 'B', matricula: null });
+});
+
+test('nomeMatriculaTexto: combina nome e matrícula, ou só o nome quando não há matrícula', () => {
+  assert.equal(nomeMatriculaTexto({ nome: 'A', matricula: '1' }), 'A – Mat. 1');
+  assert.equal(nomeMatriculaTexto({ nome: 'A', matricula: null }), 'A');
 });

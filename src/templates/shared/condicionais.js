@@ -49,11 +49,17 @@ export function cidadeDaUnidade(pad) {
 }
 
 function formatarPessoa(pessoa, rotulo) {
-  const nome = pessoa?.nome || ph(rotulo);
-  return pessoa?.matricula ? `${nome} – Mat. ${pessoa.matricula}` : nome;
+  return { nome: pessoa?.nome || ph(rotulo), matricula: pessoa?.matricula || null };
 }
 
-/** Integrantes do Conselho já gravados no PAD; cai para a config da unidade se o PAD ainda não tiver. */
+/**
+ * Integrantes do Conselho já gravados no PAD; cai para a config da unidade
+ * se o PAD ainda não tiver. Cada um vem como `{ nome, matricula }` — nunca
+ * mais uma string só combinando os dois (2026-07-21), pra permitir que a
+ * assinatura do documento mostre nome, matrícula e função em três linhas
+ * separadas (ver `assinaturas` no README de templates). Pra frase corrida
+ * (não assinatura), use `nomeMatriculaTexto` abaixo.
+ */
 export function integrantesConselho(pad, configUnidade) {
   const c = pad.conselho?.integrantes ?? configUnidade?.conselho ?? {};
   return {
@@ -61,6 +67,11 @@ export function integrantesConselho(pad, configUnidade) {
     membro1: formatarPessoa(c.membro1, 'MEMBRO 1'),
     membro2: formatarPessoa(c.membro2, 'MEMBRO 2'),
   };
+}
+
+/** "NOME – Mat. X" (ou só "NOME" sem matrícula) — pra uso em texto corrido, não em assinatura (ver `integrantesConselho`). */
+export function nomeMatriculaTexto({ nome, matricula }) {
+  return matricula ? `${nome} – Mat. ${matricula}` : nome;
 }
 
 /**

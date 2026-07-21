@@ -50,9 +50,9 @@ export function renderizar(pad, incidentado, declaracao, configUnidade) {
     assinaturas: [
       { nome: `Incidentado(a): ${incidentado?.nomeCompleto || placeholder('NOME')}` },
       assinaturaDefensor,
-      { nome: conselho.presidente, cargo: 'Presidente do Conselho Disciplinar' },
-      { nome: conselho.membro1, cargo: 'Membro do Conselho Disciplinar' },
-      { nome: conselho.membro2, cargo: 'Membro do Conselho Disciplinar' },
+      { nome: conselho.presidente.nome, matricula: conselho.presidente.matricula, cargo: 'Presidente do Conselho Disciplinar' },
+      { nome: conselho.membro1.nome, matricula: conselho.membro1.matricula, cargo: 'Membro do Conselho Disciplinar' },
+      { nome: conselho.membro2.nome, matricula: conselho.membro2.matricula, cargo: 'Membro do Conselho Disciplinar' },
     ],
   };
 }

@@ -58,8 +58,8 @@ export function renderizarPreview(pad, documento) {
           { class: 'documento-preview__assinatura' },
           [
             linhaTexto('strong', assinatura.nome?.toUpperCase?.() ?? assinatura.nome),
+            assinatura.matricula ? linhaTexto('span', `Policial Penal - Mat. ${assinatura.matricula}`) : null,
             assinatura.cargo ? linhaTexto('span', assinatura.cargo) : null,
-            assinatura.matricula ? linhaTexto('span', `Mat. ${assinatura.matricula}`) : null,
           ].filter(Boolean),
         ),
       ),

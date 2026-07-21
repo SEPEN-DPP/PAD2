@@ -51,15 +51,11 @@ function desenharCabecalho(doc, cabecalho, logoDataUrl) {
   }
   const yFimLogo = MARGEM - 2 + ALTURA_LOGO;
   const yFinal = Math.max(y, yFimLogo);
-  doc.setDrawColor(180);
-  doc.line(MARGEM, yFinal + 3, LARGURA_PAGINA - MARGEM, yFinal + 3);
   return yFinal + 9;
 }
 
 function desenharRodape(doc, rodape) {
   const yLinha = ALTURA_PAGINA - MARGEM - ALTURA_RODAPE_RESERVADA + 4;
-  doc.setDrawColor(180);
-  doc.line(MARGEM, yLinha, LARGURA_PAGINA - MARGEM, yLinha);
   doc.setFont(FONTE, 'bold');
   doc.setFontSize(TAMANHO_FONTE);
   doc.text(rodape.linhas[0] ?? '', LARGURA_PAGINA / 2, yLinha + 5, { align: 'center' });
@@ -178,12 +174,12 @@ class EscritorPdf {
       this.doc.text((assinatura.nome ?? '').toUpperCase(), xCentro, this.y + 4, { align: 'center', maxWidth: largura - 10 });
       this.doc.setFont(FONTE, 'normal');
       let y = this.y + 4 + ALTURA_LINHA;
-      if (assinatura.cargo) {
-        this.doc.text(assinatura.cargo, xCentro, y, { align: 'center' });
+      if (assinatura.matricula) {
+        this.doc.text(`Policial Penal - Mat. ${assinatura.matricula}`, xCentro, y, { align: 'center' });
         y += ALTURA_LINHA;
       }
-      if (assinatura.matricula) {
-        this.doc.text(`Mat. ${assinatura.matricula}`, xCentro, y, { align: 'center' });
+      if (assinatura.cargo) {
+        this.doc.text(assinatura.cargo, xCentro, y, { align: 'center' });
       }
     });
     this.y += alturaBloco;

@@ -9,6 +9,7 @@ import {
   descricaoDosFatos,
   artigoTextoCompleto,
   integrantesConselho,
+  nomeMatriculaTexto,
   diretorDaUnidade,
   cidadeDaUnidade,
   placeholder,
@@ -45,7 +46,7 @@ export function renderizar(pad, configUnidade) {
         conteudo: [
           '1. Instaurar Procedimento Administrativo Disciplinar (PAD) para apurar os fatos acima descritos;',
           '2. Determinar que se procedam as diligências internas que se fizerem necessárias, visando apurar a prática de FALTA GRAVE;',
-          `3. Designar o Conselho Disciplinar, composto pelos servidores abaixo indicados, para conduzir o procedimento e, ao final, emitir parecer sobre os fatos apurados, remetendo os autos para decisão administrativa desta Diretoria: Presidente: ${conselho.presidente}, Policial Penal; Membro: ${conselho.membro1}, Policial Penal; Membro: ${conselho.membro2}, Policial Penal.`,
+          `3. Designar o Conselho Disciplinar, composto pelos servidores abaixo indicados, para conduzir o procedimento e, ao final, emitir parecer sobre os fatos apurados, remetendo os autos para decisão administrativa desta Diretoria: Presidente: ${nomeMatriculaTexto(conselho.presidente)}, Policial Penal; Membro: ${nomeMatriculaTexto(conselho.membro1)}, Policial Penal; Membro: ${nomeMatriculaTexto(conselho.membro2)}, Policial Penal.`,
           '4. O prazo para conclusão do PAD é de 30 (trinta) dias, contados da data desta Portaria, podendo ser prorrogado por igual período, desde que devidamente justificado.',
         ],
       },
