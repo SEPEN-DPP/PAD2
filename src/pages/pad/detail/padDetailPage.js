@@ -7,7 +7,6 @@ import { criarElemento, carregarCssUmaVez } from '../../../utils/domUtils.js';
 import { criarBreadcrumbs } from '../../../components/breadcrumbs/breadcrumbs.js';
 import { criarTabs } from '../../../components/tabs/tabs.js';
 import { criarCard } from '../../../components/card/card.js';
-import { criarBotao } from '../../../components/button/button.js';
 import { criarStatusBadge } from '../../../components/statusBadge/statusBadge.js';
 import { criarEmptyState } from '../../../components/emptyState/emptyState.js';
 import { mostrarToast } from '../../../utils/toast.js';
@@ -26,9 +25,7 @@ import { renderDepoimentoIncidentadoTab } from './documentos/depoimentoIncidenta
 import { renderConselhoTab } from './documentos/conselhoTab.js';
 import { renderDefesaTab } from './documentos/defesaTab.js';
 import { renderDecisaoTab } from './documentos/decisaoTab.js';
-import { renderMensagensTab } from './documentos/mensagensTab.js';
 import { aplicarAnexoSubstituto } from './documentos/_shared.js';
-import { baixarTodosComoPdf } from '../../../templates/shared/pdfExporter.js';
 import { renderizar as renderizarPortaria } from '../../../templates/portariaAberturaTemplate.js';
 import { renderizar as renderizarDocInicial } from '../../../templates/docInicialTemplate.js';
 import { renderizar as renderizarOitiva } from '../../../templates/oitivaTestemunhaTemplate.js';
@@ -43,9 +40,10 @@ import { renderizar as renderizarDecisao } from '../../../templates/decisaoTempl
  * Conselho, Manifestação da Defesa e Decisão, nessa ordem. Termo de
  * Cientificação fica de fora (decisão do usuário — é
  * correspondência/formalidade à parte, não "o processo" em si). Exportada
- * para reuso pela página "Portal da Defesa" institucional (2026-07-20, ver
- * src/pages/portal-defesa-preview/portalDefesaPreviewPage.js), que também
- * oferece esse download a partir da visão somente-leitura de cada PAD.
+ * para uso exclusivo da página "Portal da Defesa" institucional (2026-07-21
+ * — o download saiu do Detalhe do PAD, que é editável; "Baixar PAD completo"
+ * só existe na visão somente-leitura, ver
+ * src/pages/portal-defesa-preview/portalDefesaPreviewPage.js).
  */
 export function montarDocumentosCompletos(pad, configUnidade) {
   const documentos = [renderizarPortaria(pad, configUnidade), renderizarDocInicial(pad)];
@@ -197,24 +195,6 @@ export async function render(container, params) {
 
   const configUnidade = await obterConfiguracaoUnidade(pad.dadosGerais?.unidade);
 
-  const botaoBaixarPad = criarBotao({
-    texto: 'Baixar PAD completo (PDF)',
-    icon: 'download',
-    variante: 'secondary',
-    onClick: async () => {
-      botaoBaixarPad.disabled = true;
-      try {
-        const documentos = montarDocumentosCompletos(pad, configUnidade);
-        await baixarTodosComoPdf(pad, documentos, `PAD_${pad.dadosGerais?.numero ?? pad.id}.pdf`);
-      } catch (erro) {
-        console.error('Falha ao gerar o PAD completo:', erro);
-        mostrarToast('Não foi possível gerar o PDF do PAD.', 'erro');
-      } finally {
-        botaoBaixarPad.disabled = false;
-      }
-    },
-  });
-
   container.append(
     criarElemento('div', { class: 'pad-detail__cabecalho' }, [
       criarBreadcrumbs(
@@ -226,7 +206,6 @@ export async function render(container, params) {
           location.hash = path;
         },
       ),
-      botaoBaixarPad,
     ]),
   );
 
@@ -243,7 +222,6 @@ export async function render(container, params) {
     { id: 'conselho', titulo: 'Manifestação do Conselho Disciplinar', render: () => renderConselhoTab(pad, configUnidade, { onAtualizar }) },
     { id: 'defesa', titulo: 'Manifestação da Defesa', render: () => renderDefesaTab(pad, configUnidade, { onAtualizar }) },
     { id: 'decisao', titulo: 'Decisão', render: () => renderDecisaoTab(pad, configUnidade, { onAtualizar }) },
-    { id: 'mensagens', titulo: 'Mensagens', render: () => renderMensagensTab(pad) },
   ]);
 
   container.append(criarCard({ filhos: [tabs] }));

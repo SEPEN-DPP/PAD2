@@ -8,6 +8,11 @@
  * Manifestação da Defesa, que é exclusivo do defensor logado no portal dele
  * (ver `somenteLeitura` em src/pages/portal-defesa/portalDefesaPage.js).
  * Editar qualquer documento continua exclusivo da tela do PAD (`/pad/:id`).
+ *
+ * Mensagens com o(a) defensor(a) (2026-07-21) — saiu da aba "Mensagens" do
+ * Detalhe do PAD e mora aqui agora, dentro do PAD específico (ver
+ * `criarQuadroMensagens`) — não faz sentido editar documento e mandar
+ * mensagem no mesmo lugar que se edita o processo.
  */
 import { carregarCssUmaVez, criarElemento, limparContainer } from '../../utils/domUtils.js';
 import { criarPageHeader } from '../../components/pageHeader/pageHeader.js';
@@ -23,6 +28,7 @@ import { usuarioAtual, obterPerfilDoUsuario } from '../../services/auth/authServ
 import { montarDocumentosConfirmados } from '../portal-defesa/portalDefesaPage.js';
 import { montarDocumentosCompletos } from '../pad/detail/padDetailPage.js';
 import { baixarTodosComoPdf } from '../../templates/shared/pdfExporter.js';
+import { criarQuadroMensagens } from '../../components/mensagens/mensagensBoard.js';
 import { mostrarToast } from '../../utils/toast.js';
 
 const COLUNAS = [
@@ -114,6 +120,17 @@ export async function render(container) {
             icon: 'file-text',
           }),
     );
+
+    // Mensagens com o(a) defensor(a) (2026-07-21) — saiu do Detalhe do PAD,
+    // mora aqui dentro do PAD específico no Portal da Defesa. Abrir esta
+    // visão já marca como lidas as mensagens do defensor (ver
+    // mensagensBoard.js), limpando o destaque no sininho de notificação.
+    const quadroMensagens = criarQuadroMensagens({
+      pad,
+      autor: { uid: usuarioAtual()?.uid, nome: perfilUsuario?.nome ?? usuarioAtual()?.email ?? 'Unidade', tipo: 'institucional' },
+      titulo: 'Mensagens com o(a) defensor(a)',
+    });
+    outlet.append(quadroMensagens.elemento);
   }
 
   await mostrarLista();

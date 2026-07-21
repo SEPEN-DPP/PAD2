@@ -370,7 +370,11 @@ service cloud.firestore {
         (request.resource.data.autorTipo == 'institucional' && souInstitucionalNoEscopoDaMensagem(request.resource.data))
         || (request.resource.data.autorTipo == 'defensor' && souDefensorVinculado(request.resource.data.padId))
       );
-      allow update, delete: if false;
+      // Só marca como lida (sininho de notificação, 2026-07-21) — nunca
+      // altera o conteúdo da mensagem em si.
+      allow update: if souInstitucionalNoEscopoDaMensagem(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida', 'atualizadoEm']);
+      allow delete: if false;
     }
 
     // Qualquer coleção não mapeada explicitamente permanece bloqueada.

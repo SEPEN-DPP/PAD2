@@ -10,6 +10,8 @@ import { criarElemento, carregarCssUmaVez } from '../utils/domUtils.js';
 import { ROUTES } from '../config/routes.js';
 import { podeAcessarRota, ROLE_LABELS, ROLES } from '../config/roles.js';
 import { calcularEscopoDeGestao, listarSolicitacoesPendentes } from '../services/usuarios/usuarioService.js';
+import { calcularUnidadesVisiveis } from '../services/pads/escopoPad.js';
+import { contarMensagensNaoLidas } from '../services/mensagens/mensagemService.js';
 
 /**
  * @param {{ usuario: { nome: string, perfil: string, vinculo?: object } | null, rotaInicial: string, onNavegar: (path: string) => void, onSair: () => void, onMudarUnidadeAtiva?: (nomeOuNull: string|null) => void }} params
@@ -22,9 +24,14 @@ export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair, 
   );
 
   const escopoDeGestao = calcularEscopoDeGestao(usuario);
-  const contadorPendencias = escopoDeGestao.podeGerenciar
+  const contadorSolicitacoes = escopoDeGestao.podeGerenciar
     ? (await listarSolicitacoesPendentes(escopoDeGestao)).length
     : 0;
+  // Mensagem nova do defensor (2026-07-21) também acende o sininho — soma
+  // no mesmo contador; o clique prioriza ir pro Portal da Defesa quando há
+  // mensagem não lida, senão vai pras Solicitações como sempre foi.
+  const contadorMensagens = await contarMensagensNaoLidas(calcularUnidadesVisiveis(usuario));
+  const contadorPendencias = contadorSolicitacoes + contadorMensagens;
 
   // Em celular/tablet retrato a sidebar vira um painel escondido por padrão
   // (ver @media em sidebar.css) — este botão e o backdrop abaixo controlam a
@@ -53,7 +60,8 @@ export async function montarAppShell({ usuario, rotaInicial, onNavegar, onSair, 
     usuario: usuario ? { nome: usuario.nome, perfilLabel: ROLE_LABELS[usuario.perfil] ?? usuario.perfil } : null,
     onSair,
     contadorPendencias,
-    onClicarSino: () => onNavegar('/usuarios'),
+    temMensagensNaoLidas: contadorMensagens > 0,
+    onClicarSino: () => onNavegar(contadorMensagens > 0 ? '/portal-defesa' : '/usuarios'),
     onClicarUsuario: () => onNavegar('/configuracoes'),
     seletorUnidade: usuario?.perfil === ROLES.ADMINISTRADOR
       ? criarSeletorUnidade({ valorInicial: null, onSelecionar: onMudarUnidadeAtiva })

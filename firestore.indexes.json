@@ -66,6 +66,15 @@
         { "fieldPath": "usuarioId", "order": "ASCENDING" },
         { "fieldPath": "data", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "mensagens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "autorTipo", "order": "ASCENDING" },
+        { "fieldPath": "lida", "order": "ASCENDING" },
+        { "fieldPath": "unidade", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

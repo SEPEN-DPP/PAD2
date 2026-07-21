@@ -1,17 +1,18 @@
 /**
- * Quadro de mensagens de um PAD (2026-07-20) — thread simples entre a
- * Unidade e o(a) defensor(a) vinculado, reaproveitado tanto pela aba
- * "Mensagens" do painel institucional (ver
- * src/pages/pad/detail/documentos/mensagensTab.js) quanto pelo Portal da
- * Defesa do próprio defensor (ver src/pages/portal-defesa/portalDefesaPage.js)
- * — só muda quem está autenticado como autor. Sem edição/exclusão (log de
- * conversa) e sem listener em tempo real — a lista atualiza ao enviar uma
- * mensagem ou reabrir a tela, mesmo padrão de leitura do resto do app.
+ * Quadro de mensagens de um PAD — thread simples entre a Unidade e o(a)
+ * defensor(a) vinculado, reaproveitado tanto pela página "Portal da Defesa"
+ * institucional (2026-07-21, ver
+ * src/pages/portal-defesa-preview/portalDefesaPreviewPage.js) quanto pelo
+ * Portal da Defesa do próprio defensor (ver
+ * src/pages/portal-defesa/portalDefesaPage.js) — só muda quem está
+ * autenticado como autor. Sem edição/exclusão (log de conversa) e sem
+ * listener em tempo real — a lista atualiza ao enviar uma mensagem ou
+ * reabrir a tela, mesmo padrão de leitura do resto do app.
  */
 import { criarElemento, carregarCssUmaVez } from '../../utils/domUtils.js';
 import { criarCard } from '../card/card.js';
 import { criarBotao } from '../button/button.js';
-import { listarMensagensDoPad, enviarMensagem } from '../../services/mensagens/mensagemService.js';
+import { listarMensagensDoPad, enviarMensagem, marcarMensagensComoLidas } from '../../services/mensagens/mensagemService.js';
 import { formatarDataHora } from '../../utils/dateUtils.js';
 import { mostrarToast } from '../../utils/toast.js';
 
@@ -41,6 +42,12 @@ export function criarQuadroMensagens({ pad, autor, titulo = 'Mensagens' }) {
       ? mensagens.map(criarLinhaMensagem)
       : [criarElemento('p', { class: 'text-muted' }, ['Nenhuma mensagem ainda.'])];
     areaLista.replaceChildren(...filhos);
+
+    // Visualizar o quadro já marca as mensagens do defensor como lidas —
+    // limpa o destaque no sininho de notificação (ver src/layout/appShell.js).
+    if (autor.tipo === 'institucional' && mensagens.some((m) => m.autorTipo === 'defensor' && !m.lida)) {
+      marcarMensagensComoLidas(pad.id).catch((erro) => console.error('Falha ao marcar mensagens como lidas:', erro));
+    }
   }
 
   const botaoEnviar = criarBotao({

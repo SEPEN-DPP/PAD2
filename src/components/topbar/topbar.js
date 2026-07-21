@@ -20,9 +20,9 @@ function alternarTema() {
 }
 
 /**
- * @param {{ titulo: string, usuario: { nome: string, perfilLabel: string } | null, onSair: () => void, contadorPendencias?: number, onClicarSino?: () => void, onClicarUsuario?: () => void, seletorUnidade?: Node, onAbrirMenuMobile?: () => void }} params
+ * @param {{ titulo: string, usuario: { nome: string, perfilLabel: string } | null, onSair: () => void, contadorPendencias?: number, temMensagensNaoLidas?: boolean, onClicarSino?: () => void, onClicarUsuario?: () => void, seletorUnidade?: Node, onAbrirMenuMobile?: () => void }} params
  */
-export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, onClicarSino, onClicarUsuario, seletorUnidade, onAbrirMenuMobile }) {
+export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, temMensagensNaoLidas = false, onClicarSino, onClicarUsuario, seletorUnidade, onAbrirMenuMobile }) {
   carregarCssUmaVez('src/components/topbar/topbar.css');
 
   const botaoMenuMobile = criarElemento(
@@ -71,7 +71,12 @@ export function criarTopbar({ titulo, usuario, onSair, contadorPendencias = 0, o
 
   const botaoSino = criarElemento(
     'button',
-    { class: 'topbar__icone-btn topbar__sino', type: 'button', title: 'Solicitações pendentes', onClick: onClicarSino },
+    {
+      class: 'topbar__icone-btn topbar__sino',
+      type: 'button',
+      title: temMensagensNaoLidas ? 'Mensagem nova do(a) defensor(a) / solicitações pendentes' : 'Solicitações pendentes',
+      onClick: onClicarSino,
+    },
     [
       icone('bell'),
       contadorPendencias > 0
