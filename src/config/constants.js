@@ -59,4 +59,6 @@ export const COLLECTIONS = Object.freeze({
   CONFIGURACOES: 'configuracoes',
   CONFIGURACOES_UNIDADE: 'configuracoesUnidade',
   MODELOS: 'modelos',
+  LEMBRETES: 'lembretes',
+  MENSAGENS: 'mensagens',
 });

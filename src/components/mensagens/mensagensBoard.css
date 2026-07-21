@@ -1,0 +1,36 @@
+.mensagens__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.mensagens__item {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.mensagens__item--defensor {
+  background: var(--color-info-100);
+}
+
+.mensagens__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+.mensagens__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+
+.mensagens__form textarea {
+  width: 100%;
+}

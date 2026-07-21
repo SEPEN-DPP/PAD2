@@ -325,6 +325,54 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Lembretes (2026-07-20) — quadro de anotações livres por unidade, no
+    // lugar da antiga Timeline de atividades do Dashboard. Mesmo escopo de
+    // leitura/escrita de `eventos`/`pads` (conta institucional no escopo da
+    // unidade/regional do lembrete) — qualquer uma pode criar/marcar como
+    // feito/excluir, não só quem criou (é um quadro de equipe, não pessoal).
+    function souInstitucionalNoEscopoDoLembrete(dadosLembrete) {
+      return tenhoPerfil() && (
+        meuUsuario().perfil == 'ADMINISTRADOR'
+        || (meuUsuario().vinculo.tipo == 'UNIDADE' && meuUsuario().vinculo.valor == dadosLembrete.unidade)
+        || (meuUsuario().vinculo.tipo == 'REGIONAL' && meuUsuario().vinculo.valor == dadosLembrete.superintendencia)
+      );
+    }
+
+    match /lembretes/{lembreteId} {
+      allow read: if souInstitucionalNoEscopoDoLembrete(resource.data);
+      allow create: if souInstitucionalNoEscopoDoLembrete(request.resource.data);
+      // Update só pode mudar `feito` (marcar/desmarcar) — o texto do
+      // lembrete é imutável depois de criado, mesmo espírito de mensagem.
+      allow update: if souInstitucionalNoEscopoDoLembrete(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['feito', 'atualizadoEm']);
+      allow delete: if souInstitucionalNoEscopoDoLembrete(resource.data);
+    }
+
+    // Mensagens entre a Unidade e o(a) defensor(a) vinculado a um PAD
+    // (2026-07-20) — thread por PAD, sem edição/exclusão (log de conversa).
+    // Mesmo escopo de leitura de `eventos`: conta institucional no escopo do
+    // PAD (via campos denormalizados) OU o defensor vinculado àquele PAD
+    // (`souDefensorVinculado`, definida acima). Criação exige que
+    // `autorUid` seja de quem está autenticado e que `autorTipo` bata com o
+    // tipo de conta de quem está criando — evita que um lado se passe pelo
+    // outro na própria mensagem.
+    function souInstitucionalNoEscopoDaMensagem(dadosMensagem) {
+      return tenhoPerfil() && (
+        meuUsuario().perfil == 'ADMINISTRADOR'
+        || (meuUsuario().vinculo.tipo == 'UNIDADE' && meuUsuario().vinculo.valor == dadosMensagem.unidade)
+        || (meuUsuario().vinculo.tipo == 'REGIONAL' && meuUsuario().vinculo.valor == dadosMensagem.superintendencia)
+      );
+    }
+
+    match /mensagens/{mensagemId} {
+      allow read: if souInstitucionalNoEscopoDaMensagem(resource.data) || souDefensorVinculado(resource.data.padId);
+      allow create: if request.resource.data.autorUid == request.auth.uid && (
+        (request.resource.data.autorTipo == 'institucional' && souInstitucionalNoEscopoDaMensagem(request.resource.data))
+        || (request.resource.data.autorTipo == 'defensor' && souDefensorVinculado(request.resource.data.padId))
+      );
+      allow update, delete: if false;
+    }
+
     // Qualquer coleção não mapeada explicitamente permanece bloqueada.
     match /{document=**} {
       allow read, write: if false;

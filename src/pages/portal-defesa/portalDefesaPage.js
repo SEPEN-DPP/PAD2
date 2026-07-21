@@ -28,6 +28,7 @@ import { listarPadsDoDefensor } from '../../services/defensores/defensorService.
 import { atualizarPad } from '../../services/pads/padService.js';
 import { renderizarPreview } from '../../templates/shared/previewRenderer.js';
 import { aplicarAnexoSubstituto, criarCampoComDitado, criarAnexoSubstitutoPersistido, criarBotaoSalvar } from '../pad/detail/documentos/_shared.js';
+import { criarQuadroMensagens } from '../../components/mensagens/mensagensBoard.js';
 
 import { renderizar as renderizarPortaria } from '../../templates/portariaAberturaTemplate.js';
 import { renderizar as renderizarDocInicial } from '../../templates/docInicialTemplate.js';
@@ -138,7 +139,7 @@ export function montarDocumentosConfirmados(pad, { onAtualizar, somenteLeitura =
   return documentos;
 }
 
-function renderizarDetalhePad(container, pad, { onVoltar }) {
+function renderizarDetalhePad(container, pad, { onVoltar, defensor }) {
   limparContainer(container);
 
   const botaoVoltar = criarBotao({ texto: 'Voltar', icon: 'chevron-left', variante: 'secondary', onClick: onVoltar });
@@ -147,13 +148,19 @@ function renderizarDetalhePad(container, pad, { onVoltar }) {
     criarElemento('h2', {}, [`PAD ${pad.dadosGerais?.numero ?? pad.id}`]),
   ]);
 
-  const documentos = montarDocumentosConfirmados(pad, { onAtualizar: () => renderizarDetalhePad(container, pad, { onVoltar }) });
+  const documentos = montarDocumentosConfirmados(pad, { onAtualizar: () => renderizarDetalhePad(container, pad, { onVoltar, defensor }) });
+  const quadroMensagens = criarQuadroMensagens({
+    pad,
+    autor: { uid: defensor.uid, nome: defensor.nome ?? 'Defensor(a)', tipo: 'defensor' },
+    titulo: 'Mensagens com a Unidade',
+  });
 
   container.append(
     cabecalho,
     documentos.length
       ? criarElemento('div', { class: 'portal-defesa__documentos' }, documentos)
       : criarEmptyState({ titulo: 'Nenhum documento confirmado ainda', descricao: 'Assim que a Unidade confirmar um documento, ele aparece aqui.', icon: 'file-text' }),
+    quadroMensagens.elemento,
   );
 }
 
@@ -189,7 +196,7 @@ export async function montarPortalDefesa({ outlet, defensor }) {
   const pads = await listarPadsDoDefensor(defensor.uid ?? defensor.id);
 
   function mostrarLista() {
-    renderizarListaPads(outlet, pads, { onAbrirPad: (pad) => renderizarDetalhePad(outlet, pad, { onVoltar: mostrarLista }) });
+    renderizarListaPads(outlet, pads, { onAbrirPad: (pad) => renderizarDetalhePad(outlet, pad, { onVoltar: mostrarLista, defensor }) });
   }
 
   mostrarLista();

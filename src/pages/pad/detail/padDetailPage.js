@@ -23,6 +23,7 @@ import { renderDepoimentoIncidentadoTab } from './documentos/depoimentoIncidenta
 import { renderConselhoTab } from './documentos/conselhoTab.js';
 import { renderDefesaTab } from './documentos/defesaTab.js';
 import { renderDecisaoTab } from './documentos/decisaoTab.js';
+import { renderMensagensTab } from './documentos/mensagensTab.js';
 import { aplicarAnexoSubstituto } from './documentos/_shared.js';
 import { baixarTodosComoPdf } from '../../../templates/shared/pdfExporter.js';
 import { renderizar as renderizarPortaria } from '../../../templates/portariaAberturaTemplate.js';
@@ -170,6 +171,7 @@ export async function render(container, params) {
     { id: 'conselho', titulo: 'Manifestação do Conselho Disciplinar', render: () => renderConselhoTab(pad, configUnidade, { onAtualizar }) },
     { id: 'defesa', titulo: 'Manifestação da Defesa', render: () => renderDefesaTab(pad, configUnidade, { onAtualizar }) },
     { id: 'decisao', titulo: 'Decisão', render: () => renderDecisaoTab(pad, configUnidade, { onAtualizar }) },
+    { id: 'mensagens', titulo: 'Mensagens', render: () => renderMensagensTab(pad) },
   ]);
 
   container.append(criarCard({ filhos: [tabs] }));

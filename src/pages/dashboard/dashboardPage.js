@@ -7,19 +7,20 @@ import { criarElemento, carregarCssUmaVez } from '../../utils/domUtils.js';
 import { criarPageHeader } from '../../components/pageHeader/pageHeader.js';
 import { criarStatCard } from '../../components/statCard/statCard.js';
 import { criarCard } from '../../components/card/card.js';
+import { criarBotao } from '../../components/button/button.js';
 import { criarDataTable } from '../../components/dataTable/dataTable.js';
-import { criarTimeline } from '../../components/timeline/timeline.js';
 import { criarStatusBadge } from '../../components/statusBadge/statusBadge.js';
 import { criarEmptyState } from '../../components/emptyState/emptyState.js';
 import { contarTodosPads, contarPadsPorStatus, listarPads } from '../../services/pads/padService.js';
 import { calcularUnidadesVisiveis } from '../../services/pads/escopoPad.js';
-import { listarUltimosEventos } from '../../services/eventos/eventoService.js';
+import { listarLembretes, criarLembrete, marcarLembreteComoFeito, excluirLembrete } from '../../services/lembretes/lembreteService.js';
 import { usuarioAtual, obterPerfilDoUsuario } from '../../services/auth/authService.js';
 import { STATUS_PAD, STATUS_PAD_LABELS } from '../../config/constants.js';
 import { ROLES } from '../../config/roles.js';
-import { SUPERINTENDENCIAS_REGIONAIS } from '../../config/unidadesPrisionais.js';
+import { SUPERINTENDENCIAS_REGIONAIS, UNIDADES_PRISIONAIS } from '../../config/unidadesPrisionais.js';
 import { obterUnidadeAtivaAdministrador } from '../../state/unidadeAtivaAdministrador.js';
 import { formatarData } from '../../utils/dateUtils.js';
+import { mostrarToast } from '../../utils/toast.js';
 
 function descricaoDoRecorte(perfilUsuario) {
   if (perfilUsuario?.perfil === ROLES.ADMINISTRADOR) {
@@ -37,6 +38,127 @@ function descricaoDoRecorte(perfilUsuario) {
     return `PADs das unidades vinculadas à ${nomeRegional}.`;
   }
   return `PADs da unidade: ${vinculo.valor}.`;
+}
+
+/**
+ * Campo de unidade do novo lembrete: fixo para quem tem vínculo de UNIDADE
+ * (o lembrete sempre nasce na própria unidade de quem cria); select
+ * filtrado à regional para vínculo REGIONAL; select com todas as unidades
+ * para Administrador — mesmo padrão de src/pages/pad/new/padNewPage.js.
+ */
+function criarCampoUnidadeLembrete(perfilUsuario) {
+  if (perfilUsuario?.vinculo?.tipo === 'UNIDADE') {
+    return { fixo: perfilUsuario.vinculo.valor, elemento: null, input: null };
+  }
+
+  const unidadesDisponiveis = perfilUsuario?.vinculo?.tipo === 'REGIONAL'
+    ? UNIDADES_PRISIONAIS.filter((u) => u.superintendencia === perfilUsuario.vinculo.valor)
+    : UNIDADES_PRISIONAIS;
+
+  const select = criarElemento(
+    'select',
+    { class: 'campo__input' },
+    [criarElemento('option', { value: '' }, ['Unidade...']), ...unidadesDisponiveis.map((u) => criarElemento('option', { value: u.nome }, [u.nome]))],
+  );
+  return { fixo: null, elemento: select, input: select };
+}
+
+/** Card "Lembretes" (2026-07-20) — substitui a antiga Timeline de atividades por um quadro de anotações da unidade, com marcar-como-feito e excluir. */
+function criarCardLembretes(perfilUsuario, unidadesVisiveis) {
+  const areaLista = criarElemento('div');
+  const campoUnidade = criarCampoUnidadeLembrete(perfilUsuario);
+  const campoTexto = criarElemento('input', { class: 'campo__input', type: 'text', placeholder: 'Novo lembrete...' });
+
+  async function atualizarLista() {
+    const lembretes = await listarLembretes(unidadesVisiveis);
+    if (!lembretes.length) {
+      areaLista.replaceChildren(
+        criarEmptyState({ titulo: 'Nenhum lembrete ainda', descricao: 'Adicione uma anotação abaixo.', icon: 'list-checks' }),
+      );
+      return;
+    }
+
+    const lista = criarElemento('ul', { class: 'dashboard__lembretes-lista' });
+    lista.replaceChildren(
+      ...lembretes.map((lembrete) => {
+        const checkbox = criarElemento('input', { type: 'checkbox' });
+        checkbox.checked = Boolean(lembrete.feito);
+        checkbox.addEventListener('change', async () => {
+          checkbox.disabled = true;
+          try {
+            await marcarLembreteComoFeito(lembrete.id, checkbox.checked);
+            atualizarLista();
+          } catch (erro) {
+            console.error('Falha ao atualizar lembrete:', erro);
+            mostrarToast('Não foi possível atualizar o lembrete.', 'erro');
+            checkbox.disabled = false;
+          }
+        });
+
+        const botaoExcluir = criarBotao({
+          texto: 'Excluir',
+          icon: 'x',
+          variante: 'danger',
+          onClick: async () => {
+            try {
+              await excluirLembrete(lembrete.id);
+              atualizarLista();
+            } catch (erro) {
+              console.error('Falha ao excluir lembrete:', erro);
+              mostrarToast('Não foi possível excluir o lembrete.', 'erro');
+            }
+          },
+        });
+
+        return criarElemento('li', { class: 'dashboard__lembretes-item' }, [
+          criarElemento('label', { class: 'dashboard__lembretes-texto' }, [
+            checkbox,
+            criarElemento('span', { class: lembrete.feito ? 'dashboard__lembretes-feito' : '' }, [lembrete.texto]),
+          ]),
+          botaoExcluir,
+        ]);
+      }),
+    );
+    areaLista.replaceChildren(lista);
+  }
+
+  const botaoAdicionar = criarBotao({
+    texto: 'Adicionar',
+    icon: 'file-plus',
+    variante: 'secondary',
+    onClick: async () => {
+      const texto = campoTexto.value.trim();
+      if (!texto) return mostrarToast('Escreva o lembrete antes de adicionar.', 'aviso');
+      const unidade = campoUnidade.fixo ?? campoUnidade.input?.value;
+      if (!unidade) return mostrarToast('Selecione a unidade do lembrete.', 'aviso');
+
+      botaoAdicionar.disabled = true;
+      try {
+        await criarLembrete({ texto, unidade, criadoPor: perfilUsuario?.nome ?? usuarioAtual()?.email ?? '—' });
+        campoTexto.value = '';
+        await atualizarLista();
+      } catch (erro) {
+        console.error('Falha ao criar lembrete:', erro);
+        mostrarToast('Não foi possível adicionar o lembrete.', 'erro');
+      } finally {
+        botaoAdicionar.disabled = false;
+      }
+    },
+  });
+
+  atualizarLista();
+
+  return criarCard({
+    titulo: 'Lembretes',
+    filhos: [
+      areaLista,
+      criarElemento('div', { class: 'dashboard__lembretes-form' }, [
+        campoTexto,
+        campoUnidade.elemento,
+        botaoAdicionar,
+      ].filter(Boolean)),
+    ],
+  });
 }
 
 const COLUNAS_PADS = [
@@ -150,33 +272,7 @@ export async function render(container) {
   });
 
   const cardUltimosPads = criarCard({ titulo: 'Últimos PADs', filhos: [containerTabela] });
+  const cardLembretes = criarCardLembretes(perfilUsuario, unidadesVisiveis);
 
-  const ultimosEventos = await listarUltimosEventos(8, unidadesVisiveis);
-  const cardTimeline = criarCard({
-    titulo: 'Timeline de atividades',
-    filhos: [
-      criarTimeline(
-        ultimosEventos.map((evento) => ({
-          titulo: evento.tipo ?? 'Evento registrado',
-          descricao: evento.observacoes,
-          data: evento.data,
-        })),
-      ),
-    ],
-  });
-
-  colunas.append(cardUltimosPads, cardTimeline);
-
-  container.append(
-    criarCard({
-      titulo: 'Pendências',
-      filhos: [
-        criarEmptyState({
-          titulo: 'Nenhuma pendência no momento',
-          descricao: 'O painel de pendências por prazo e etapa será habilitado na Fase 2.',
-          icon: 'list-checks',
-        }),
-      ],
-    }),
-  );
+  colunas.append(cardUltimosPads, cardLembretes);
 }
