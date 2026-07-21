@@ -11,9 +11,12 @@ import { criarBotao } from '../../../components/button/button.js';
 import { criarStatusBadge } from '../../../components/statusBadge/statusBadge.js';
 import { criarEmptyState } from '../../../components/emptyState/emptyState.js';
 import { mostrarToast } from '../../../utils/toast.js';
-import { obterPad } from '../../../services/pads/padService.js';
+import { obterPad, alterarSituacaoAtual } from '../../../services/pads/padService.js';
 import { obterConfiguracaoUnidade } from '../../../services/configuracoesUnidade/configuracaoUnidadeService.js';
-import { formatarData } from '../../../utils/dateUtils.js';
+import { listarEventosPorPad } from '../../../services/eventos/eventoService.js';
+import { usuarioAtual, obterPerfilDoUsuario } from '../../../services/auth/authService.js';
+import { SITUACAO_ATUAL_PAD, SITUACAO_ATUAL_LABELS } from '../../../config/constants.js';
+import { formatarData, formatarDataHora } from '../../../utils/dateUtils.js';
 import { renderIncidentadosTab } from './documentos/incidentadosTab.js';
 import { renderPortariaTab } from './documentos/portariaTab.js';
 import { renderDocInicialTab } from './documentos/docInicialTab.js';
@@ -63,22 +66,90 @@ export function montarDocumentosCompletos(pad, configUnidade) {
   return documentos;
 }
 
+/**
+ * Situação atual (2026-07-20) — onde o PAD está de fato, escolhida
+ * livremente por quem edita o PAD (sem ordem obrigatória, ver
+ * SITUACAO_ATUAL_PAD em constants.js). `status` (badge ao lado) é sempre
+ * recalculado junto — nunca escolhido à parte, ver
+ * padService.js:alterarSituacaoAtual. Cada mudança fica registrada no
+ * histórico logo abaixo (reaproveita `eventos`, sem tela própria).
+ */
 function secaoDadosGerais(pad) {
   const dados = pad.dadosGerais ?? {};
+
+  const badgeStatus = criarElemento('span');
+  const atualizarBadge = () => badgeStatus.replaceChildren(criarStatusBadge({ status: pad.status }));
+  atualizarBadge();
+
+  const selectSituacao = criarElemento(
+    'select',
+    { class: 'campo__input' },
+    SITUACAO_ATUAL_PAD.map((codigo) => {
+      const atributos = { value: codigo };
+      if (codigo === (pad.situacaoAtual ?? SITUACAO_ATUAL_PAD[0])) atributos.selected = 'selected';
+      return criarElemento('option', atributos, [SITUACAO_ATUAL_LABELS[codigo]]);
+    }),
+  );
+
+  const areaHistorico = criarElemento('div', { class: 'pad-detail__historico' });
+  async function atualizarHistorico() {
+    const eventos = await listarEventosPorPad(pad.id, dados.unidade, pad.superintendencia);
+    if (!eventos.length) {
+      areaHistorico.replaceChildren();
+      return;
+    }
+    const lista = criarElemento('ul', { class: 'pad-detail__historico-lista' });
+    lista.replaceChildren(
+      ...eventos
+        .slice()
+        .reverse()
+        .map((evento) =>
+          criarElemento('li', {}, [
+            criarElemento('span', {}, [SITUACAO_ATUAL_LABELS[evento.tipo] ?? evento.tipo ?? '—']),
+            criarElemento('span', { class: 'text-muted' }, [` — ${evento.responsavel ?? '—'}, ${formatarDataHora(evento.data)}`]),
+          ]),
+        ),
+    );
+    areaHistorico.replaceChildren(criarElemento('h4', {}, ['Histórico']), lista);
+  }
+  atualizarHistorico();
+
+  selectSituacao.addEventListener('change', async () => {
+    const valorAnterior = pad.situacaoAtual ?? SITUACAO_ATUAL_PAD[0];
+    selectSituacao.disabled = true;
+    try {
+      const perfil = await obterPerfilDoUsuario(usuarioAtual()?.uid);
+      await alterarSituacaoAtual(pad, selectSituacao.value, { responsavel: perfil?.nome ?? usuarioAtual()?.email ?? '—' });
+      atualizarBadge();
+      await atualizarHistorico();
+      mostrarToast('Situação atualizada.', 'sucesso');
+    } catch (erro) {
+      console.error('Falha ao atualizar situação do PAD:', erro);
+      mostrarToast('Não foi possível atualizar a situação.', 'erro');
+      selectSituacao.value = valorAnterior;
+    } finally {
+      selectSituacao.disabled = false;
+    }
+  });
+
   const linhas = [
     ['Número', dados.numero],
     ['Unidade', dados.unidade],
     ['Data de abertura', formatarData(dados.dataAbertura)],
-    ['Status', null],
   ];
   const listaDados = criarElemento(
     'dl',
     { class: 'pad-detail__lista-dados' },
-    linhas.flatMap(([rotulo, valor]) => [
-      criarElemento('dt', {}, [rotulo]),
-      criarElemento('dd', {}, [rotulo === 'Status' ? criarStatusBadge({ status: pad.status }) : (valor ?? '—')]),
-    ]),
+    [
+      ...linhas.flatMap(([rotulo, valor]) => [criarElemento('dt', {}, [rotulo]), criarElemento('dd', {}, [valor ?? '—'])]),
+      criarElemento('dt', {}, ['Status']),
+      criarElemento('dd', {}, [badgeStatus]),
+      criarElemento('dt', {}, ['Situação atual']),
+      criarElemento('dd', {}, [selectSituacao]),
+    ],
   );
+
+  const blocos = [listaDados, areaHistorico];
 
   const infracao = pad.infracao ?? {};
   const linhasInfracao = [
@@ -90,21 +161,22 @@ function secaoDadosGerais(pad) {
     ['Descrição', infracao.descricao],
   ].filter(([, valor]) => valor);
 
-  if (!linhasInfracao.length) return listaDados;
+  if (linhasInfracao.length) {
+    blocos.push(
+      criarCard({
+        titulo: 'Registro de Infração (extraído do PDF na criação do PAD)',
+        filhos: [
+          criarElemento(
+            'dl',
+            { class: 'pad-detail__lista-dados' },
+            linhasInfracao.flatMap(([rotulo, valor]) => [criarElemento('dt', {}, [rotulo]), criarElemento('dd', {}, [valor])]),
+          ),
+        ],
+      }),
+    );
+  }
 
-  return criarElemento('div', { class: 'pad-detail__dados-gerais' }, [
-    listaDados,
-    criarCard({
-      titulo: 'Registro de Infração (extraído do PDF na criação do PAD)',
-      filhos: [
-        criarElemento(
-          'dl',
-          { class: 'pad-detail__lista-dados' },
-          linhasInfracao.flatMap(([rotulo, valor]) => [criarElemento('dt', {}, [rotulo]), criarElemento('dd', {}, [valor])]),
-        ),
-      ],
-    }),
-  ]);
+  return criarElemento('div', { class: 'pad-detail__dados-gerais' }, blocos);
 }
 
 export async function render(container, params) {

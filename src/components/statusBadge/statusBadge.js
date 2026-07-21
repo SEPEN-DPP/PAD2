@@ -7,12 +7,7 @@ import { enumParaLabel } from '../../utils/stringUtils.js';
 
 const TOM_POR_STATUS = {
   EM_ANDAMENTO: 'info',
-  AGUARDANDO_DEFESA: 'aviso',
-  AGUARDANDO_DECISAO: 'aviso',
   CONCLUIDO: 'sucesso',
-  ARQUIVADO: 'neutro',
-  PENDENTE: 'aviso',
-  CONCLUIDA: 'sucesso',
 };
 
 /** @param {{ status: string, label?: string }} params */

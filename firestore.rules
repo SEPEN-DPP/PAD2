@@ -241,7 +241,7 @@ service cloud.firestore {
           souCriadorDoPad(resource.data)
           && souCriadorDoPad(request.resource.data)
           && identidadeInalterada(resource.data, request.resource.data)
-          && request.resource.data.status in ['EM_ANDAMENTO', 'AGUARDANDO_DEFESA', 'AGUARDANDO_DECISAO', 'CONCLUIDO', 'ARQUIVADO']
+          && request.resource.data.status in ['EM_ANDAMENTO', 'CONCLUIDO']
         ) || (
           // Manifestação da Defesa enviada pelo próprio Portal da Defesa —
           // só o campo `defesa` (mais `atualizadoEm`, que o repositório

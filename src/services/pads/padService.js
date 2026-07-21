@@ -10,9 +10,9 @@
  * unidades já calculado, via `where('dadosGerais.unidade', 'in', unidades)`.
  */
 import { criarRepositorio } from '../firestoreRepository.js';
-import { COLLECTIONS, STATUS_PAD } from '../../config/constants.js';
+import { COLLECTIONS, STATUS_PAD, SITUACAO_ATUAL_PAD, SITUACAO_ATUAL_LABELS } from '../../config/constants.js';
 import { obterUnidadePorNome } from '../../config/unidadesPrisionais.js';
-import { excluirEventosPorPad } from '../eventos/eventoService.js';
+import { excluirEventosPorPad, criarEvento } from '../eventos/eventoService.js';
 
 const repo = criarRepositorio(COLLECTIONS.PADS);
 
@@ -97,6 +97,7 @@ export async function criarPad({ numero, unidade, incidentados, infracao, docIni
     incidentados,
     infracao,
     ...(docInicial ? { docInicial } : {}),
+    situacaoAtual: SITUACAO_ATUAL_PAD[0],
     status: STATUS_PAD.EM_ANDAMENTO,
   });
 }
@@ -110,4 +111,37 @@ export async function criarPad({ numero, unidade, incidentados, infracao, docIni
  */
 export async function atualizarPad(id, patch) {
   await repo.atualizar(id, patch);
+}
+
+/** Só `situacaoAtual == 'CONCLUIDO'` fecha o PAD — qualquer outra situação é `EM_ANDAMENTO` (ver STATUS_PAD em constants.js). */
+export function derivarStatusDaSituacao(situacaoAtual) {
+  return situacaoAtual === 'CONCLUIDO' ? STATUS_PAD.CONCLUIDO : STATUS_PAD.EM_ANDAMENTO;
+}
+
+/**
+ * Altera `situacaoAtual` de um PAD (aba "Dados Gerais", 2026-07-20 — livre
+ * pra quem edita o PAD, sem ordem obrigatória, mesmo espírito das abas de
+ * documento) — `status` é sempre recalculado junto, nunca escolhido à
+ * parte (ver `derivarStatusDaSituacao`). Lança um evento (`tipo` = a
+ * própria situação) pra formar o histórico mostrado na mesma aba.
+ * @param {object} pad
+ * @param {string} novaSituacao — um dos valores de SITUACAO_ATUAL_PAD
+ * @param {{ responsavel: string }} opcoes
+ */
+export async function alterarSituacaoAtual(pad, novaSituacao, { responsavel }) {
+  const status = derivarStatusDaSituacao(novaSituacao);
+  const patch = { situacaoAtual: novaSituacao, status };
+  await atualizarPad(pad.id, patch);
+  Object.assign(pad, patch);
+
+  await criarEvento({
+    padId: pad.id,
+    tipo: novaSituacao,
+    responsavel,
+    data: new Date(),
+    status: 'CONCLUIDO',
+    observacoes: `Situação atual alterada para "${SITUACAO_ATUAL_LABELS[novaSituacao]}".`,
+    unidade: pad.dadosGerais?.unidade,
+    superintendencia: pad.superintendencia ?? null,
+  });
 }

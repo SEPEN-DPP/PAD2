@@ -44,3 +44,16 @@
   flex-direction: column;
   gap: var(--space-2);
 }
+
+.pad-detail__historico h4 {
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.pad-detail__historico-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}

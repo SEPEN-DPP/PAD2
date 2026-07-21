@@ -31,21 +31,52 @@ export const ETAPA_LABELS = Object.freeze({
   ARQUIVAMENTO: 'Arquivamento',
 });
 
-/** Status macro de um PAD, usados nos cartões do Dashboard. */
+/**
+ * Status macro de um PAD (2026-07-20) — sempre derivado de `situacaoAtual`
+ * (ver `derivarStatusDaSituacao` em src/services/pads/padService.js), nunca
+ * escolhido diretamente: só existe pra alimentar cartão do Dashboard/badge,
+ * "onde o processo está de verdade" é `situacaoAtual`.
+ */
 export const STATUS_PAD = Object.freeze({
   EM_ANDAMENTO: 'EM_ANDAMENTO',
-  AGUARDANDO_DEFESA: 'AGUARDANDO_DEFESA',
-  AGUARDANDO_DECISAO: 'AGUARDANDO_DECISAO',
   CONCLUIDO: 'CONCLUIDO',
-  ARQUIVADO: 'ARQUIVADO',
 });
 
 export const STATUS_PAD_LABELS = Object.freeze({
   EM_ANDAMENTO: 'Em andamento',
-  AGUARDANDO_DEFESA: 'Aguardando defesa',
-  AGUARDANDO_DECISAO: 'Aguardando decisão',
   CONCLUIDO: 'Concluído',
-  ARQUIVADO: 'Arquivado',
+});
+
+/**
+ * Situação atual de um PAD (2026-07-20) — onde o processo está de fato,
+ * escolhida manualmente na aba "Dados Gerais" por quem edita o PAD (sem
+ * ordem obrigatória, mesmo espírito das abas de documento — ver
+ * ARCHITECTURE.md §5). Cada mudança lança um evento em `eventos` (ver
+ * `alterarSituacaoAtual` em src/services/pads/padService.js), formando o
+ * histórico mostrado na própria aba.
+ */
+export const SITUACAO_ATUAL_PAD = Object.freeze([
+  'PORTARIA',
+  'CIENTIFICACAO',
+  'AGUARDANDO_AUDIENCIA',
+  'AGUARDANDO_MANIFESTACAO_CONSELHO',
+  'AGUARDANDO_MANIFESTACAO_ADVOGADO',
+  'AGUARDANDO_DECISAO_DIRETOR',
+  'PENDENTE_ENVIO_JUDICIARIO',
+  'AGUARDANDO_DECISAO_JUDICIAL',
+  'CONCLUIDO',
+]);
+
+export const SITUACAO_ATUAL_LABELS = Object.freeze({
+  PORTARIA: 'Portaria',
+  CIENTIFICACAO: 'Cientificação',
+  AGUARDANDO_AUDIENCIA: 'Aguardando audiência',
+  AGUARDANDO_MANIFESTACAO_CONSELHO: 'Aguardando manifestação do Conselho',
+  AGUARDANDO_MANIFESTACAO_ADVOGADO: 'Aguardando manifestação do advogado',
+  AGUARDANDO_DECISAO_DIRETOR: 'Aguardando decisão do Diretor',
+  PENDENTE_ENVIO_JUDICIARIO: 'Pendente de envio ao Judiciário',
+  AGUARDANDO_DECISAO_JUDICIAL: 'Aguardando decisão judicial',
+  CONCLUIDO: 'Concluído',
 });
 
 /** Nomes das coleções do Firestore, centralizados para evitar strings soltas. */

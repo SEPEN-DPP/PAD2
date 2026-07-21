@@ -215,27 +215,10 @@ export async function render(container) {
       tom: 'info',
     }),
     criarStatCard({
-      titulo: STATUS_PAD_LABELS.AGUARDANDO_DEFESA,
-      valor: porStatus[STATUS_PAD.AGUARDANDO_DEFESA],
-      icon: 'scale',
-      tom: 'aviso',
-    }),
-    criarStatCard({
-      titulo: STATUS_PAD_LABELS.AGUARDANDO_DECISAO,
-      valor: porStatus[STATUS_PAD.AGUARDANDO_DECISAO],
-      icon: 'file-text',
-      tom: 'aviso',
-    }),
-    criarStatCard({
       titulo: STATUS_PAD_LABELS.CONCLUIDO,
       valor: porStatus[STATUS_PAD.CONCLUIDO],
       icon: 'check',
       tom: 'sucesso',
-    }),
-    criarStatCard({
-      titulo: STATUS_PAD_LABELS.ARQUIVADO,
-      valor: porStatus[STATUS_PAD.ARQUIVADO],
-      icon: 'file-stack',
     }),
   );
 
