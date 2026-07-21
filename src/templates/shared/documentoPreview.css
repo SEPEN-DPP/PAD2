@@ -1,6 +1,9 @@
 /* Pré-visualização de documento oficial — sempre com aparência de "papel"
    (fundo branco, texto preto), independente do tema claro/escuro do painel,
-   pois representa o que será impresso/exportado. */
+   pois representa o que será impresso/exportado. Arial 11, espaço entre
+   linhas simples, em todo o documento (cabeçalho, rodapé e corpo) — só o
+   peso da fonte (negrito) diferencia título/cabeçalho/heading do texto
+   normal, nunca o tamanho. */
 .documento-preview {
   background: #ffffff;
   color: #1a1a1a;
@@ -9,8 +12,9 @@
   box-shadow: var(--shadow-md);
   max-width: 780px;
   margin: 0 auto;
-  font-size: var(--font-size-md);
-  line-height: 1.6;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11pt;
+  line-height: 1.15;
 }
 
 .documento-preview__cabecalho {
@@ -18,7 +22,6 @@
   align-items: flex-start;
   gap: var(--space-4);
   font-weight: 700;
-  font-size: var(--font-size-xs);
   text-transform: uppercase;
   margin-bottom: var(--space-5);
   border-bottom: 1px solid #ccc;
@@ -33,13 +36,12 @@
 }
 
 .documento-preview__cabecalho-texto {
-  line-height: 1.35;
+  line-height: 1.15;
 }
 
 .documento-preview__numero-data {
   display: flex;
   justify-content: space-between;
-  font-size: var(--font-size-sm);
   margin-bottom: var(--space-5);
 }
 
@@ -49,13 +51,11 @@
 
 .documento-preview__destinatario {
   margin-top: var(--space-6);
-  font-size: var(--font-size-sm);
 }
 
 .documento-preview__destinatario-rotulo {
   color: #777;
   font-style: italic;
-  font-size: var(--font-size-xs);
   margin-bottom: var(--space-2);
 }
 
@@ -66,7 +66,7 @@
 
 .documento-preview__titulo {
   text-align: center;
-  font-size: var(--font-size-lg);
+  font-weight: 700;
   margin: 0 0 var(--space-2);
 }
 
@@ -81,13 +81,13 @@
 }
 
 .documento-preview__heading {
-  font-size: var(--font-size-md);
+  font-weight: 700;
   margin-top: var(--space-5);
 }
 
 .documento-preview__paragrafo {
   text-indent: 2.5em;
-  margin: 0 0 var(--space-3);
+  margin: 0 0 1em;
   white-space: pre-wrap;
 }
 
@@ -104,12 +104,15 @@
 .documento-preview__assinatura {
   flex: 1;
   text-align: center;
-  font-size: var(--font-size-sm);
 }
 
-.documento-preview__assinatura-tracejado {
-  border-top: 1px solid #333;
-  margin-bottom: var(--space-2);
+.documento-preview__assinatura strong {
+  display: block;
+  text-transform: uppercase;
+}
+
+.documento-preview__assinatura span {
+  display: block;
 }
 
 .documento-preview__anexos {
@@ -125,14 +128,12 @@
 }
 
 .documento-preview__anexo figcaption {
-  font-size: var(--font-size-xs);
   color: #555;
   margin-top: var(--space-1);
 }
 
 .documento-preview__rodape {
   text-align: center;
-  font-size: var(--font-size-xs);
   color: #555;
   margin-top: var(--space-6);
   border-top: 1px solid #ccc;

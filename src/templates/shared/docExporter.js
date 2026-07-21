@@ -9,9 +9,9 @@ import { renderizarPreview } from './previewRenderer.js';
 import { obterLogoDataUrl } from './letterhead.js';
 
 const ESTILO_DOC = `
-  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #000; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.15; color: #000; }
   .documento-preview { max-width: none; box-shadow: none; padding: 0; }
-  .documento-preview__paragrafo { text-align: justify; text-indent: 2.5em; }
+  .documento-preview__paragrafo { text-align: justify; text-indent: 2.5em; margin: 0 0 1em; }
   .documento-preview__cabecalho { display: table; width: 100%; }
   .documento-preview__logo { display: table-cell; width: 60px; }
   .documento-preview__cabecalho-texto { display: table-cell; }
@@ -19,6 +19,8 @@ const ESTILO_DOC = `
   .documento-preview__titulo, .documento-preview__subtitulo, .documento-preview__rodape { text-align: center; }
   .documento-preview__assinaturas-linha { display: table; width: 100%; margin-bottom: 24pt; }
   .documento-preview__assinatura { display: table-cell; text-align: center; width: 50%; }
+  .documento-preview__assinatura strong { display: block; text-transform: uppercase; }
+  .documento-preview__assinatura span { display: block; }
   .documento-preview__destinatario-nome { font-weight: bold; text-transform: uppercase; }
 `;
 

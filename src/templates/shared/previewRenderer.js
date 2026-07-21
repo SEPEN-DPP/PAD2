@@ -57,8 +57,7 @@ export function renderizarPreview(pad, documento) {
           'div',
           { class: 'documento-preview__assinatura' },
           [
-            criarElemento('div', { class: 'documento-preview__assinatura-tracejado' }),
-            linhaTexto('strong', assinatura.nome),
+            linhaTexto('strong', assinatura.nome?.toUpperCase?.() ?? assinatura.nome),
             assinatura.cargo ? linhaTexto('span', assinatura.cargo) : null,
             assinatura.matricula ? linhaTexto('span', `Mat. ${assinatura.matricula}`) : null,
           ].filter(Boolean),

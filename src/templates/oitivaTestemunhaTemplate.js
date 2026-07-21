@@ -5,7 +5,7 @@
  * rótulo de assinatura.
  */
 import { dataPorExtenso } from '../utils/dateUtils.js';
-import { integrantesConselho, cidadeDaUnidade, placeholder } from './shared/condicionais.js';
+import { integrantesConselho, textoDefensor, cidadeDaUnidade, placeholder } from './shared/condicionais.js';
 
 const ADVERTENCIA_INFORMANTE =
   'O(A) depoente está sendo ouvido(a) na qualidade de INFORMANTE, em razão de ter declarado manter relação próxima com o(a) incidentado(a), não tendo, por isso, o compromisso legal de dizer a verdade.';
@@ -25,13 +25,17 @@ export function renderizar(pad, testemunha, configUnidade) {
   const cidadeData = `${cidadeDaUnidade(pad)}, ${dataInst}.`;
   const ehInformante = testemunha?.qualidade === 'informante';
   const conselho = integrantesConselho(pad, configUnidade);
+  const defesa = pad.defesa ?? {};
+  const assinaturaDefensor = defesa.tipo
+    ? { nome: `Defensor(a): ${textoDefensor(defesa)}` }
+    : { nome: 'Sem defensor(a)' };
 
   return {
     titulo: ehInformante ? 'TERMO DE OITIVA DE INFORMANTE' : 'TERMO DE OITIVA DE TESTEMUNHA',
     subtitulo: `PAD Nº ${numero}`,
     secoes: [
       {
-        conteudo: `Ao ${dataInst}, na ${unidade}, presentes os membros do Conselho Disciplinar, procedeu-se à oitiva de ${testemunha?.nome || placeholder('NOME')}, ${testemunha?.qualificacao || placeholder('QUALIFICAÇÃO')}.`,
+        conteudo: `Ao ${dataInst}, na ${unidade}, presentes os membros do Conselho Disciplinar e ${textoDefensor(defesa)}, procedeu-se à oitiva de ${testemunha?.nome || placeholder('NOME')}, ${testemunha?.qualificacao || placeholder('QUALIFICAÇÃO')}.`,
       },
       { conteudo: ehInformante ? ADVERTENCIA_INFORMANTE : ADVERTENCIA_TESTEMUNHA },
       { conteudo: `Ao ser indagado(a) sobre os fatos relacionados ao PAD nº ${numero}, declarou:` },
@@ -41,7 +45,8 @@ export function renderizar(pad, testemunha, configUnidade) {
     ],
     assinaturas: [
       { nome: `${ehInformante ? 'Informante' : 'Testemunha'}: ${testemunha?.nome || placeholder('NOME')}` },
-      { nome: 'Presidente do Conselho Disciplinar', cargo: conselho.presidente },
+      assinaturaDefensor,
+      { nome: conselho.presidente, cargo: 'Presidente do Conselho Disciplinar' },
     ],
   };
 }

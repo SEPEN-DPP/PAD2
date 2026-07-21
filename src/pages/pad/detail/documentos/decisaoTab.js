@@ -6,6 +6,7 @@
 import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstitutoPersistido, aplicarAnexoSubstituto, salvarSecaoDoPad, criarBotaoConfirmar } from './_shared.js';
 import { renderizar as renderizarDecisao } from '../../../../templates/decisaoTemplate.js';
 import { obterIncisosDesclassificacao, SANCOES_FALTA_GRAVE } from '../../../../config/baseLegal.js';
+import { sintetizarTexto } from '../../../../utils/stringUtils.js';
 
 const OPCOES_RESULTADO = [
   { valor: '', rotulo: 'Selecione...' },
@@ -32,6 +33,20 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
 
   const campoResultado = criarCampoSelect({ rotulo: 'Resultado da Decisão', valor: atual.resultado ?? '', opcoes: OPCOES_RESULTADO });
   const campoFundamentacao = criarCampoComDitado({ rotulo: 'Fundamentação', valor: atual.fundamentacao });
+
+  // Síntese escrita pelo Diretor aqui na Decisão (2026-07-20) — não mais
+  // extraída automaticamente do texto integral das abas Conselho/Defesa.
+  // Pré-preenchida com um rascunho (resumo simples do texto integral, se
+  // ainda não houver síntese salva) só como ponto de partida — o texto que
+  // entra no Relatório é sempre este campo, nunca o texto integral direto.
+  const campoSinteseConselho = criarCampoComDitado({
+    rotulo: 'Síntese da Manifestação do Conselho (embasa o Relatório da Decisão — escreva com suas palavras)',
+    valor: atual.sinteseConselho || sintetizarTexto(pad.conselho?.fundamento),
+  });
+  const campoSinteseDefesa = criarCampoComDitado({
+    rotulo: 'Síntese da Manifestação da Defesa (embasa o Relatório da Decisão — escreva com suas palavras)',
+    valor: atual.sinteseDefesa || sintetizarTexto(pad.defesa?.texto),
+  });
 
   // Desclassificação
   const campoGrau = criarCampoSelect({ rotulo: 'Grau da desclassificação', valor: atual.desclassGrau ?? 'leve', opcoes: OPCOES_GRAU });
@@ -91,6 +106,8 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
       ...pad.decisao,
       resultado,
       fundamentacao: campoFundamentacao.input.value.trim(),
+      sinteseConselho: campoSinteseConselho.input.value.trim(),
+      sinteseDefesa: campoSinteseDefesa.input.value.trim(),
       desclassGrau: resultado === 'desclassificacao' ? campoGrau.input.value : null,
       desclassIncisos: resultado === 'desclassificacao'
         ? montarCheckboxesIncisos(campoGrau.input.value).filter((c) => c.checkbox.checked).map((c) => c.checkbox.value)
@@ -113,11 +130,13 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
     renderizarDecisao({ ...pad, decisao: lerFormulario() }),
     anexoSubstituto.obterAnexo(),
   ));
-  campoFundamentacao.input.addEventListener('input', preview.atualizar);
+  [campoFundamentacao, campoSinteseConselho, campoSinteseDefesa].forEach((campo) => campo.input.addEventListener('input', preview.atualizar));
 
   const secao = criarCardEditavel({
     titulo: 'Decisão da Direção',
     corpo: [
+      campoSinteseConselho.elemento,
+      campoSinteseDefesa.elemento,
       criarElemento('div', { class: 'documentos__campos' }, [campoResultado.elemento]),
       areaDesclassificacao,
       areaFaltaGrave,

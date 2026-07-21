@@ -59,7 +59,7 @@ export function montarRodape(pad) {
     .join(' / ');
   return {
     linhas: [
-      'POLÍCIA PENAL DE SANTA CATARINA',
+      (pad.dadosGerais?.unidade ?? '').toUpperCase() || 'POLÍCIA PENAL DE SANTA CATARINA',
       unidade?.endereco ?? unidade?.cidade ?? 'Florianópolis',
       contato,
     ].filter(Boolean),

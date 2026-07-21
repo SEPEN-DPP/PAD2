@@ -49,20 +49,28 @@ function relatorioIncidentado(pad) {
   return `Na sequência, procedeu-se à inquirição do(a) incidentado(a) ${nomeIpenIncidentado(pad)}, que, ao ser indagado(a), declarou, em síntese: "${sintese || placeholder('VERSÃO DO INCIDENTADO')}".`;
 }
 
+/**
+ * Síntese escrita pelo Diretor na própria aba Decisão (2026-07-20) — não
+ * mais extraída automaticamente do texto integral do Conselho/Defesa. É a
+ * própria síntese que embasa a Decisão, por isso mora aqui e não nas abas
+ * "Manifestação do Conselho"/"Manifestação da Defesa" (ver decisaoTab.js:
+ * `decisao.sinteseConselho`/`decisao.sinteseDefesa`, sugeridas a partir do
+ * texto integral só como rascunho inicial, sempre editável).
+ */
 function relatorioConselho(pad) {
   const conselho = pad.conselho ?? {};
+  const decisao = pad.decisao ?? {};
   const rotulo = ROTULO_CONCLUSAO_CONSELHO[conselho.conclusao] || placeholder('CONCLUSÃO DO CONSELHO');
-  const texto = conselho.fundamento
-    ? `, tendo consignado: "${conselho.fundamento}".`
-    : ', conforme parecer acostado aos autos.';
+  const sintese = decisao.sinteseConselho || sintetizarTexto(conselho.fundamento);
+  const texto = sintese ? `, tendo consignado: "${sintese}".` : ', conforme parecer acostado aos autos.';
   return `O Conselho Disciplinar, ao final da instrução, manifestou-se ${rotulo}${texto}`;
 }
 
 function relatorioDefesa(pad) {
   const defesa = pad.defesa ?? {};
-  const manifestacao = defesa.texto
-    ? `, alegando, em síntese: "${defesa.texto}"`
-    : ' conforme documentos acostados aos autos';
+  const decisao = pad.decisao ?? {};
+  const sintese = decisao.sinteseDefesa || sintetizarTexto(defesa.texto);
+  const manifestacao = sintese ? `, alegando, em síntese: "${sintese}"` : ' conforme documentos acostados aos autos';
   return `Por sua vez, a Defesa, promovida por ${textoDefensor(defesa)}, manifestou-se${manifestacao}.`;
 }
 
