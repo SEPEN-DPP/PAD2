@@ -47,14 +47,25 @@ function filtroDePrefixo(campo, termoNormalizado) {
   ];
 }
 
-/** Consulta ao vivo por prefixo de nome OU OAB — só pega o que o índice estático (desatualizado por natureza) ainda não tem. */
+/**
+ * Consulta ao vivo por prefixo de nome OU OAB — só pega o que o índice
+ * estático (desatualizado por natureza) ainda não tem. Nunca deixa uma
+ * falha aqui (rede, regra, o que for) derrubar a busca inteira — sem isto,
+ * um erro nesta consulta apagava também os resultados do índice estático
+ * (que não dependem dela), fazendo a Relação inteira parecer vazia.
+ */
 async function buscarAdvogadosAoVivo(termoNormalizado) {
-  const [porNome, porOab] = await Promise.all([
-    repoCadastro.listar({ filtros: filtroDePrefixo('nomeNormalizado', termoNormalizado), limite: 8 }),
-    repoCadastro.listar({ filtros: filtroDePrefixo('oabNormalizada', termoNormalizado), limite: 8 }),
-  ]);
-  const porId = new Map([...porNome, ...porOab].map((item) => [item.id, item]));
-  return [...porId.values()];
+  try {
+    const [porNome, porOab] = await Promise.all([
+      repoCadastro.listar({ filtros: filtroDePrefixo('nomeNormalizado', termoNormalizado), limite: 8 }),
+      repoCadastro.listar({ filtros: filtroDePrefixo('oabNormalizada', termoNormalizado), limite: 8 }),
+    ]);
+    const porId = new Map([...porNome, ...porOab].map((item) => [item.id, item]));
+    return [...porId.values()];
+  } catch (erro) {
+    console.error('Falha na busca ao vivo de advogados (índice estático não é afetado):', erro);
+    return [];
+  }
 }
 
 let indiceCache = null;
