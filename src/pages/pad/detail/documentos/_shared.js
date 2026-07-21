@@ -7,6 +7,7 @@
 import { criarElemento, carregarCssUmaVez, limparContainer } from '../../../../utils/domUtils.js';
 import { criarCard } from '../../../../components/card/card.js';
 import { criarBotao } from '../../../../components/button/button.js';
+import { icone } from '../../../../components/icon/icon.js';
 import { renderizarPreview } from '../../../../templates/shared/previewRenderer.js';
 import { baixarComoPdf } from '../../../../templates/shared/pdfExporter.js';
 import { baixarComoDoc, copiarDocumento } from '../../../../templates/shared/docExporter.js';
@@ -154,29 +155,66 @@ export function criarCardEditavel({ titulo, corpo }) {
 }
 
 /**
+ * Seção retrátil ("cascata"/acordeão, 2026-07-21) — nasce fechada, expande
+ * ao clicar no cabeçalho. Usada na aba Decisão pra não abrir de uma vez os
+ * campos de síntese de cada testemunha/incidentado/Conselho/Defesa e a
+ * Fundamentação (ver decisaoTab.js).
+ * @param {string} titulo
+ * @param {Node[]} filhos
+ * @param {{ abertoInicialmente?: boolean }} [opcoes]
+ */
+export function criarSecaoRetratil(titulo, filhos, { abertoInicialmente = false } = {}) {
+  let aberto = abertoInicialmente;
+  const seta = criarElemento('span', { class: 'documentos__acordeao-seta' }, [icone('chevron-right', { size: 16 })]);
+  const cabecalho = criarElemento(
+    'button',
+    { type: 'button', class: 'documentos__acordeao-cabecalho' },
+    [seta, criarElemento('span', {}, [titulo])],
+  );
+  const corpo = criarElemento('div', { class: 'documentos__acordeao-corpo' }, filhos);
+
+  function atualizar() {
+    corpo.style.display = aberto ? '' : 'none';
+    seta.classList.toggle('documentos__acordeao-seta--aberta', aberto);
+  }
+  cabecalho.addEventListener('click', () => {
+    aberto = !aberto;
+    atualizar();
+  });
+  atualizar();
+
+  return criarElemento('div', { class: 'documentos__acordeao-item' }, [cabecalho, corpo]);
+}
+
+/**
  * Salva `patch` no PAD e, na primeira vez que essa etapa é preenchida,
  * lança o evento correspondente na linha do tempo (ver ETAPAS_PAD). Quando
- * `chaveConfirmacao` é passada, qualquer "Salvar" reabre automaticamente o
- * documento se ele já estava confirmado (ver criarBotaoConfirmar) — evita
- * que o defensor veja, no Portal da Defesa, uma versão que está sendo
- * editada nesse momento.
+ * `chaveConfirmacao` é passada, "Salvar" já confirma o documento direto
+ * (2026-07-20 — antes exigia um clique separado em "Confirmar documento";
+ * agora salvar e confirmar são a mesma ação, sempre refletindo a última
+ * versão salva). Reabrir para editar de novo continua disponível pelo botão
+ * "Editar" do próprio card (ver `criarCardEditavel`) — editar e salvar de
+ * novo simplesmente confirma a versão atualizada.
  * @param {object} pad
  * @param {object} patch — objeto aninhado inteiro da seção (ex.: `{ conselho: {...} }`)
  * @param {{ etapa?: string, jaTinhaEtapa: boolean, chaveConfirmacao?: string }} opcoes
  */
 export async function salvarSecaoDoPad(pad, patch, { etapa, jaTinhaEtapa, chaveConfirmacao } = {}) {
+  const precisaResponsavel = (etapa && !jaTinhaEtapa) || chaveConfirmacao;
+  const perfil = precisaResponsavel ? await obterPerfilDoUsuario(usuarioAtual()?.uid) : null;
+  const responsavel = perfil?.nome ?? usuarioAtual()?.email ?? '—';
+
   const patchFinal = chaveConfirmacao
-    ? { ...patch, confirmacoes: { ...pad.confirmacoes, [chaveConfirmacao]: { confirmado: false } } }
+    ? { ...patch, confirmacoes: { ...pad.confirmacoes, [chaveConfirmacao]: { confirmado: true, confirmadoEm: new Date(), confirmadoPor: responsavel } } }
     : patch;
   await atualizarPad(pad.id, patchFinal);
   Object.assign(pad, patchFinal);
 
   if (etapa && !jaTinhaEtapa) {
-    const perfil = await obterPerfilDoUsuario(usuarioAtual()?.uid);
     await criarEvento({
       padId: pad.id,
       tipo: etapa,
-      responsavel: perfil?.nome ?? usuarioAtual()?.email ?? '—',
+      responsavel,
       data: new Date(),
       status: 'CONCLUIDO',
       observacoes: '',
@@ -184,83 +222,6 @@ export async function salvarSecaoDoPad(pad, patch, { etapa, jaTinhaEtapa, chaveC
       superintendencia: pad.superintendencia ?? null,
     });
   }
-}
-
-/**
- * Marca um documento como confirmado/fechado — só documentos confirmados
- * aparecem no Portal da Defesa (ver src/pages/portal-defesa). Dispara um
- * evento na linha do tempo, além do evento de primeiro-preenchimento que
- * `salvarSecaoDoPad` já lança (dois marcos distintos: "começou" e "fechado").
- * @param {object} pad
- * @param {string} chaveConfirmacao — mesma chave usada em `pad.confirmacoes`
- */
-export async function confirmarSecaoDoPad(pad, chaveConfirmacao) {
-  const perfil = await obterPerfilDoUsuario(usuarioAtual()?.uid);
-  const confirmadoPor = perfil?.nome ?? usuarioAtual()?.email ?? '—';
-  const patch = {
-    confirmacoes: {
-      ...pad.confirmacoes,
-      [chaveConfirmacao]: { confirmado: true, confirmadoEm: new Date(), confirmadoPor },
-    },
-  };
-  await atualizarPad(pad.id, patch);
-  Object.assign(pad, patch);
-  await criarEvento({
-    padId: pad.id,
-    tipo: `${chaveConfirmacao.toUpperCase()}_CONFIRMADO`,
-    responsavel: confirmadoPor,
-    data: new Date(),
-    status: 'CONCLUIDO',
-    observacoes: '',
-    unidade: pad.dadosGerais?.unidade,
-    superintendencia: pad.superintendencia ?? null,
-  });
-}
-
-/** Reabre um documento já confirmado (sem evento — é a instituição corrigindo algo, não um marco novo). */
-export async function reabrirSecaoDoPad(pad, chaveConfirmacao) {
-  const patch = { confirmacoes: { ...pad.confirmacoes, [chaveConfirmacao]: { confirmado: false } } };
-  await atualizarPad(pad.id, patch);
-  Object.assign(pad, patch);
-}
-
-/**
- * Botão "Confirmar documento" / "Reabrir" — alterna `pad.confirmacoes.<chave>`.
- * Qualquer usuário que já edita o PAD pode confirmar/reabrir (mesmo escopo de
- * `souCriadorDoPad` em firestore.rules — não há restrição adicional aqui).
- * @param {object} pad
- * @param {string} chaveConfirmacao
- * @param {{ onAtualizar?: () => void }} [opcoes]
- */
-export function criarBotaoConfirmar(pad, chaveConfirmacao, { onAtualizar } = {}) {
-  const estaConfirmado = () => Boolean(pad.confirmacoes?.[chaveConfirmacao]?.confirmado);
-
-  const botao = criarBotao({
-    texto: estaConfirmado() ? 'Reabrir' : 'Confirmar documento',
-    icon: estaConfirmado() ? 'lock-open' : 'lock',
-    variante: 'secondary',
-    onClick: async () => {
-      botao.disabled = true;
-      try {
-        if (estaConfirmado()) {
-          await reabrirSecaoDoPad(pad, chaveConfirmacao);
-          mostrarToast('Documento reaberto para edição.', 'sucesso');
-        } else {
-          await confirmarSecaoDoPad(pad, chaveConfirmacao);
-          mostrarToast('Documento confirmado — já aparece no Portal da Defesa.', 'sucesso');
-        }
-        botao.querySelector('span:last-child').textContent = estaConfirmado() ? 'Reabrir' : 'Confirmar documento';
-        onAtualizar?.();
-      } catch (erro) {
-        console.error('Falha ao confirmar/reabrir documento:', erro);
-        mostrarToast('Não foi possível concluir a ação.', 'erro');
-      } finally {
-        botao.disabled = false;
-      }
-    },
-  });
-
-  return botao;
 }
 
 /**

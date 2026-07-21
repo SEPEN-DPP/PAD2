@@ -8,12 +8,11 @@
  */
 import {
   criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotao,
-  criarCard, salvarSecaoDoPad, criarBotaoConfirmar,
+  criarCard, salvarSecaoDoPad,
 } from './_shared.js';
 import { renderizar as renderizarOitiva } from '../../../../templates/oitivaTestemunhaTemplate.js';
 import { baixarComoPdf } from '../../../../templates/shared/pdfExporter.js';
 import { baixarComoDoc } from '../../../../templates/shared/docExporter.js';
-import { sintetizarTexto } from '../../../../utils/stringUtils.js';
 import { mostrarToast } from '../../../../utils/toast.js';
 
 const OPCOES_QUALIDADE = [
@@ -80,7 +79,6 @@ export function renderTestemunhasTab(pad, configUnidade, { onAtualizar } = {}) {
 
     const card = criarCard({
       titulo: 'Oitiva de Testemunhas',
-      acoes: [criarBotaoConfirmar(pad, 'testemunhas', { onAtualizar })],
       filhos: [
         criarElemento('p', { class: 'text-muted' }, ['Cada testemunha/informante gera seu próprio Termo de Oitiva.']),
         criarElemento('div', { class: 'documentos__acoes' }, [botaoAdicionar]),
@@ -98,10 +96,6 @@ export function renderTestemunhasTab(pad, configUnidade, { onAtualizar } = {}) {
     const campoQualificacao = criarCampo({ rotulo: 'Qualificação (ex.: agente penitenciário, interno...)', valor: testemunhaAtual?.qualificacao });
     const campoQualidade = criarCampoSelect({ rotulo: 'Qualidade', valor: testemunhaAtual?.qualidade ?? 'testemunha', opcoes: OPCOES_QUALIDADE });
     const campoDepoimento = criarCampoComDitado({ rotulo: 'Depoimento', valor: testemunhaAtual?.depoimento });
-    const campoSintese = criarCampoComDitado({
-      rotulo: 'Síntese do depoimento (é o que entra no Relatório da Decisão — pode ajustar à vontade)',
-      valor: testemunhaAtual?.sintese || sintetizarTexto(testemunhaAtual?.depoimento),
-    });
 
     function lerFormulario() {
       return {
@@ -110,12 +104,11 @@ export function renderTestemunhasTab(pad, configUnidade, { onAtualizar } = {}) {
         qualificacao: campoQualificacao.input.value.trim(),
         qualidade: campoQualidade.input.value,
         depoimento: campoDepoimento.input.value.trim(),
-        sintese: campoSintese.input.value.trim(),
       };
     }
 
     const preview = criarAreaPreview(pad, () => renderizarOitiva(pad, lerFormulario(), configUnidade));
-    [campoNome, campoQualificacao, campoQualidade, campoDepoimento, campoSintese].forEach((campo) => {
+    [campoNome, campoQualificacao, campoQualidade, campoDepoimento].forEach((campo) => {
       campo.input.addEventListener('input', preview.atualizar);
       campo.input.addEventListener('change', preview.atualizar);
     });
@@ -154,7 +147,6 @@ export function renderTestemunhasTab(pad, configUnidade, { onAtualizar } = {}) {
         campoQualificacao.elemento,
         campoQualidade.elemento,
         campoDepoimento.elemento,
-        campoSintese.elemento,
         criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]),
       ],
     });

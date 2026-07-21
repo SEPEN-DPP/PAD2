@@ -3,7 +3,7 @@
  * sub-formulário aparece: desclassificação (grau + incisos, como no
  * Conselho) ou falta grave (sanções a aplicar).
  */
-import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstitutoPersistido, aplicarAnexoSubstituto, salvarSecaoDoPad, criarBotaoConfirmar } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampo, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarSecaoRetratil, criarAnexoSubstitutoPersistido, aplicarAnexoSubstituto, salvarSecaoDoPad, paraValorInputDate } from './_shared.js';
 import { renderizar as renderizarDecisao } from '../../../../templates/decisaoTemplate.js';
 import { obterIncisosDesclassificacao, SANCOES_FALTA_GRAVE } from '../../../../config/baseLegal.js';
 import { sintetizarTexto } from '../../../../utils/stringUtils.js';
@@ -31,14 +31,36 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
   const atual = pad.decisao ?? {};
   const sancoesAtuais = atual.sancoes ?? {};
 
+  const campoDataAudiencia = criarCampo({ rotulo: 'Data da audiência', tipo: 'date', valor: paraValorInputDate(atual.dataAudiencia) });
   const campoResultado = criarCampoSelect({ rotulo: 'Resultado da Decisão', valor: atual.resultado ?? '', opcoes: OPCOES_RESULTADO });
   const campoFundamentacao = criarCampoComDitado({ rotulo: 'Fundamentação', valor: atual.fundamentacao });
 
-  // Síntese escrita pelo Diretor aqui na Decisão (2026-07-20) — não mais
-  // extraída automaticamente do texto integral das abas Conselho/Defesa.
-  // Pré-preenchida com um rascunho (resumo simples do texto integral, se
-  // ainda não houver síntese salva) só como ponto de partida — o texto que
-  // entra no Relatório é sempre este campo, nunca o texto integral direto.
+  // Síntese escrita pelo Diretor aqui na Decisão (2026-07-20/21) — não mais
+  // extraída automaticamente do texto integral das abas Testemunhas,
+  // Depoimento Incidentado, Conselho e Defesa. Pré-preenchida com um
+  // rascunho (resumo simples do texto integral, se ainda não houver
+  // síntese salva) só como ponto de partida — o texto que entra no
+  // Relatório é sempre este campo, nunca o texto integral direto.
+  const sintesesTestemunhasAtuais = atual.sintesesTestemunhas ?? {};
+  const camposSinteseTestemunhas = (pad.testemunhas ?? []).map((t) => ({
+    id: t.id,
+    nome: t.nome,
+    campo: criarCampoComDitado({
+      rotulo: `Síntese do depoimento de ${t.nome || 'testemunha'} (embasa o Relatório da Decisão)`,
+      valor: sintesesTestemunhasAtuais[t.id] || t.sintese || sintetizarTexto(t.depoimento),
+    }),
+  }));
+
+  const incidentadoDecisao = pad.incidentados?.[0];
+  const declaracaoIncidentado = pad.declaracoesApenado?.[0];
+  const sintesesIncidentadosAtuais = atual.sintesesIncidentados ?? {};
+  const campoSinteseIncidentado = incidentadoDecisao && declaracaoIncidentado && !declaracaoIncidentado.silencio
+    ? criarCampoComDitado({
+        rotulo: `Síntese da declaração de ${incidentadoDecisao.nomeCompleto || 'incidentado'} (embasa o Relatório da Decisão)`,
+        valor: sintesesIncidentadosAtuais[incidentadoDecisao.id] || declaracaoIncidentado.sintese || sintetizarTexto(declaracaoIncidentado.versaoIncidentado),
+      })
+    : null;
+
   const campoSinteseConselho = criarCampoComDitado({
     rotulo: 'Síntese da Manifestação do Conselho (embasa o Relatório da Decisão — escreva com suas palavras)',
     valor: atual.sinteseConselho || sintetizarTexto(pad.conselho?.fundamento),
@@ -105,9 +127,14 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
     return {
       ...pad.decisao,
       resultado,
+      dataAudiencia: campoDataAudiencia.input.value ? new Date(`${campoDataAudiencia.input.value}T00:00:00`) : null,
       fundamentacao: campoFundamentacao.input.value.trim(),
       sinteseConselho: campoSinteseConselho.input.value.trim(),
       sinteseDefesa: campoSinteseDefesa.input.value.trim(),
+      sintesesTestemunhas: Object.fromEntries(camposSinteseTestemunhas.map((c) => [c.id, c.campo.input.value.trim()])),
+      sintesesIncidentados: campoSinteseIncidentado && incidentadoDecisao
+        ? { ...atual.sintesesIncidentados, [incidentadoDecisao.id]: campoSinteseIncidentado.input.value.trim() }
+        : (atual.sintesesIncidentados ?? {}),
       desclassGrau: resultado === 'desclassificacao' ? campoGrau.input.value : null,
       desclassIncisos: resultado === 'desclassificacao'
         ? montarCheckboxesIncisos(campoGrau.input.value).filter((c) => c.checkbox.checked).map((c) => c.checkbox.value)
@@ -130,21 +157,33 @@ export function renderDecisaoTab(pad, _configUnidade, { onAtualizar } = {}) {
     renderizarDecisao({ ...pad, decisao: lerFormulario() }),
     anexoSubstituto.obterAnexo(),
   ));
-  [campoFundamentacao, campoSinteseConselho, campoSinteseDefesa].forEach((campo) => campo.input.addEventListener('input', preview.atualizar));
+  [
+    campoDataAudiencia,
+    campoFundamentacao,
+    campoSinteseConselho,
+    campoSinteseDefesa,
+    ...camposSinteseTestemunhas.map((c) => c.campo),
+    ...(campoSinteseIncidentado ? [campoSinteseIncidentado] : []),
+  ].forEach((campo) => campo.input.addEventListener('input', preview.atualizar));
 
+  // Cada síntese/fundamentação nasce recolhida ("cascata") — só o campo de
+  // data da audiência e o Resultado (sempre por último, com seus
+  // sub-formulários) ficam sempre visíveis (2026-07-21).
   const secao = criarCardEditavel({
     titulo: 'Decisão da Direção',
     corpo: [
-      campoSinteseConselho.elemento,
-      campoSinteseDefesa.elemento,
+      criarElemento('div', { class: 'documentos__campos' }, [campoDataAudiencia.elemento]),
+      ...camposSinteseTestemunhas.map((c) => criarSecaoRetratil(`Síntese do depoimento — ${c.nome || 'testemunha'}`, [c.campo.elemento])),
+      campoSinteseIncidentado ? criarSecaoRetratil('Síntese da declaração do incidentado', [campoSinteseIncidentado.elemento]) : null,
+      criarSecaoRetratil('Síntese da Manifestação do Conselho', [campoSinteseConselho.elemento]),
+      criarSecaoRetratil('Síntese da Manifestação da Defesa', [campoSinteseDefesa.elemento]),
+      criarSecaoRetratil('Fundamentação', [campoFundamentacao.elemento]),
       criarElemento('div', { class: 'documentos__campos' }, [campoResultado.elemento]),
       areaDesclassificacao,
       areaFaltaGrave,
-      campoFundamentacao.elemento,
       anexoSubstituto.elemento,
-    ],
+    ].filter(Boolean),
   });
-  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'decisao', { onAtualizar }));
 
   const botaoSalvar = criarBotaoSalvar(
     async () => {

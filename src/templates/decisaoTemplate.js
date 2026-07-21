@@ -26,12 +26,32 @@ const ROTULO_CONCLUSAO_CONSELHO = {
   desclassificacao: 'pela desclassificação da infração disciplinar',
 };
 
+/** Parágrafo fixo (2026-07-21) — sempre presente, antes da menção à data da audiência. */
+const PARAGRAFO_CONTRADITORIO_AMPLA_DEFESA =
+  'Registra-se que todos os atos do presente processo foram acompanhados pelo(a) apenado(a) e/ou por seu(sua) Defensor(a), sendo-lhe oportunizada a oportunidade de apresentar suas alegações e versões sobre os fatos, ou de permanecer em silêncio, caso assim entendesse, de modo a preservar os princípios constitucionais do contraditório e da ampla defesa.';
+
+/** Data da audiência de instrução (2026-07-21) — escrita pelo Diretor na aba Decisão (`decisao.dataAudiencia`). */
+function relatorioDataAudiencia(pad) {
+  const decisao = pad.decisao ?? {};
+  const data = decisao.dataAudiencia ? dataPorExtenso(decisao.dataAudiencia) : placeholder('DATA DA AUDIÊNCIA');
+  return `Foi realizada audiência de instrução em ${data}.`;
+}
+
+/**
+ * Síntese de cada depoimento/declaração (2026-07-21) — escrita pelo Diretor
+ * na própria aba Decisão (`decisao.sintesesTestemunhas`/`sintesesIncidentados`,
+ * mapeadas por id), não mais nas abas Testemunhas/Depoimento Incidentado.
+ * Cai para o campo antigo (`t.sintese`/`declaracoes.sintese`, de PADs
+ * anteriores a essa mudança) e, por fim, para um resumo automático do texto
+ * integral, nessa ordem.
+ */
 function relatorioTestemunhas(pad) {
   const testemunhas = pad.testemunhas ?? [];
   if (!testemunhas.length) return 'Não foram arroladas testemunhas no presente procedimento.';
+  const sintesesTestemunhas = pad.decisao?.sintesesTestemunhas ?? {};
   const linhas = testemunhas.map((t) => {
     const qualidade = t.qualidade === 'informante' ? 'informante' : 'testemunha';
-    const sintese = t.sintese || sintetizarTexto(t.depoimento);
+    const sintese = sintesesTestemunhas[t.id] || t.sintese || sintetizarTexto(t.depoimento);
     const relato = sintese
       ? `declarando, em síntese: "${sintese}".`
       : 'cujo depoimento encontra-se registrado nos autos.';
@@ -45,7 +65,9 @@ function relatorioIncidentado(pad) {
   if (declaracoes.silencio) {
     return `Na sequência, procedeu-se à inquirição do(a) incidentado(a) ${nomeIpenIncidentado(pad)}, que, devidamente cientificado(a) do seu direito constitucional ao silêncio, optou por não prestar declarações.`;
   }
-  const sintese = declaracoes.sintese || sintetizarTexto(declaracoes.versaoIncidentado);
+  const incidentadoId = pad.incidentados?.[0]?.id;
+  const sintesesIncidentados = pad.decisao?.sintesesIncidentados ?? {};
+  const sintese = (incidentadoId && sintesesIncidentados[incidentadoId]) || declaracoes.sintese || sintetizarTexto(declaracoes.versaoIncidentado);
   return `Na sequência, procedeu-se à inquirição do(a) incidentado(a) ${nomeIpenIncidentado(pad)}, que, ao ser indagado(a), declarou, em síntese: "${sintese || placeholder('VERSÃO DO INCIDENTADO')}".`;
 }
 
@@ -132,6 +154,8 @@ export function renderizar(pad) {
 
   const relatorio = [
     `Trata-se de Procedimento Administrativo Disciplinar instaurado pela Portaria nº ${numero}, em ${dataInst}. Conforme os documentos que instruem o presente processo, ${plural ? 'os reeducandos' : 'o(a) reeducando(a)'} ${nomeIpenIncidentado(pad)}, na data de ${dataInfracaoFormatada(pad)}, ${plural ? 'teriam incorrido' : 'teria incorrido'} na prática da falta disciplinar prevista no ${artigoTextoCompleto(pad)}, na medida em que: "${descricaoDosFatos(pad)}".`,
+    PARAGRAFO_CONTRADITORIO_AMPLA_DEFESA,
+    relatorioDataAudiencia(pad),
     ...[].concat(relatorioTestemunhas(pad)),
     relatorioIncidentado(pad),
     relatorioConselho(pad),

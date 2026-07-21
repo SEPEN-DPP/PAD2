@@ -3,8 +3,9 @@
  * painel institucional para o defensor (advogado constituído ou defensor
  * público) vinculado a um ou mais PADs. Lista os PADs vinculados; dentro de
  * cada um, mostra somente os documentos já CONFIRMADOS pela Unidade
- * (`pad.confirmacoes.<chave>.confirmado === true` — ver
- * src/pages/pad/detail/documentos/_shared.js:criarBotaoConfirmar), em modo
+ * (`pad.confirmacoes.<chave>.confirmado === true`, marcado automaticamente
+ * ao salvar — ver src/pages/pad/detail/documentos/_shared.js:salvarSecaoDoPad),
+ * em modo
  * somente-leitura. Enquanto a Manifestação da Defesa ainda não estiver
  * confirmada, mostra em vez disso o formulário para o próprio defensor
  * enviá-la (texto + ditado + upload de PDF persistido).

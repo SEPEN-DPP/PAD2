@@ -21,7 +21,7 @@
  */
 import {
   criarElemento, carregarCssUmaVez, criarCampo, criarCampoSelect, criarAreaPreview, criarBotao, criarBotaoSalvar,
-  criarCardEditavel, salvarSecaoDoPad, criarBotaoConfirmar, criarBotoesConvidarPorEmail,
+  criarCardEditavel, salvarSecaoDoPad, criarBotoesConvidarPorEmail,
 } from './_shared.js';
 import { renderizar as renderizarTermo } from '../../../../templates/termoCientificacaoTemplate.js';
 import { vincularDefensorAoPad, desvincularDefensorDoPad, notificarDefensorPorEmail, obterDefensor } from '../../../../services/defensores/defensorService.js';
@@ -394,7 +394,6 @@ export function renderTermoCientificacaoTab(pad, _configUnidade, { onAtualizar }
       campoObservacoes.elemento,
     ],
   });
-  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'termoCientificacao', { onAtualizar }));
 
   const botaoSalvar = criarBotaoSalvar(
     async () => {

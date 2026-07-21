@@ -2,18 +2,19 @@
  * Aba "Depoimento Incidentado" (renomeada de "Declarações do Apenado",
  * 2026-07-15) — um Termo de Declarações por incidentado do PAD (ver
  * incidentadosTab.js para adicionar/remover incidentados). `declaracoesApenado`
- * é um array `{ incidentadoId, silencio, versaoIncidentado, sintese }`, um
- * item por incidentado. Editar usa o mesmo padrão de painel lateral com
+ * é um array `{ incidentadoId, silencio, versaoIncidentado }`, um item por
+ * incidentado. Editar usa o mesmo padrão de painel lateral com
  * pré-visualização ao vivo das demais abas de documento único (Portaria,
- * Conselho, Decisão) — não modal (2026-07-20).
+ * Conselho, Decisão) — não modal (2026-07-20). A síntese que embasa o
+ * Relatório da Decisão é escrita na própria aba Decisão (2026-07-21), não
+ * aqui — ver decisaoTab.js.
  */
 import {
-  criarElemento, carregarCssUmaVez, criarCampoComDitado, criarAreaPreview, criarBotao, criarCard, salvarSecaoDoPad, criarBotaoConfirmar,
+  criarElemento, carregarCssUmaVez, criarCampoComDitado, criarAreaPreview, criarBotao, criarCard, salvarSecaoDoPad,
 } from './_shared.js';
 import { renderizar as renderizarDeclaracao } from '../../../../templates/declaracaoApenadoTemplate.js';
 import { baixarComoPdf } from '../../../../templates/shared/pdfExporter.js';
 import { baixarComoDoc } from '../../../../templates/shared/docExporter.js';
-import { sintetizarTexto } from '../../../../utils/stringUtils.js';
 import { mostrarToast } from '../../../../utils/toast.js';
 
 export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar } = {}) {
@@ -69,7 +70,6 @@ export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar
 
     const card = criarCard({
       titulo: 'Depoimento Incidentado',
-      acoes: [criarBotaoConfirmar(pad, 'declaracoesApenado', { onAtualizar })],
       filhos: [
         criarElemento('p', { class: 'text-muted' }, [
           incidentados.length
@@ -90,14 +90,9 @@ export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar
     const botaoDeclarou = criarBotao({ texto: 'Prestou declarações', variante: silencio ? 'secondary' : 'primary', onClick: () => alternar(false) });
     const botaoSilencio = criarBotao({ texto: 'Permaneceu em silêncio', variante: silencio ? 'primary' : 'secondary', onClick: () => alternar(true) });
     const campoVersao = criarCampoComDitado({ rotulo: 'Versão apresentada pelo incidentado', valor: declaracaoAtual?.versaoIncidentado });
-    const campoSintese = criarCampoComDitado({
-      rotulo: 'Síntese da declaração (é o que entra no Relatório da Decisão — pode ajustar à vontade)',
-      valor: declaracaoAtual?.sintese || sintetizarTexto(declaracaoAtual?.versaoIncidentado),
-    });
 
     function atualizarVisibilidadeSilencio() {
       campoVersao.elemento.style.display = silencio ? 'none' : '';
-      campoSintese.elemento.style.display = silencio ? 'none' : '';
     }
 
     function alternar(novoValor) {
@@ -113,16 +108,13 @@ export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar
         incidentadoId: incidentado.id,
         silencio,
         versaoIncidentado: campoVersao.input.value.trim(),
-        sintese: campoSintese.input.value.trim(),
       };
     }
 
     const preview = criarAreaPreview(pad, () => renderizarDeclaracao(pad, incidentado, lerFormulario(), configUnidade));
     atualizarVisibilidadeSilencio();
-    [campoVersao, campoSintese].forEach((campo) => {
-      campo.input.addEventListener('input', preview.atualizar);
-      campo.input.addEventListener('change', preview.atualizar);
-    });
+    campoVersao.input.addEventListener('input', preview.atualizar);
+    campoVersao.input.addEventListener('change', preview.atualizar);
 
     const botaoCancelar = criarBotao({ texto: 'Cancelar', icon: 'x', variante: 'secondary', onClick: mostrarLista });
     const botaoSalvar = criarBotao({
@@ -153,7 +145,6 @@ export function renderDepoimentoIncidentadoTab(pad, configUnidade, { onAtualizar
       filhos: [
         criarElemento('div', { class: 'documentos__acoes' }, [botaoDeclarou, botaoSilencio]),
         campoVersao.elemento,
-        campoSintese.elemento,
         criarElemento('div', { class: 'documentos__acoes' }, [botaoSalvar]),
       ],
     });

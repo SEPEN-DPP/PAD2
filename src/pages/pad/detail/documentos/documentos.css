@@ -81,3 +81,38 @@
 }
 
 /* .campo-grupo (bloco Nome+Matrícula do Conselho/Diretor) é global — ver src/styles/forms.css */
+
+.documentos__acordeao-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+}
+
+.documentos__acordeao-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  color: var(--color-text);
+}
+
+.documentos__acordeao-seta {
+  display: inline-flex;
+  transition: transform var(--transition-fast);
+}
+
+.documentos__acordeao-seta--aberta {
+  transform: rotate(90deg);
+}
+
+.documentos__acordeao-corpo {
+  padding: var(--space-4);
+}

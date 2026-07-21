@@ -4,7 +4,7 @@
  * Conselho (Presidente/Membros) é designada na aba "Portaria" e só exibida
  * aqui como contexto, não editável.
  */
-import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstitutoPersistido, aplicarAnexoSubstituto, salvarSecaoDoPad, criarBotaoConfirmar } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCampoComDitado, criarCampoSelect, criarAreaPreview, criarBotaoSalvar, criarCardEditavel, criarAnexoSubstitutoPersistido, aplicarAnexoSubstituto, salvarSecaoDoPad } from './_shared.js';
 import { renderizar as renderizarManifestacao } from '../../../../templates/manifestacaoConselhoTemplate.js';
 import { integrantesConselho } from '../../../../templates/shared/condicionais.js';
 import { obterIncisosDesclassificacao } from '../../../../config/baseLegal.js';
@@ -104,7 +104,6 @@ export function renderConselhoTab(pad, configUnidade, { onAtualizar } = {}) {
       anexoSubstituto.elemento,
     ],
   });
-  secao.elemento.querySelector('.card__acoes')?.append(criarBotaoConfirmar(pad, 'conselho', { onAtualizar }));
 
   const botaoSalvar = criarBotaoSalvar(
     async () => {

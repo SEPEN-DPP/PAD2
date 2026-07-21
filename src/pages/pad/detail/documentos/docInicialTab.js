@@ -10,7 +10,7 @@
  * `converterParaAnexoPersistido` em _shared.js) — acima disso, o item não é
  * adicionado e um aviso pede um arquivo menor.
  */
-import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad, criarBotao, criarBotaoConfirmar, converterParaAnexoPersistido } from './_shared.js';
+import { criarElemento, carregarCssUmaVez, criarCard, criarCampo, criarAreaPreview, criarBotaoSalvar, salvarSecaoDoPad, criarBotao, converterParaAnexoPersistido } from './_shared.js';
 import { renderizar as renderizarDocInicial } from '../../../../templates/docInicialTemplate.js';
 import { mostrarToast } from '../../../../utils/toast.js';
 
@@ -105,7 +105,6 @@ export function renderDocInicialTab(pad, _configUnidade, { onAtualizar } = {}) {
 
   const formulario = criarCard({
     titulo: 'Documentação Inicial',
-    acoes: [criarBotaoConfirmar(pad, 'docInicial', { onAtualizar })],
     filhos: [
       criarElemento('p', { class: 'text-muted' }, ['Anexos ficam salvos junto com o PAD (sujeitos a um limite de tamanho — se um arquivo for grande demais, um aviso pede um menor).']),
       criarElemento('div', { class: 'documentos__campos' }, [campoTitulo.elemento]),
